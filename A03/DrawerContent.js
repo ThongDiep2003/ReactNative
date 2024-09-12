@@ -53,18 +53,14 @@ function DrawerContent(props) {
     fetchUserProfile();
   }, []);
 
-  const handleSignOut = () => {
-    signOut(FIREBASE_AUTH)
-      .then(() => {
-        // Đăng xuất thành công, điều hướng về màn hình Login
-        Alert.alert('Sign Out', 'You have been signed out successfully');
-        navigation.navigate('Login');
-      })
-      .catch((error) => {
-        // Xử lý lỗi nếu có
-        console.error('Error signing out: ', error);
-        Alert.alert('Error', 'Failed to sign out. Please try again.');
-      });
+  const handleSignOut = async () => {
+    try {
+      await signOut(FIREBASE_AUTH);
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      Alert.alert('Sign Out Error', 'An error occurred while signing out. Please try again.');
+    }
   };
 
   return (
@@ -74,13 +70,22 @@ function DrawerContent(props) {
           <TouchableOpacity activeOpacity={0.8}>
             <View style={styles.userInfoSection}>
               <View style={{ flexDirection: 'row', marginTop: 15 }}>
-                
+                {/* {userProfile && userProfile.avatarUri ? (
+                  <Avatar.Image
+                    source={{ uri: userProfile.avatarUri }}
+                    size={50}
+                  />
+                ) : (
+                  <Avatar.Icon
+                    icon="account"
+                    size={50}
+                  />
+                )} */}
                 <View style={{ marginLeft: 10, flexDirection: 'column' }}>
                   {userProfile ? (
                     <>
-                      <Text style={styles.textStyle}> {userProfile.name}</Text>
-                      <Text style={styles.textStyle}> {userProfile.email}</Text>
-                      
+                      <Text style={styles.textStyle}>{userProfile.name}</Text>
+                      <Text style={styles.textStyle}>{userProfile.email}</Text>
                     </>
                   ) : (
                     <Text style={styles.textStyle}>No profile data available</Text>
@@ -107,8 +112,6 @@ function DrawerContent(props) {
   );
 }
 
-export default DrawerContent;
-
 const styles = StyleSheet.create({
   drawerContent: {
     flex: 1,
@@ -119,7 +122,7 @@ const styles = StyleSheet.create({
   textStyle: {
     fontSize: 15,
     marginBottom: 10,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   drawerSection: {
     marginTop: 15,
@@ -130,3 +133,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
 });
+
+export default DrawerContent;

@@ -13,6 +13,7 @@ const RegisterPage = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const auth = FIREBASE_AUTH;
 
+  
   const handleRegister = async () => {
     if (password !== confirmPassword) {
       Alert.alert('Passwords do not match');

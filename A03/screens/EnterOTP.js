@@ -1,28 +1,32 @@
 import React, { useState } from 'react';
 import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
-import { generateOTP, sendOTPEmail } from './OTP'; // Import các hàm cần thiết
-import {EnterOTP} from './EnterOTP'
-const ForgotPassword = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+import { verifyOTP } from './FirebaseConfig'; // Import hàm verifyOTP từ FirebaseConfig
+
+const EnterOTP = ({ route, navigation }) => {
+  const { email } = route.params; // Nhận email từ tham số điều hướng
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSendOTP = async () => {
-    if (!email) {
-      Alert.alert('Error', 'Please enter your email');
+  const handleVerifyOTP = async () => {
+    if (!otp) {
+      Alert.alert('Error', 'Please enter the OTP');
       return;
     }
 
     setLoading(true);
     try {
-      const otp = generateOTP(); // Tạo mã OTP
-      // Gửi mã OTP qua email
-      await sendOTPEmail(email, otp);
-      // Lưu mã OTP vào Realtime Database hoặc bất kỳ nơi nào bạn muốn để xác thực sau
-      Alert.alert('Success', 'OTP has been sent to your email.');
-      navigation.navigate('EnterOTP', { email }); // Điều hướng đến màn hình nhập OTP
+      // Xác thực mã OTP
+      const isValid = await verifyOTP(email, otp);
+      if (isValid) {
+        Alert.alert('Success', 'OTP is valid. You can now reset your password.');
+        // Điều hướng đến màn hình reset password với email
+        navigation.navigate('ResetPassword', { email });
+      } else {
+        Alert.alert('Error', 'Invalid or expired OTP');
+      }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to send OTP: ' + error.message);
+      Alert.alert('Error', 'Failed to verify OTP: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -31,21 +35,21 @@ const ForgotPassword = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
-        <Text style={styles.title}>Forgot Password</Text>
+        <Text style={styles.title}>Enter OTP</Text>
         <Text style={styles.description}>
-          Enter your email address below and we will send you an OTP to reset your password.
+          Enter the OTP sent to your email address to proceed with resetting your password.
         </Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
+          placeholder="Enter OTP"
+          value={otp}
+          onChangeText={setOtp}
+          keyboardType="numeric"
+          maxLength={6} // OTP thường có 6 ký tự
         />
         <Button
-          title={loading ? 'Sending...' : 'Send OTP'}
-          onPress={handleSendOTP}
+          title={loading ? 'Verifying...' : 'Verify OTP'}
+          onPress={handleVerifyOTP}
           disabled={loading}
           color="#2596be" // Thay đổi màu nút
         />
@@ -94,5 +98,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ForgotPassword;
-
+export default EnterOTP;
