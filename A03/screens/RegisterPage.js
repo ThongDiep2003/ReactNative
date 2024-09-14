@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
-import { Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Alert } from 'react-native';
+import { PermissionsAndroid, Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Alert } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { FIREBASE_AUTH, FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
-import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
+import { FIREBASE_AUTH, FIREBASE_DB } from './FirebaseConfig'; 
+import { ref, set } from 'firebase/database';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
 
 const RegisterPage = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState(''); // State cho tên
-  const [birthdate, setBirthdate] = useState(''); // State cho ngày sinh
+  const [name, setName] = useState('');
+  const [birthdate, setBirthdate] = useState('');
+  const [avatar, setAvatar] = useState(null); // Để lưu URI của ảnh đã chọn
   const [loading, setLoading] = useState(false);
   const auth = FIREBASE_AUTH;
+  const storage = getStorage(); // Initialize Firebase Storage
 
-  
   const handleRegister = async () => {
     if (password !== confirmPassword) {
       Alert.alert('Passwords do not match');
@@ -22,16 +25,25 @@ const RegisterPage = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // Đăng ký người dùng
       const response = await createUserWithEmailAndPassword(auth, username, password);
       const userId = response.user.uid;
 
-      // Lưu thông tin người dùng vào Realtime Database
+      // Nếu người dùng đã chọn ảnh, tải lên Firebase Storage
+      let avatarUrl = null;
+      if (avatar) {
+        const avatarStorageRef = storageRef(storage, `avatars/${userId}.jpg`);
+        const img = await fetch(avatar);
+        const bytes = await img.blob(); // Convert image URI to blob format
+        await uploadBytes(avatarStorageRef, bytes);
+        avatarUrl = await getDownloadURL(avatarStorageRef); // Get URL of uploaded image
+      }
+
+      // Lưu thông tin người dùng vào Realtime Database với URL của ảnh (nếu có)
       await set(ref(FIREBASE_DB, 'users/' + userId), {
         name: name,
         email: username,
         birthdate: birthdate,
-        // Đừng lưu mật khẩu trong thực tế
+        avatar: avatarUrl || 'default_avatar_url',  // Lưu URL của ảnh hoặc ảnh mặc định
       });
 
       Alert.alert('Registration successful');
@@ -50,12 +62,49 @@ const RegisterPage = ({ navigation }) => {
     }
   };
 
+  const requestPermission = async () => {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+        {
+          title: 'Permission to access media',
+          message: 'This app needs access to your media to upload an avatar',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        console.log('You can access the media');
+        handleSelectAvatar();
+      } else {
+        console.log('Media permission denied');
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+
+  const handleSelectAvatar = () => {
+    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        // Lưu URI của ảnh vào state
+        setAvatar(response.assets[0].uri);
+      }
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Hiển thị ảnh avatar đã chọn hoặc ảnh mặc định */}
       <Image
-        source={require('../assets/logo.png')} // Đường dẫn tới ảnh trong thư mục dự án
-        style={styles.image}
+        source={avatar ? { uri: avatar } : require('../assets/avatar.png')}
+        style={styles.avatar}
       />
+      <Pressable style={styles.avatarButton} onPress={requestPermission}>
+        <Text style={styles.avatarButtonText}>Choose Avatar</Text>
+      </Pressable>
+
       <Text style={styles.title}>Register</Text>
       <View style={styles.inputView}>
         <TextInput
@@ -116,9 +165,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 16,
   },
-  image: {
+  avatar: {
     width: 100,
     height: 100,
+    borderRadius: 50,
+    marginBottom: 20,
+  },
+  avatarButton: {
+    backgroundColor: '#2596be',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  avatarButtonText: {
+    color: 'white',
+    fontSize: 16,
   },
   title: {
     fontSize: 24,

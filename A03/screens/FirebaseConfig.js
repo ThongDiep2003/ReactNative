@@ -65,12 +65,31 @@ export const verifyOTP = async (email, otp) => {
     throw new Error('Failed to verify OTP. Please try again.');
   }
 };
+
+// Function to store user profile in Realtime Database (including avatar)
+export const storeUserProfile = async (userId, name, email, birthdate, avatar) => {
+  try {
+    const userRef = ref(FIREBASE_DB, 'users/' + userId);
+    await set(userRef, {
+      name: name,
+      email: email,
+      birthdate: birthdate,
+      avatar: avatar || 'default_avatar_url', // Thêm trường avatar vào profile, nếu không có thì lưu ảnh mặc định
+    });
+    console.log('User profile stored successfully');
+  } catch (error) {
+    console.error('Error storing user profile in database:', error);
+    throw new Error('Failed to store user profile. Please try again.');
+  }
+};
+
+// Function to get user profile from Realtime Database (including avatar)
 export const getUserProfile = async (userId) => {
   try {
     const userRef = ref(FIREBASE_DB, 'users/' + userId);
     const snapshot = await get(userRef);
     if (snapshot.exists()) {
-      return snapshot.val();
+      return snapshot.val(); // Trả về đối tượng có cả thông tin avatar
     } else {
       throw new Error('No profile data found');
     }

@@ -20,7 +20,7 @@ const Login = () => {
       console.log(response);
       Alert.alert('Login successful');
       // Điều hướng đến trang Introduction sau khi đăng nhập thành công
-      navigation.navigate('Introduction');
+      navigation.navigate('Home');
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/user-not-found') {
