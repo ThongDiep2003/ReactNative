@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, TextInput, View, Pressable, Alert } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { get, ref, update } from 'firebase/database';
+import { get, ref } from 'firebase/database';
+import { sendOTPEmail, generateOTP } from './OTP'; // Import hàm gửi OTP và sinh mã OTP
 import { FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
 
 const EditProfile = () => {
@@ -43,23 +44,23 @@ const EditProfile = () => {
       return;
     }
 
-    setLoading(true);
     try {
-      const user = auth.currentUser;
-      if (user) {
-        await update(ref(FIREBASE_DB, 'users/' + user.uid), {
-          name: name,
-          birthdate: birthdate,
-          email: email,
-        });
-        Alert.alert('Profile updated successfully');
-        navigation.goBack(); // Quay lại trang trước đó
-      } else {
-        throw new Error('User not logged in');
-      }
+      setLoading(true);
+
+      // Tạo mã OTP và gửi email OTP
+      const otp = generateOTP();
+      await sendOTPEmail(email, otp);
+
+      // Điều hướng sang trang nhập OTP và truyền dữ liệu cập nhật
+      navigation.navigate('EnterOTP3', {
+        name,
+        birthdate,
+        email,
+        otp, // Truyền mã OTP
+      });
     } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Update failed', error.message);
+      console.error('Error sending OTP:', error);
+      Alert.alert('Failed to send OTP', error.message);
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ const EditProfile = () => {
         />
       </View>
       <Pressable style={styles.button} onPress={handleSave} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save'}</Text>
+        <Text style={styles.buttonText}>{loading ? 'Sending OTP...' : 'Save'}</Text>
       </Pressable>
     </View>
   );

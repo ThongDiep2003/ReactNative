@@ -70,7 +70,7 @@ function DrawerContent(props) {
           <TouchableOpacity activeOpacity={0.8}>
             <View style={styles.userInfoSection}>
               <View style={{ flexDirection: 'row', marginTop: 15 }}>
-                {/* {userProfile && userProfile.avatarUri ? (
+                {userProfile && userProfile.avatarUri ? (
                   <Avatar.Image
                     source={{ uri: userProfile.avatarUri }}
                     size={50}
@@ -80,7 +80,7 @@ function DrawerContent(props) {
                     icon="account"
                     size={50}
                   />
-                )} */}
+                )}
                 <View style={{ marginLeft: 10, flexDirection: 'column' }}>
                   {userProfile ? (
                     <>

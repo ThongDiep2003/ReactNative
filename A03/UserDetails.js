@@ -8,7 +8,7 @@ export const addUser = async (user) => {
     await setDoc(userDoc, {
       name: user.name,
       email: user.email,
-      mobile: user.mobile,
+      
       password: user.password,
     });
     console.log('User added successfully');

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { PermissionsAndroid, Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Alert } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Alert } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { FIREBASE_AUTH, FIREBASE_DB } from './FirebaseConfig'; 
-import { ref, set } from 'firebase/database';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
+import { FIREBASE_AUTH, FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
+import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
+import { generateOTP, sendOTPEmail } from './OTP'; // Import các hàm tạo và gửi OTP
+import {EnterOTP2} from './EnterOTP2'
 
 const RegisterPage = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -12,10 +12,8 @@ const RegisterPage = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
-  const [avatar, setAvatar] = useState(null); // Để lưu URI của ảnh đã chọn
   const [loading, setLoading] = useState(false);
   const auth = FIREBASE_AUTH;
-  const storage = getStorage(); // Initialize Firebase Storage
 
   const handleRegister = async () => {
     if (password !== confirmPassword) {
@@ -25,86 +23,35 @@ const RegisterPage = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const response = await createUserWithEmailAndPassword(auth, username, password);
-      const userId = response.user.uid;
+      // Tạo mã OTP và gửi qua email
+      const otp = generateOTP();
+      await sendOTPEmail(username, otp);
 
-      // Nếu người dùng đã chọn ảnh, tải lên Firebase Storage
-      let avatarUrl = null;
-      if (avatar) {
-        const avatarStorageRef = storageRef(storage, `avatars/${userId}.jpg`);
-        const img = await fetch(avatar);
-        const bytes = await img.blob(); // Convert image URI to blob format
-        await uploadBytes(avatarStorageRef, bytes);
-        avatarUrl = await getDownloadURL(avatarStorageRef); // Get URL of uploaded image
-      }
+      // Lưu mã OTP vào Realtime Database để xác thực sau
+      await set(ref(FIREBASE_DB, 'otp/' + encodeEmail(username)), { otp: otp, timestamp: Date.now() });
 
-      // Lưu thông tin người dùng vào Realtime Database với URL của ảnh (nếu có)
-      await set(ref(FIREBASE_DB, 'users/' + userId), {
-        name: name,
-        email: username,
-        birthdate: birthdate,
-        avatar: avatarUrl || 'default_avatar_url',  // Lưu URL của ảnh hoặc ảnh mặc định
-      });
+      // Điều hướng đến màn hình nhập OTP
+      navigation.navigate('EnterOTP2', { email: username, name, birthdate, password });
 
-      Alert.alert('Registration successful');
-      navigation.navigate('Login');
     } catch (error) {
       console.error('Registration error:', error);
-      if (error.code === 'auth/weak-password') {
-        Alert.alert('Registration failed', 'The password is too weak');
-      } else if (error.code === 'auth/email-already-in-use') {
-        Alert.alert('Registration failed', 'The email address is already in use');
-      } else {
-        Alert.alert('Registration failed', error.message);
-      }
+      Alert.alert('Registration failed', error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const requestPermission = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
-        {
-          title: 'Permission to access media',
-          message: 'This app needs access to your media to upload an avatar',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }
-      );
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        console.log('You can access the media');
-        handleSelectAvatar();
-      } else {
-        console.log('Media permission denied');
-      }
-    } catch (err) {
-      console.warn(err);
-    }
-  };
-
-  const handleSelectAvatar = () => {
-    launchImageLibrary({ mediaType: 'photo' }, (response) => {
-      if (response.assets && response.assets.length > 0) {
-        // Lưu URI của ảnh vào state
-        setAvatar(response.assets[0].uri);
-      }
-    });
+  // Helper function to encode email for database key
+  const encodeEmail = (email) => {
+    return email.replace(/\./g, ',');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Hiển thị ảnh avatar đã chọn hoặc ảnh mặc định */}
       <Image
-        source={avatar ? { uri: avatar } : require('../assets/avatar.png')}
-        style={styles.avatar}
+        source={require('../assets/logo.png')} // Đường dẫn tới ảnh trong thư mục dự án
+        style={styles.image}
       />
-      <Pressable style={styles.avatarButton} onPress={requestPermission}>
-        <Text style={styles.avatarButtonText}>Choose Avatar</Text>
-      </Pressable>
-
       <Text style={styles.title}>Register</Text>
       <View style={styles.inputView}>
         <TextInput
@@ -165,21 +112,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 16,
   },
-  avatar: {
+  image: {
     width: 100,
     height: 100,
-    borderRadius: 50,
-    marginBottom: 20,
-  },
-  avatarButton: {
-    backgroundColor: '#2596be',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  avatarButtonText: {
-    color: 'white',
-    fontSize: 16,
   },
   title: {
     fontSize: 24,

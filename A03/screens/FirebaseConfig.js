@@ -1,6 +1,7 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
-import { getDatabase, ref, set, get } from "firebase/database";
+import { initializeApp } from 'firebase/app';
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDatabase, ref, set, get } from 'firebase/database';
 import { encode } from 'base-64'; // Thư viện mã hóa base-64 để mã hóa email
 
 // Firebase configuration object
@@ -18,8 +19,10 @@ const FirebaseConfig = {
 // Initialize Firebase app
 export const FIREBASE_APP = initializeApp(FirebaseConfig);
 
-// Initialize Firebase Authentication
-export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
+// Initialize Firebase Authentication with AsyncStorage for persistence
+export const FIREBASE_AUTH = initializeAuth(FIREBASE_APP, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 
 // Initialize Realtime Database
 export const FIREBASE_DB = getDatabase(FIREBASE_APP);

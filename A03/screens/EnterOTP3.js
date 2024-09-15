@@ -1,46 +1,32 @@
 import React, { useState } from 'react';
 import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
 import { verifyOTP } from './FirebaseConfig'; // Import hàm xác thực OTP
-import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth'; // Import hàm deleteUser để xóa tài khoản
-import { FIREBASE_AUTH, FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
-import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
-
-const EnterOTP2 = ({ route, navigation }) => {
-  const { email, name, birthdate, password } = route.params;
+import { update, ref } from 'firebase/database'; // Import hàm để cập nhật dữ liệu vào Realtime Database
+import { FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
+import { getAuth } from 'firebase/auth';
+const EnterOTP3 = ({ route, navigation }) => {
+  const { name, birthdate, email, otp: sentOtp } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleVerifyOTP = async () => {
     setLoading(true);
     try {
-      const isVerified = await verifyOTP(email, otp); // Xác thực OTP
+      // Xác thực OTP
+      const isVerified = await verifyOTP(email, otp);
 
-      if (isVerified) {
-        // Nếu OTP đúng, tạo người dùng và lưu thông tin
-        const auth = FIREBASE_AUTH;
-        const response = await createUserWithEmailAndPassword(auth, email, password);
-        const userId = response.user.uid;
-
-        // Lưu thông tin người dùng vào Realtime Database
-        await set(ref(FIREBASE_DB, 'users/' + userId), {
+      if (isVerified && otp === sentOtp) {
+        // Nếu OTP đúng, cập nhật thông tin người dùng
+        const userRef = ref(FIREBASE_DB, 'users/' + getAuth().currentUser.uid);
+        await update(userRef, {
           name: name,
-          email: email,
           birthdate: birthdate,
+          email: email,
         });
-
-        Alert.alert('Registration successful');
-        navigation.navigate('Login');
+        Alert.alert('Profile updated successfully');
+        navigation.navigate('Profile'); // Quay lại trang profile
       } else {
-        // Nếu OTP sai, thông báo và xóa tài khoản
-        const auth = FIREBASE_AUTH;
-        const user = auth.currentUser;
-
-        if (user) {
-          await deleteUser(user); // Xóa tài khoản
-        }
-
         Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
-        navigation.navigate('Register'); // Điều hướng về trang đăng ký
       }
     } catch (error) {
       console.error('OTP verification error:', error);
@@ -54,9 +40,6 @@ const EnterOTP2 = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
         <Text style={styles.title}>Enter OTP</Text>
-        <Text style={styles.description}>
-          We have sent an OTP to your email address. Please enter it below to complete the registration.
-        </Text>
         <TextInput
           style={styles.input}
           placeholder="Enter OTP"
@@ -101,11 +84,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
   },
-  description: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: '#555',
-  },
   input: {
     height: 45,
     borderColor: '#2596be',
@@ -116,4 +94,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EnterOTP2;
+export default EnterOTP3;

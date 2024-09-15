@@ -16,6 +16,8 @@ import ProfilePage from "./screens/ProfilePage";
 import EditProfile from "./screens/EditProfile";
 import ResetPassword from "./screens/ResetPassword";
 import EnterOTP from "./screens/EnterOTP";
+import EnterOTP2 from "./screens/EnterOTP2";
+import EnterOTP3 from "./screens/EnterOTP3";
 import { createDrawerNavigator, DrawerContent } from "@react-navigation/drawer";
 const StackNav=()=>{
   const Stack = createNativeStackNavigator();
@@ -43,6 +45,7 @@ const StackNav=()=>{
     <Stack.Screen name="Login" component={LoginPage}/>
     <Stack.Screen name="Introduction" component={IntroductionPage}/>
     <Stack.Screen name="Register" component={RegisterPage} />
+    <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
     <Stack.Screen name="ForgotPassword" component={ForgotPassword} /> 
     <Stack.Screen name="EnterOTP" component={EnterOTP} />
     <Stack.Screen name="ResetPassword" component={ResetPassword} /> 
@@ -62,6 +65,7 @@ const StackNav=()=>{
     />
     <Stack.Screen name="Profile" component={ProfilePage}/>
     <Stack.Screen name="Edit" component={EditProfile}/>
+    <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
   </Stack.Navigator>
   
   </>
