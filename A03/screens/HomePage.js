@@ -13,7 +13,15 @@ const HomePage = () => {
         onPress={() => navigation.navigate('Profile')} // Điều hướng đến ProfilePage
         color="#2596be"
       />
+      <Text style={styles.text}></Text>
+      <Text style={styles.text}>Logout!</Text>
+      <Button
+        title="Go to Logout"
+        onPress={() => navigation.navigate('Logout')} // Điều hướng đến ProfilePage
+        color="#2596be"
+      />
     </View>
+    
   );
 };
 

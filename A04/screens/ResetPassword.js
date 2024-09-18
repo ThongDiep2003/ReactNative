@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
-import { Alert, Button, SafeAreaView, StyleSheet, TextInput, View } from 'react-native';
-import { getAuth, confirmPasswordReset } from 'firebase/auth';
+import { Alert, Button, SafeAreaView, StyleSheet, View } from 'react-native';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 const auth = getAuth();
 
 const ResetPassword = ({ route, navigation }) => {
-  const { email } = route.params; // Lấy email từ params
-  const [newPassword, setNewPassword] = useState('');
+  // Nhận email từ tham số điều hướng
+  const { email } = route.params;
   const [loading, setLoading] = useState(false);
 
-  const handleResetPassword = async () => {
+  const handleSendResetEmail = async () => {
     setLoading(true);
     try {
-      // Xác nhận việc đặt lại mật khẩu
-      // Giả sử rằng bạn có mã OTP hợp lệ và gửi yêu cầu cập nhật mật khẩu
-      // Bạn cần lấy mã OTP hợp lệ và so sánh với mã OTP được người dùng nhập vào
-      const code = ''; // Mã OTP hợp lệ từ Realtime Database
-      await confirmPasswordReset(auth, code, newPassword);
-      Alert.alert('Success', 'Password has been reset successfully!');
-      navigation.navigate('Login'); // Điều hướng đến màn hình đăng nhập
+      // Gửi email reset mật khẩu
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert('Success', 'Password reset email sent!');
+      // Điều hướng đến màn hình LoginPage
+      navigation.navigate('Login');
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to reset password: ' + error.message);
+      Alert.alert('Error', 'Failed to send password reset email: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -30,16 +28,9 @@ const ResetPassword = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter new password"
-          value={newPassword}
-          onChangeText={setNewPassword}
-          secureTextEntry
-        />
         <Button
-          title={loading ? 'Resetting...' : 'Reset Password'}
-          onPress={handleResetPassword}
+          title={loading ? 'Sending...' : 'Send Password Reset Email'}
+          onPress={handleSendResetEmail}
           disabled={loading}
         />
       </View>
@@ -56,14 +47,6 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     width: '80%',
-  },
-  input: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 20,
-    paddingHorizontal: 10,
   },
 });
 

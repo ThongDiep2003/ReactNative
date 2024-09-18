@@ -101,3 +101,4 @@ export const getUserProfile = async (userId) => {
     throw new Error('Failed to fetch user profile. Please try again.');
   }
 };
+

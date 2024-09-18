@@ -3,13 +3,15 @@ import { Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Aler
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { FIREBASE_AUTH, FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
 import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
+import { generateOTP, sendOTPEmail } from './OTP'; // Import các hàm tạo và gửi OTP
+import {EnterOTP2} from './EnterOTP2'
 
 const RegisterPage = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState(''); // State cho tên
-  const [birthdate, setBirthdate] = useState(''); // State cho ngày sinh
+  const [name, setName] = useState('');
+  const [birthdate, setBirthdate] = useState('');
   const [loading, setLoading] = useState(false);
   const auth = FIREBASE_AUTH;
 
@@ -21,32 +23,27 @@ const RegisterPage = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // Đăng ký người dùng
-      const response = await createUserWithEmailAndPassword(auth, username, password);
-      const userId = response.user.uid;
+      // Tạo mã OTP và gửi qua email
+      const otp = generateOTP();
+      await sendOTPEmail(username, otp);
 
-      // Lưu thông tin người dùng vào Realtime Database
-      await set(ref(FIREBASE_DB, 'users/' + userId), {
-        name: name,
-        email: username,
-        birthdate: birthdate,
-        // Đừng lưu mật khẩu trong thực tế
-      });
+      // Lưu mã OTP vào Realtime Database để xác thực sau
+      await set(ref(FIREBASE_DB, 'otp/' + encodeEmail(username)), { otp: otp, timestamp: Date.now() });
 
-      Alert.alert('Registration successful');
-      navigation.navigate('Login');
+      // Điều hướng đến màn hình nhập OTP
+      navigation.navigate('EnterOTP2', { email: username, name, birthdate, password });
+
     } catch (error) {
       console.error('Registration error:', error);
-      if (error.code === 'auth/weak-password') {
-        Alert.alert('Registration failed', 'The password is too weak');
-      } else if (error.code === 'auth/email-already-in-use') {
-        Alert.alert('Registration failed', 'The email address is already in use');
-      } else {
-        Alert.alert('Registration failed', error.message);
-      }
+      Alert.alert('Registration failed', error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to encode email for database key
+  const encodeEmail = (email) => {
+    return email.replace(/\./g, ',');
   };
 
   return (

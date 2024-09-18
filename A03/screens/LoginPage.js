@@ -3,6 +3,7 @@ import { Alert, Image, Pressable, SafeAreaView, StyleSheet, Switch, Text, TextIn
 import { useNavigation } from '@react-navigation/native';
 import { signInWithEmailAndPassword } from 'firebase/auth'; 
 import { FIREBASE_AUTH } from './FirebaseConfig'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -12,14 +13,20 @@ const Login = () => {
   const navigation = useNavigation();
   const auth = FIREBASE_AUTH;
   
-  // Handle login function
   const handleLogin = async () => {
     setLoading(true);
     try {
       const response = await signInWithEmailAndPassword(auth, username, password);
-      console.log(response);
+      const user = response.user;
+
+      // Lấy JWT token từ Firebase
+      const token = await user.getIdToken();
+
+      // Lưu token vào AsyncStorage để dùng sau
+      await AsyncStorage.setItem('jwtToken', token);
+      
       Alert.alert('Login successful');
-      // Điều hướng đến trang Introduction sau khi đăng nhập thành công
+      // Điều hướng đến trang Home sau khi đăng nhập thành công
       navigation.navigate('Home');
     } catch (error) {
       console.error(error);
@@ -38,9 +45,9 @@ const Login = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Image
-          source={require('../assets/login.png')} // Đường dẫn tới ảnh trong thư mục dự án
-          style={styles.image}
-        />
+        source={require('../assets/login.png')}
+        style={styles.image}
+      />
       <Text style={styles.title}>Login</Text>
       <View style={styles.inputView}>
         <TextInput
@@ -84,7 +91,6 @@ const Login = () => {
       </View>
       
       <Text style={styles.footerText}>
-        
         Don't have an account?{' '}
         <Text style={styles.register} onPress={() => navigation.navigate('Register')}>
           Register

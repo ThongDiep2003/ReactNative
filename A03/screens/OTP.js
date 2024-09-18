@@ -56,25 +56,24 @@ export const sendOTPEmail = async (email, otp) => {
     throw new Error('Failed to send OTP. Please try again.');
   }
 };
-
 const handleSendOTP = async () => {
-  if (!email) {
-    Alert.alert('Error', 'Please enter your email');
-    return;
-  }
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
 
-  setLoading(true);
-  try {
-    const otp = generateOTP(); // Tạo mã OTP
-    // Gửi mã OTP qua email
-    await sendOTPEmail(email, otp);
-    // Lưu mã OTP vào Realtime Database hoặc bất kỳ nơi nào bạn muốn để xác thực sau
-    Alert.alert('Success', 'OTP has been sent to your email.');
-    navigation.navigate('EnterOTP', { email }); // Điều hướng đến màn hình nhập OTP
-  } catch (error) {
-    console.error(error);
-    Alert.alert('Error', 'Failed to send OTP: ' + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    try {
+      const otp = generateOTP(); // Tạo mã OTP
+      // Gửi mã OTP qua email
+      await sendOTPEmail(email, otp);
+      // Lưu mã OTP vào Realtime Database hoặc bất kỳ nơi nào bạn muốn để xác thực sau
+      Alert.alert('Success', 'OTP has been sent to your email.');
+      navigation.navigate('EnterOTP', { email }); // Điều hướng đến màn hình nhập OTP
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to send OTP: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
