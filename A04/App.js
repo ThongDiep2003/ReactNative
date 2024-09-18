@@ -19,7 +19,8 @@ import EnterOTP from "./screens/EnterOTP";
 import EnterOTP2 from "./screens/EnterOTP2";
 import EnterOTP3 from "./screens/EnterOTP3";
 import LogoutPage from "./screens/LogoutPage";
-
+import HomeContent from "./screens/HomeContent";
+import Transaction from './screens/Transaction';
 const Stack = createNativeStackNavigator();
 
 const AuthStack = () => (
@@ -30,6 +31,7 @@ const AuthStack = () => (
     headerTintColor: "#fff",
     headerTitleAlign: "center",
   }}>
+    
     <Stack.Screen name="Login" component={LoginPage} />
     <Stack.Screen name="Introduction" component={IntroductionPage} />
     <Stack.Screen name="Register" component={RegisterPage} />
@@ -37,6 +39,8 @@ const AuthStack = () => (
     <Stack.Screen name="EnterOTP" component={EnterOTP} />
     <Stack.Screen name="ResetPassword" component={ResetPassword} />
     <Stack.Screen name="Home" component={HomePage} />
+    <Stack.Screen name="Content" component={HomeContent} />
+    <Stack.Screen name="Transaction" component={Transaction} />
     <Stack.Screen name="Profile" component={ProfilePage} />
     <Stack.Screen name="Edit" component={EditProfile} />
     <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
@@ -57,6 +61,9 @@ const HomeStack = () => (
       component={HomePage}
       
     />
+    
+    <Stack.Screen name="HomeContent" component={HomeContent} />
+    <Stack.Screen name="Transaction" component={Transaction} />
     <Stack.Screen name="Profile" component={ProfilePage} />
     <Stack.Screen name="Edit" component={EditProfile} />
     <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
