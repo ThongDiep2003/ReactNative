@@ -1,20 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation
-import Icon from 'react-native-vector-icons/Entypo'; // Import Icon Entypo
-import { FIREBASE_DB } from './FirebaseConfig'; // Import Firebase configuration
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Image, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Entypo';
+import { FIREBASE_DB } from './FirebaseConfig'; 
 import { ref, onValue } from 'firebase/database';
 
 const HomePage = () => {
-  const navigation = useNavigation(); // Khởi tạo useNavigation
+  const navigation = useNavigation();
   const [searchTerm, setSearchTerm] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
-  const [filterType, setFilterType] = useState(null); // Để lưu loại lọc hiện tại
+  const [filterType, setFilterType] = useState(null);
+
+  // Hàm lấy 10 giao dịch có amount lớn nhất dựa theo loại đã lọc
+  const getTopTransactions = () => {
+    return [...transactions]
+      .filter(transaction => filterType ? transaction.type.toLowerCase() === filterType.toLowerCase() : true) // Lọc theo loại
+      .sort((a, b) => b.amount - a.amount) // Sắp xếp giảm dần theo amount
+      .slice(0, 10); // Lấy top 10 giao dịch
+  };
 
   // Hàm thêm giao dịch
   const handleAddTransaction = () => {
-    navigation.navigate('HomeContent'); // Điều hướng đến HomeContent.js
+    navigation.navigate('HomeContent'); 
   };
 
   // Hàm lọc giao dịch theo loại
@@ -23,10 +31,10 @@ const HomePage = () => {
     const filteredData = transactions.filter(transaction => {
       const titleMatch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
       const dateMatch = transaction.date.toLowerCase().includes(searchTerm.toLowerCase());
-      const typeMatch = type ? transaction.type.toLowerCase() === type.toLowerCase() : true; // Lọc theo loại
+      const typeMatch = type ? transaction.type.toLowerCase() === type.toLowerCase() : true;
       const amountMatch = !isNaN(Number(searchTerm))
-        ? transaction.amount === Number(searchTerm) // So sánh số
-        : transaction.amount.toString().includes(searchTerm); // So sánh chuỗi
+        ? transaction.amount === Number(searchTerm)
+        : transaction.amount.toString().includes(searchTerm);
       const searchDate = new Date(searchTerm);
       const dateString = new Date(transaction.date).toDateString();
       const dateMatchByDate = !isNaN(searchDate.getTime()) && dateString.includes(searchDate.toDateString());
@@ -40,7 +48,7 @@ const HomePage = () => {
   // Hàm tìm kiếm
   const handleSearch = (text) => {
     setSearchTerm(text);
-    handleFilter(filterType); // Lọc lại sau khi thay đổi tìm kiếm
+    handleFilter(filterType);
   };
 
   // Hàm xóa bộ lọc
@@ -60,7 +68,7 @@ const HomePage = () => {
         ...data[key]
       })) : [];
       setTransactions(transactionsList);
-      setFilteredTransactions(transactionsList); // Cập nhật dữ liệu ban đầu
+      setFilteredTransactions(transactionsList);
     }, (error) => {
       console.error('Error fetching transactions:', error);
       Alert.alert('Error', 'Failed to fetch transactions. Please try again.');
@@ -120,15 +128,39 @@ const HomePage = () => {
             <Text style={styles.filterButtonText}>Income</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Danh sách các giao dịch có amount lớn nhất theo loại */}
         <FlatList
-          data={filteredTransactions} // Hiển thị các giao dịch đã lọc
+          data={getTopTransactions()} // Lấy top 10 giao dịch có amount lớn nhất theo loại hiện tại
+          keyExtractor={(item) => item.id.toString()}
+          horizontal={true} // Hiển thị theo chiều ngang
+          renderItem={({ item }) => (
+            <View style={styles.topTransactionItem}>
+              <Text style={styles.topTransactionText}>
+                {item.title}: {item.amount} vnd
+              </Text>
+            </View>
+          )}
+          style={{ marginBottom: 10 }}
+        />
+
+        {/* Danh sách giao dịch đã lọc */}
+        <FlatList
+          data={filteredTransactions}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <TouchableOpacity 
               style={styles.transactionItem} 
-              onPress={() => handlePressTransaction(item)} // Điều hướng khi bấm vào giao dịch
+              onPress={() => handlePressTransaction(item)} 
             >
-              <Text style={styles.transactionText}>{item.date} - {item.title} - {item.amount} - {item.type}</Text>
+              {item.image && (
+                <Image source={{ uri: item.image }} style={styles.transactionImage} />
+              )}
+              <View style={styles.transactionDetails}>
+                <Text style={styles.transactionText}>
+                  {item.date} - {item.title} - {item.amount} vnd - {item.type}
+                </Text>
+              </View>
             </TouchableOpacity>
           )}
         />
@@ -144,10 +176,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-    justifyContent: 'space-between', // Để chứa nội dung chính và nút ở footer
+    justifyContent: 'space-between',
   },
   mainContent: {
-    flex: 1, // Chiếm không gian còn lại
+    flex: 1,
   },
   searchBar: {
     height: 40,
@@ -184,6 +216,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#0163d2',
   },
+  topTransactionItem: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'gray',
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  topTransactionText: {
+    fontSize: 14,
+  },
   createButton: {
     backgroundColor: '#0163d2',
     padding: 10,
@@ -196,12 +238,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   transactionItem: {
+    flexDirection: 'row',
     padding: 10,
     borderBottomColor: 'gray',
     borderBottomWidth: 1,
   },
+  transactionDetails: {
+    flex: 1,
+    marginLeft: 10,
+  },
   transactionText: {
     fontSize: 16,
+  },
+  transactionImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 5,
   },
 });
 
