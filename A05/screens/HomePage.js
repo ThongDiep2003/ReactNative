@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation
 import Icon from 'react-native-vector-icons/Entypo'; // Import Icon Entypo
 import { FIREBASE_DB } from './FirebaseConfig'; // Import Firebase configuration
@@ -128,14 +128,7 @@ const HomePage = () => {
               style={styles.transactionItem} 
               onPress={() => handlePressTransaction(item)} // Điều hướng khi bấm vào giao dịch
             >
-              {item.image && (
-                <Image source={{ uri: item.image }} style={styles.transactionImage} />
-              )}
-              <View style={styles.transactionDetails}>
-                <Text style={styles.transactionText}>
-                  {item.date} - {item.title} - {item.amount} - {item.type}
-                </Text>
-              </View>
+              <Text style={styles.transactionText}>{item.date} - {item.title} - {item.amount} - {item.type}</Text>
             </TouchableOpacity>
           )}
         />
@@ -203,22 +196,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   transactionItem: {
-    flexDirection: 'row',
     padding: 10,
     borderBottomColor: 'gray',
     borderBottomWidth: 1,
   },
-  transactionDetails: {
-    flex: 1,
-    marginLeft: 10,
-  },
   transactionText: {
     fontSize: 16,
-  },
-  transactionImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 5,
   },
 });
 

@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { StatusBar } from 'react-native';
+import { StatusBar, StyleSheet } from 'react-native';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StyleSheet } from "react-native";
-import Icon from 'react-native-vector-icons/Entypo';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation
+
 // Import các trang
 import HomePage from "./screens/HomePage";
 import IntroductionPage from "./screens/IntroductionPage";
@@ -21,64 +19,11 @@ import EnterOTP3 from "./screens/EnterOTP3";
 import LogoutPage from "./screens/LogoutPage";
 import HomeContent from "./screens/HomeContent";
 import Transaction from './screens/Transaction';
+import EditTransaction from './screens/EditTransaction';
+
 const Stack = createNativeStackNavigator();
 
-const AuthStack = () => (
-  
-  <Stack.Navigator initialRouteName="Login" screenOptions={{
-    backgroundColor: "white",
-    headerStyle: { backgroundColor: "#0163d2" },
-    headerTintColor: "#fff",
-    headerTitleAlign: "center",
-  }}>
-    
-    <Stack.Screen name="Login" component={LoginPage} />
-    <Stack.Screen name="Introduction" component={IntroductionPage} />
-    <Stack.Screen name="Register" component={RegisterPage} />
-    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-    <Stack.Screen name="EnterOTP" component={EnterOTP} />
-    <Stack.Screen name="ResetPassword" component={ResetPassword} />
-    <Stack.Screen name="Home" component={HomePage} />
-    <Stack.Screen name="Content" component={HomeContent} />
-    <Stack.Screen name="Transaction" component={Transaction} />
-    <Stack.Screen name="Profile" component={ProfilePage} />
-    <Stack.Screen name="Edit" component={EditProfile} />
-    <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
-    <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
-    <Stack.Screen name="Logout" component={LogoutPage} />
-  </Stack.Navigator>
-);
-
-const HomeStack = () => (
-  <Stack.Navigator screenOptions={{
-    backgroundColor: "white",
-    headerStyle: { backgroundColor: "#0163d2" },
-    headerTintColor: "#fff",
-    headerTitleAlign: "center",
-  }}>
-    <Stack.Screen
-      name="Home"
-      component={HomePage}
-      
-    />
-    
-    <Stack.Screen name="HomeContent" component={HomeContent} />
-    <Stack.Screen name="Transaction" component={Transaction} />
-    <Stack.Screen name="Profile" component={ProfilePage} />
-    <Stack.Screen name="Edit" component={EditProfile} />
-    <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
-    <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
-    <Stack.Screen name="Logout" component={LogoutPage} />
-    <Stack.Screen name="Login" component={LoginPage} />
-    <Stack.Screen name="Introduction" component={IntroductionPage} />
-    <Stack.Screen name="Register" component={RegisterPage} />
-    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-    <Stack.Screen name="EnterOTP" component={EnterOTP} />
-    <Stack.Screen name="ResetPassword" component={ResetPassword} />
-  </Stack.Navigator>
-);
-
-export default function App() {
+const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
 
   useEffect(() => {
@@ -105,10 +50,40 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      {isLoggedIn ? <HomeStack /> : <AuthStack />}
+      <Stack.Navigator 
+        initialRouteName={isLoggedIn ? "Home" : "Login"}
+        screenOptions={{
+          backgroundColor: "white",
+          headerStyle: { backgroundColor: "#0163d2" },
+          headerTintColor: "#fff",
+          headerTitleAlign: "center",
+        }}>
+        {isLoggedIn ? (
+          <>
+            <Stack.Screen name="Home" component={HomePage} />
+            <Stack.Screen name="Content" component={HomeContent} />
+            <Stack.Screen name="Transaction" component={Transaction} />
+            <Stack.Screen name="Profile" component={ProfilePage} />
+            <Stack.Screen name="Edit" component={EditProfile} />
+            <Stack.Screen name="Logout" component={LogoutPage} />
+            <Stack.Screen name="EditTransaction" component={EditTransaction} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Login" component={LoginPage} />
+            <Stack.Screen name="Introduction" component={IntroductionPage} />
+            <Stack.Screen name="Register" component={RegisterPage} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+            <Stack.Screen name="EnterOTP" component={EnterOTP} />
+            <Stack.Screen name="ResetPassword" component={ResetPassword} />
+            <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
+            <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
+          </>
+        )}
+      </Stack.Navigator>
     </NavigationContainer>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -121,3 +96,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
+export default App;
