@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, FlatList, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Entypo';
-import { FIREBASE_DB } from './FirebaseConfig'; 
+import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from './FirebaseConfig'; // Import Firebase configuration
 import { ref, onValue } from 'firebase/database';
+import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
+import tw from 'tailwind-react-native-classnames'; // Import tailwind-react-native-classnames
 
 const HomePage = () => {
   const navigation = useNavigation();
@@ -11,54 +13,40 @@ const HomePage = () => {
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [filterType, setFilterType] = useState(null);
+  const [userName, setUserName] = useState('');
+  const [userAvatar, setUserAvatar] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // Hàm lấy 10 giao dịch có amount lớn nhất dựa theo loại đã lọc
-  const getTopTransactions = () => {
-    return [...transactions]
-      .filter(transaction => filterType ? transaction.type.toLowerCase() === filterType.toLowerCase() : true) // Lọc theo loại
-      .sort((a, b) => b.amount - a.amount) // Sắp xếp giảm dần theo amount
-      .slice(0, 10); // Lấy top 10 giao dịch
-  };
+  // Fetch user data from Firebase
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const currentUser = FIREBASE_AUTH.currentUser;
+        if (currentUser) {
+          const userId = currentUser.uid;
+          const userProfile = await getUserProfile(userId);
 
-  // Hàm thêm giao dịch
-  const handleAddTransaction = () => {
-    navigation.navigate('HomeContent'); 
-  };
+          setUserName(userProfile.name);
+          if (userProfile.avatarUrl) {
+            const storage = getStorage();
+            const avatarRef = storageRef(storage, userProfile.avatarUrl);
+            const avatarUrl = await getDownloadURL(avatarRef);
+            setUserAvatar(avatarUrl);
+          } else {
+            setUserAvatar('https://via.placeholder.com/60'); // Default avatar
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Hàm lọc giao dịch theo loại
-  const handleFilter = (type) => {
-    setFilterType(type);
-    const filteredData = transactions.filter(transaction => {
-      const titleMatch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const dateMatch = transaction.date.toLowerCase().includes(searchTerm.toLowerCase());
-      const typeMatch = type ? transaction.type.toLowerCase() === type.toLowerCase() : true;
-      const amountMatch = !isNaN(Number(searchTerm))
-        ? transaction.amount === Number(searchTerm)
-        : transaction.amount.toString().includes(searchTerm);
-      const searchDate = new Date(searchTerm);
-      const dateString = new Date(transaction.date).toDateString();
-      const dateMatchByDate = !isNaN(searchDate.getTime()) && dateString.includes(searchDate.toDateString());
-      
-      return (filterType ? typeMatch : true) &&
-             (titleMatch || dateMatch || amountMatch || dateMatchByDate);
-    });
-    setFilteredTransactions(filteredData);
-  };
+    fetchUserData();
+    fetchTransactions();
+  }, []);
 
-  // Hàm tìm kiếm
-  const handleSearch = (text) => {
-    setSearchTerm(text);
-    handleFilter(filterType);
-  };
-
-  // Hàm xóa bộ lọc
-  const clearFilter = () => {
-    setFilterType(null);
-    setSearchTerm('');
-    setFilteredTransactions(transactions);
-  };
-
-  // Lấy dữ liệu giao dịch từ Firebase Realtime Database
   const fetchTransactions = () => {
     const transactionsRef = ref(FIREBASE_DB, 'transactions');
     onValue(transactionsRef, (snapshot) => {
@@ -75,186 +63,89 @@ const HomePage = () => {
     });
   };
 
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-          <Icon name="user" size={28} color="#fff" style={{ marginRight: 15 }} />
-        </TouchableOpacity>
-      ),
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Logout')}>
-          <Icon name="log-out" size={28} color="#fff" style={{ marginLeft: 15 }} />
-        </TouchableOpacity>
-      ),
+  // Filter transactions
+  const handleFilter = (type) => {
+    setFilterType(type);
+    const filteredData = transactions.filter(transaction => {
+      const titleMatch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const typeMatch = type ? transaction.type.toLowerCase() === type.toLowerCase() : true;
+      return typeMatch && titleMatch;
     });
-  }, [navigation]);
+    setFilteredTransactions(filteredData);
+  };
 
-  // Hàm điều hướng đến Transaction
+  // Search transactions
+  const handleSearch = (text) => {
+    setSearchTerm(text);
+    handleFilter(filterType);
+  };
+
   const handlePressTransaction = (transaction) => {
     navigation.navigate('Transaction', { transaction });
   };
 
+  if (loading) {
+    return (
+      <View style={tw`flex-1 justify-center items-center`}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.mainContent}>
+    <View style={tw`flex-1 bg-white`}>
+      {/* User Section */}
+      <View style={tw`p-5 flex-row justify-between items-center bg-gray-100 rounded-b-lg`}>
+        <View style={tw`flex-row items-center`}>
+          <Image source={{ uri: userAvatar }} style={tw`w-14 h-14 rounded-full`} />
+          <View style={tw`ml-3`}>
+            <Text style={tw`text-base text-gray-500`}>Welcome back,</Text>
+            <Text style={tw`text-lg font-bold`}>{userName}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Search and Filter */}
+      <View style={tw`px-5 py-4`}>
         <TextInput
-          style={styles.searchBar}
+          style={tw`bg-gray-200 p-4 rounded-lg mb-4`}
           placeholder="Search transactions"
           value={searchTerm}
           onChangeText={handleSearch}
         />
-        <View style={styles.filterContainer}>
-          <TouchableOpacity
-            style={[styles.filterButton, styles.leftButton]}
-            onPress={() => handleFilter('Expense')}
-          >
-            <Text style={styles.filterButtonText}>Expense</Text>
+        <View style={tw`flex-row justify-between`}>
+          <TouchableOpacity style={tw`flex-1 bg-blue-500 p-3 rounded-lg mr-2`} onPress={() => handleFilter('Expense')}>
+            <Text style={tw`text-white text-center`}>Expense</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={clearFilter}
-          >
-            <Text style={styles.filterButtonText}>Clear Filter</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, styles.rightButton]}
-            onPress={() => handleFilter('Income')}
-          >
-            <Text style={styles.filterButtonText}>Income</Text>
+          <TouchableOpacity style={tw`flex-1 bg-green-500 p-3 rounded-lg ml-2`} onPress={() => handleFilter('Income')}>
+            <Text style={tw`text-white text-center`}>Income</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Danh sách các giao dịch có amount lớn nhất theo loại */}
-        <FlatList
-          data={getTopTransactions()} // Lấy top 10 giao dịch có amount lớn nhất theo loại hiện tại
-          keyExtractor={(item) => item.id.toString()}
-          horizontal={true} // Hiển thị theo chiều ngang
-          renderItem={({ item }) => (
-            <View style={styles.topTransactionItem}>
-              <Text style={styles.topTransactionText}>
-                {item.title}: {item.amount} vnd
-              </Text>
-            </View>
-          )}
-          style={{ marginBottom: 10 }}
-        />
-
-        {/* Danh sách giao dịch đã lọc */}
-        <FlatList
-          data={filteredTransactions}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity 
-              style={styles.transactionItem} 
-              onPress={() => handlePressTransaction(item)} 
-            >
-              {item.image && (
-                <Image source={{ uri: item.image }} style={styles.transactionImage} />
-              )}
-              <View style={styles.transactionDetails}>
-                <Text style={styles.transactionText}>
-                  {item.date} - {item.title} - {item.amount} vnd - {item.type}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
       </View>
-      <TouchableOpacity style={styles.createButton} onPress={handleAddTransaction}>
-        <Text style={styles.createButtonText}>Create New Transaction</Text>
+
+      {/* Transaction List */}
+      <FlatList
+        data={filteredTransactions}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={tw`flex-row p-4 border-b border-gray-200`} onPress={() => handlePressTransaction(item)}>
+            {item.image && (
+              <Image source={{ uri: item.image }} style={tw`w-12 h-12 rounded-full`} />
+            )}
+            <View style={tw`flex-1 ml-4`}>
+              <Text style={tw`text-lg font-bold`}>{item.title}</Text>
+              <Text style={tw`text-gray-500`}>{item.amount}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+
+      {/* Add Transaction Button */}
+      <TouchableOpacity style={tw`bg-purple-500 p-4 rounded-full mx-5 my-5`} onPress={() => navigation.navigate('HomeContent')}>
+        <Text style={tw`text-white text-center`}>Create New Transaction</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-    justifyContent: 'space-between',
-  },
-  mainContent: {
-    flex: 1,
-  },
-  searchBar: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  filterButton: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: '#d0d0d0',
-  },
-  leftButton: {
-    marginRight: 10,
-  },
-  rightButton: {
-    marginLeft: 10,
-  },
-  clearButton: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: '#d0d0d0',
-    flex: 1,
-    alignItems: 'center',
-  },
-  filterButtonText: {
-    fontSize: 16,
-    color: '#0163d2',
-  },
-  topTransactionItem: {
-    padding: 10,
-    borderWidth: 1,
-    borderColor: 'gray',
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  topTransactionText: {
-    fontSize: 14,
-  },
-  createButton: {
-    backgroundColor: '#0163d2',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    padding: 10,
-    borderBottomColor: 'gray',
-    borderBottomWidth: 1,
-  },
-  transactionDetails: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  transactionText: {
-    fontSize: 16,
-  },
-  transactionImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 5,
-  },
-});
 
 export default HomePage;
