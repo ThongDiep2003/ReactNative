@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { StatusBar } from 'react-native';
+import { StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Icon from 'react-native-vector-icons/Ionicons'; // Import Icon cho Tab và Back
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import Icon from 'react-native-vector-icons/Entypo';
-import tw from 'tailwind-react-native-classnames'; // Tailwind for styling
 
 // Import các trang
 import HomePage from "./screens/HomePage";
@@ -23,111 +21,63 @@ import EnterOTP3 from "./screens/EnterOTP3";
 import LogoutPage from "./screens/LogoutPage";
 import HomeContent from "./screens/HomeContent";
 import Transaction from './screens/Transaction';
+import EditTransaction from './screens/EditTransaction';
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator(); // Add Bottom Tab Navigator
+const Tab = createBottomTabNavigator();
 
-// Floating Button Component
-const FloatingButton = ({ onPress }) => (
-  <TouchableOpacity
-    style={tw`absolute bottom-10 w-16 h-16 bg-purple-500 rounded-full justify-center items-center`}
-    onPress={onPress}
-  >
-    <Text style={tw`text-white text-3xl`}>+</Text>
-  </TouchableOpacity>
-);
+// Tạo Tab Navigator
+const TabNavigator = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+          if (route.name === 'Home') {
+            iconName = 'home';
+          } else if (route.name === 'Add') {
+            iconName = 'add-circle';
+          } else if (route.name === 'Profile') {
+            iconName = 'person';
+          } else if (route.name === 'Logout') {
+            iconName = 'log-out';
+          }
+          return <Icon name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#0163d2',
+        tabBarInactiveTintColor: 'gray',
+        headerTitleAlign: 'center', // Căn giữa tiêu đề
+        headerStyle: {
+          backgroundColor: '#0163d2',
+        },
+        headerTintColor: '#fff',
+      })}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={HomePage} 
+        options={{ headerTitleAlign: "center" }} // Căn giữa tiêu đề
+      />
+      <Tab.Screen 
+        name="Add" 
+        component={HomeContent} 
+        options={{ headerTitleAlign: "center" }} // Căn giữa tiêu đề
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfilePage} 
+        options={{ headerTitleAlign: "center" }} // Căn giữa tiêu đề
+      />
+      <Tab.Screen 
+        name="Logout" 
+        component={LogoutPage} 
+        options={{ headerTitleAlign: "center" }} // Căn giữa tiêu đề
+      />
+    </Tab.Navigator>
+  );
+};
 
-// Stack Navigator for Authentication
-const AuthStack = () => (
-  <Stack.Navigator initialRouteName="Login" screenOptions={{
-    backgroundColor: "white",
-    headerStyle: { backgroundColor: "#0163d2" },
-    headerTintColor: "#fff",
-    headerTitleAlign: "center",
-  }}>
-    <Stack.Screen name="Login" component={LoginPage} />
-    <Stack.Screen name="Introduction" component={IntroductionPage} />
-    <Stack.Screen name="Register" component={RegisterPage} />
-    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-    <Stack.Screen name="EnterOTP" component={EnterOTP} />
-    <Stack.Screen name="ResetPassword" component={ResetPassword} />
-  </Stack.Navigator>
-);
-
-// Home Stack Navigator with floating button
-const HomeStack = ({ navigation }) => (
-  <>
-    <Stack.Navigator screenOptions={{
-      backgroundColor: "white",
-      headerStyle: { backgroundColor: "#0163d2" },
-      headerTintColor: "#fff",
-      headerTitleAlign: "center",
-    }}>
-      <Stack.Screen name="Home" component={HomePage} />
-      <Stack.Screen name="HomeContent" component={HomeContent} />
-      <Stack.Screen name="Transaction" component={Transaction} />
-      <Stack.Screen name="Profile" component={ProfilePage} />
-      <Stack.Screen name="Edit" component={EditProfile} />
-      <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
-      <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
-      <Stack.Screen name="Logout" component={LogoutPage} />
-    </Stack.Navigator>
-    <FloatingButton onPress={() => navigation.navigate('HomeContent')} />
-  </>
-);
-
-// Profile Stack with floating button
-const ProfileStack = ({ navigation }) => (
-  <>
-    <Stack.Navigator screenOptions={{
-      backgroundColor: "white",
-      headerStyle: { backgroundColor: "#0163d2" },
-      headerTintColor: "#fff",
-      headerTitleAlign: "center",
-    }}>
-      <Stack.Screen name="Profile" component={ProfilePage} />
-      <Stack.Screen name="Edit" component={EditProfile} />
-    </Stack.Navigator>
-    <FloatingButton onPress={() => navigation.navigate('HomeContent')} />
-  </>
-);
-
-// Bottom Tab Navigator
-const BottomTabNavigator = () => (
-  <Tab.Navigator
-    screenOptions={{
-      tabBarStyle: tw`bg-white border-t border-gray-200`,
-      headerShown: false,
-    }}
-  >
-    <Tab.Screen
-      name="HomeTab"
-      component={HomeStack}
-      options={{
-        tabBarIcon: ({ color, size }) => <Icon name="home" color={color} size={size} />,
-        tabBarLabel: 'Home'
-      }}
-    />
-    <Tab.Screen
-      name="ProfileTab"
-      component={ProfileStack}
-      options={{
-        tabBarIcon: ({ color, size }) => <Icon name="user" color={color} size={size} />,
-        tabBarLabel: 'Profile'
-      }}
-    />
-    <Tab.Screen
-      name="LogoutTab"
-      component={LogoutPage} // Navigate to the LogoutPage
-      options={{
-        tabBarIcon: ({ color, size }) => <Icon name="log-out" color={color} size={size} />,
-        tabBarLabel: 'Logout'
-      }}
-    />
-  </Tab.Navigator>
-);
-
-export default function App() {
+const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
 
   useEffect(() => {
@@ -154,10 +104,63 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      {isLoggedIn ? <BottomTabNavigator /> : <AuthStack />}
+      <Stack.Navigator 
+        initialRouteName={isLoggedIn ? "Main" : "Login"}
+        screenOptions={({ navigation }) => ({
+          backgroundColor: "white",
+          headerStyle: { backgroundColor: "#0163d2" },
+          headerTintColor: "#fff",
+          headerTitleAlign: "center", // Căn giữa tiêu đề
+          // Chỉ hiện nút Back khi có màn hình để quay lại
+          headerLeft: () => (
+            navigation.canGoBack() ? (
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Icon name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+            ) : null
+          ),
+        })}
+      >
+        {/* Tab Navigator */}
+        {isLoggedIn ? (
+          <Stack.Screen 
+            name="Main" 
+            component={TabNavigator} 
+            options={{ headerShown: false }} // Không hiển thị tiêu đề khi ở Tab
+          />
+        ) : (
+          <>
+            <Stack.Screen name="Login" component={LoginPage} />
+            <Stack.Screen name="Introduction" component={IntroductionPage} />
+            <Stack.Screen name="Register" component={RegisterPage} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+            <Stack.Screen name="EnterOTP" component={EnterOTP} />
+            <Stack.Screen name="ResetPassword" component={ResetPassword} />
+            <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
+            <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
+          </>
+        )}
+
+        {/* Stack Screens */}
+        <Stack.Screen 
+          name="Edit" 
+          component={EditProfile} 
+          options={{ headerTitle: "Edit Profile" }}
+        />
+        <Stack.Screen 
+          name="Transaction" 
+          component={Transaction} 
+          options={{ headerTitle: "Transaction Details" }}
+        />
+        <Stack.Screen 
+          name="EditTransaction" 
+          component={EditTransaction} 
+          options={{ headerTitle: "Edit Transaction" }}
+        />
+      </Stack.Navigator>
     </NavigationContainer>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -170,3 +173,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
+export default App;

@@ -12,11 +12,11 @@ const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
-  const [filterType, setFilterType] = useState(null);
+  const [filterType, setFilterType] = useState(null); // 'Expense', 'Income', or null
   const [userName, setUserName] = useState('');
   const [userAvatar, setUserAvatar] = useState('');
   const [loading, setLoading] = useState(true);
-
+  const [showAllTransactions, setShowAllTransactions] = useState(false); // To toggle between showing all or limited transactions
 
   // Fetch user data from Firebase
   useEffect(() => {
@@ -43,14 +43,14 @@ const HomePage = () => {
         setLoading(false);
       }
     };
-
+  
+  // Hàm thêm giao dịch
+  const handleAddTransaction = () => {
+    navigation.navigate('HomeContent'); 
+  };
     fetchUserData();
     fetchTransactions();
   }, []);
-
-  const handleAddTransaction = () => {
-    navigation.navigate('Add Transaction'); 
-  };
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -66,42 +66,68 @@ const HomePage = () => {
       ),
     });
   }, [navigation]);
-
+  
+  // Fetch transactions from Firebase
   const fetchTransactions = () => {
     const transactionsRef = ref(FIREBASE_DB, 'transactions');
     onValue(transactionsRef, (snapshot) => {
       const data = snapshot.val();
-      const transactionsList = data ? Object.keys(data).map(key => ({
-        id: key,
-        ...data[key]
-      })) : [];
+      const transactionsList = data
+        ? Object.keys(data).map(key => ({
+          id: key,
+          ...data[key],
+        })).sort((a, b) => new Date(b.date) - new Date(a.date)) // Sort by date, recent first
+        : [];
       setTransactions(transactionsList);
-      setFilteredTransactions(transactionsList);
+      applyFilter(transactionsList, filterType); // Apply filter based on the selected type
     }, (error) => {
       console.error('Error fetching transactions:', error);
       Alert.alert('Error', 'Failed to fetch transactions. Please try again.');
     });
   };
 
-  // Filter transactions
-  const handleFilter = (type) => {
-    setFilterType(type);
-    const filteredData = transactions.filter(transaction => {
+ 
+
+  // Function to apply filter based on the selected type (Expense/Income)
+  const applyFilter = (transactionsList, type) => {
+    const filteredData = transactionsList.filter(transaction => {
       const titleMatch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
       const typeMatch = type ? transaction.type.toLowerCase() === type.toLowerCase() : true;
       return typeMatch && titleMatch;
     });
-    setFilteredTransactions(filteredData);
+    setFilteredTransactions(showAllTransactions ? filteredData : filteredData.slice(0, 5)); // Show 5 or all based on toggle
   };
 
-  // Search transactions
+  // Handle search and filter when typing in the search box
   const handleSearch = (text) => {
     setSearchTerm(text);
-    handleFilter(filterType);
+    applyFilter(transactions, filterType);
+  };
+
+  // Toggle between showing all or limited transactions
+  const handleSeeAll = () => {
+    setShowAllTransactions(!showAllTransactions);
+    applyFilter(transactions, filterType); // Reapply the filter with the new toggle state
+  };
+
+  // Set filter type to Expense or Income and reapply filter
+  const handleFilter = (type) => {
+    setFilterType(type);
+    applyFilter(transactions, type);
+  };
+
+  // Clear filter to show all transactions
+  const clearFilter = () => {
+    setFilterType(null);
+    applyFilter(transactions, null);
   };
 
   const handlePressTransaction = (transaction) => {
     navigation.navigate('Transaction', { transaction });
+  };
+
+  const handleAddTransaction = () => {
+    navigation.navigate('HomeContent');
   };
 
   if (loading) {
@@ -134,16 +160,35 @@ const HomePage = () => {
           onChangeText={handleSearch}
         />
         <View style={tw`flex-row justify-between`}>
-          <TouchableOpacity style={tw`flex-1 bg-purple-500 p-3 rounded-lg mr-2`} onPress={() => handleFilter('Expense')}>
+          <TouchableOpacity
+            style={tw`${filterType === 'Expense' ? 'bg-blue-700' : 'bg-blue-500'} flex-1 p-3 rounded-lg mr-2`}
+            onPress={() => handleFilter('Expense')}
+          >
             <Text style={tw`text-white text-center`}>Expense</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={tw`flex-1 bg-green-500 p-3 rounded-lg ml-2`} onPress={() => handleFilter('Income')}>
+          <TouchableOpacity
+            style={tw`${filterType === 'Income' ? 'bg-green-700' : 'bg-green-500'} flex-1 p-3 rounded-lg ml-2`}
+            onPress={() => handleFilter('Income')}
+          >
             <Text style={tw`text-white text-center`}>Income</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`ml-2 p-3 rounded-lg bg-gray-500`}
+            onPress={clearFilter}
+          >
+            <Text style={tw`text-white text-center`}>Clear</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Transaction List */}
+      {/* Transaction List with "See All" button */}
+      <View style={tw`flex-row justify-between items-center px-4 mb-2`}>
+        <Text style={tw`text-lg font-bold`}>Transactions</Text>
+        <TouchableOpacity onPress={handleSeeAll}>
+          <Text style={tw`text-blue-500`}>{showAllTransactions ? 'Show Less' : 'See All'}</Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={filteredTransactions}
         keyExtractor={(item) => item.id.toString()}
@@ -154,13 +199,11 @@ const HomePage = () => {
             )}
             <View style={tw`flex-1 ml-4`}>
               <Text style={tw`text-lg font-bold`}>{item.title}</Text>
-              <Text style={tw`text-gray-500`}>{item.amount}</Text>
+              <Text style={tw`text-gray-500`}>{item.amount} vnd</Text>
             </View>
           </TouchableOpacity>
         )}
       />
-
-      {/* Add Transaction Button */}
       <TouchableOpacity style={tw`bg-blue-500 p-4 rounded-full mx-5 my-5`} onPress={handleAddTransaction}>
         <Text style={tw`text-white text-center`}>Add New Transaction</Text>
       </TouchableOpacity>
