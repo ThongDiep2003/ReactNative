@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native'; 
-import { StyleSheet, Text, View, Button, Image } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
 import { getUserProfile } from './FirebaseConfig'; 
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
@@ -20,12 +20,12 @@ function ProfilePage() {
           const profile = await getUserProfile(user.uid);
           setUserProfile(profile);
 
-          // If avatar path exists, fetch it from Firebase Storage
-          if (profile.avatarUrl) { // Use 'avatarUrl' as in EditProfile.js
+          // Fetch avatar from Firebase Storage if exists
+          if (profile.avatarUrl) {
             const storage = getStorage();
-            const avatarRef = storageRef(storage, profile.avatarUrl); // Fetch avatar path from Storage
+            const avatarRef = storageRef(storage, profile.avatarUrl);
             const url = await getDownloadURL(avatarRef);
-            setAvatarUrl(url); // Set the avatar URL
+            setAvatarUrl(url);
           }
         } else {
           throw new Error('User not logged in');
@@ -42,54 +42,116 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <View style={styles.viewStyle}>
+      <View style={styles.container}>
         <Text style={styles.textStyle}>Loading...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.viewStyle}>
+    <View style={styles.container}>
       {userProfile ? (
         <>
-          {/* Show avatar if it exists, else show a default image */}
+          {/* Show avatar or default image */}
           <Image
-            source={avatarUrl ? { uri: avatarUrl } : require('../assets/avatar.png')} // Default avatar if none
+            source={avatarUrl ? { uri: avatarUrl } : require('../assets/avatar.png')}
             style={styles.avatar}
           />
-          <Text style={styles.textStyle}>Name: {userProfile.name}</Text>
-          <Text style={styles.textStyle}>Email: {userProfile.email}</Text>
-          <Text style={styles.textStyle}>Date of Birth: {userProfile.birthdate}</Text>
-          <Text style={styles.textStyle}>Mobile: {userProfile.mobile}</Text>
+
+          {/* Display user profile information */}
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Name</Text>
+              <Text style={styles.input}>{userProfile.name}</Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <Text style={styles.input}>{userProfile.email}</Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Mobile</Text>
+              <Text style={styles.input}>{userProfile.mobile}</Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Date of Birth</Text>
+              <Text style={styles.input}>{userProfile.birthdate}</Text>
+            </View>
+          </View>
+
+          {/* Edit button */}
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => navigation.navigate('Edit')}
+          >
+            <Text style={styles.buttonText}>Edit Profile</Text>
+          </TouchableOpacity>
         </>
       ) : (
         <Text style={styles.textStyle}>No profile data available</Text>
       )}
-      <Button
-        title="Edit Profile"
-        onPress={() => navigation.navigate('Edit')} 
-        color="#2596be"
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  viewStyle: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 16,
-  },
-  textStyle: {
-    fontSize: 18,
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 20,
+    marginTop: 30,
+    marginBottom: 10,
+  },
+  form: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  input: {
+    height: 44,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    fontSize: 16,
+    color: '#1F2937',
+    textAlignVertical: 'center', // Align text vertically in the middle
+  },
+  button: {
+    backgroundColor: '#2596be',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    marginTop: 30,
+    width: '100%',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  textStyle: {
+    fontSize: 18,
+    color: '#6B7280',
+    marginTop: 20,
   },
 });
 
