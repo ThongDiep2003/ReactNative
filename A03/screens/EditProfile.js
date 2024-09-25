@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { StyleSheet, Text, TextInput, View, Pressable, Alert } from 'react-native';
+import { StyleSheet, Text, TextInput, View, Pressable, Alert, Image } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { get, ref } from 'firebase/database';
-import { sendOTPEmail, generateOTP } from './OTP'; // Import hàm gửi OTP và sinh mã OTP
-import { FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
+import { get, ref, update } from 'firebase/database'; // Import Firebase Realtime Database update method
+import { FIREBASE_DB } from './FirebaseConfig'; // Import Firebase Realtime Database reference
+import * as ImagePicker from 'expo-image-picker';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
 
 const EditProfile = () => {
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
   const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState(''); // State for mobile
+  const [avatar, setAvatar] = useState(''); // Avatar image URI for the selected image
+  const [avatarUrl, setAvatarUrl] = useState(''); // Avatar image URL for displaying the avatar
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
-  const auth = getAuth(); // Lấy đối tượng auth
+  const auth = getAuth();
 
   useEffect(() => {
+    // Fetch current user profile data
     const fetchProfile = async () => {
       try {
         const user = auth.currentUser;
@@ -26,8 +31,10 @@ const EditProfile = () => {
             setName(profile.name || '');
             setBirthdate(profile.birthdate || '');
             setEmail(profile.email || '');
-          } else {
-            throw new Error('No profile data found');
+            setMobile(profile.mobile || ''); // Get the mobile value from profile
+            if (profile.avatarUrl) {
+              setAvatarUrl(profile.avatarUrl); // Set the current avatar URL
+            }
           }
         }
       } catch (error) {
@@ -38,8 +45,53 @@ const EditProfile = () => {
     fetchProfile();
   }, [auth]);
 
+  const handleChooseAvatar = async () => {
+    // Request permission to access the image library
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'We need permission to access your photos.');
+      return;
+    }
+
+    // Open the image picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1], // Square aspect ratio for avatar
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setAvatar(result.uri); // Set the selected image URI
+    }
+  };
+
+  const uploadAvatarToStorage = async (uri) => {
+    if (!uri) return null;
+
+    try {
+      const user = auth.currentUser;
+      const storage = getStorage();
+      const avatarStorageRef = storageRef(storage, `avatars/${user.uid}.jpg`); // Reference to Firebase Storage
+
+      // Convert the image to blob format
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Upload the image to Firebase Storage
+      await uploadBytes(avatarStorageRef, blob);
+
+      // Get the download URL of the uploaded image
+      const downloadUrl = await getDownloadURL(avatarStorageRef);
+      return downloadUrl;
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      return null;
+    }
+  };
+
   const handleSave = async () => {
-    if (!name || !birthdate || !email) {
+    if (!name || !birthdate || !email || !mobile) { // Check all fields including mobile
       Alert.alert('All fields are required');
       return;
     }
@@ -47,20 +99,27 @@ const EditProfile = () => {
     try {
       setLoading(true);
 
-      // Tạo mã OTP và gửi email OTP
-      const otp = generateOTP();
-      await sendOTPEmail(email, otp);
+      // Upload avatar if it's changed
+      let uploadedAvatarUrl = avatarUrl;
+      if (avatar) {
+        uploadedAvatarUrl = await uploadAvatarToStorage(avatar); // Upload the avatar and get its URL
+      }
 
-      // Điều hướng sang trang nhập OTP và truyền dữ liệu cập nhật
-      navigation.navigate('EnterOTP3', {
+      const user = auth.currentUser;
+      const userRef = ref(FIREBASE_DB, 'users/' + user.uid); // Reference to Firebase Realtime Database
+      await update(userRef, {
         name,
         birthdate,
         email,
-        otp, // Truyền mã OTP
+        mobile,
+        avatarUrl: uploadedAvatarUrl, // Update avatar URL
       });
+
+      Alert.alert('Profile saved successfully!');
+      navigation.goBack(); // Navigate back to the previous screen
     } catch (error) {
-      console.error('Error sending OTP:', error);
-      Alert.alert('Failed to send OTP', error.message);
+      console.error('Error saving profile:', error);
+      Alert.alert('Failed to save profile', error.message);
     } finally {
       setLoading(false);
     }
@@ -69,6 +128,18 @@ const EditProfile = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Edit Profile</Text>
+      <Pressable onPress={handleChooseAvatar}>
+        {avatar || avatarUrl ? (
+          <Image
+            source={{ uri: avatar || avatarUrl }} // Show selected avatar or previously saved avatar
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarPlaceholderText}>Choose Avatar</Text>
+          </View>
+        )}
+      </Pressable>
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -89,9 +160,16 @@ const EditProfile = () => {
           onChangeText={setEmail}
           autoCapitalize='none'
         />
+        <TextInput
+          style={styles.input}
+          placeholder='Mobile Number'
+          value={mobile} // Show the mobile number value
+          onChangeText={setMobile}
+          keyboardType='phone-pad'
+        />
       </View>
       <Pressable style={styles.button} onPress={handleSave} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Sending OTP...' : 'Save'}</Text>
+        <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save'}</Text>
       </Pressable>
     </View>
   );
@@ -120,6 +198,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginVertical: 10,
     width: '100%',
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 20,
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#e1e1e1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  avatarPlaceholderText: {
+    color: '#aaa',
+    fontSize: 16,
   },
   button: {
     backgroundColor: '#2596be',

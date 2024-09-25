@@ -1,22 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
-import { StyleSheet, Text, View, Button, Image } from 'react-native'; // Thêm Image để hiển thị ảnh avatar
-import { getUserProfile } from './FirebaseConfig'; // Import hàm lấy thông tin người dùng từ Realtime Database
-import { getAuth } from 'firebase/auth'; // Import để lấy thông tin người dùng hiện tại
+import { useNavigation } from '@react-navigation/native'; 
+import { StyleSheet, Text, View, Button, Image } from 'react-native';
+import { getUserProfile } from './FirebaseConfig'; 
+import { getAuth } from 'firebase/auth';
+import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 
 function ProfilePage() {
-  const navigation = useNavigation(); // Lấy đối tượng navigation
+  const navigation = useNavigation();
   const [userProfile, setUserProfile] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(true);
-  const auth = getAuth(); // Lấy đối tượng auth
+  const auth = getAuth();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const user = auth.currentUser; // Lấy người dùng hiện tại
+        const user = auth.currentUser;
         if (user) {
-          const profile = await getUserProfile(user.uid); // Gọi hàm lấy thông tin người dùng
+          const profile = await getUserProfile(user.uid);
           setUserProfile(profile);
+
+          // If avatar path exists, fetch it from Firebase Storage
+          if (profile.avatar) {
+            const storage = getStorage();
+            const avatarRef = storageRef(storage, profile.avatar); // Fetch avatar path from Storage
+            const url = await getDownloadURL(avatarRef);
+            setAvatarUrl(url); // Set the avatar URL
+          }
         } else {
           throw new Error('User not logged in');
         }
@@ -42,21 +52,22 @@ function ProfilePage() {
     <View style={styles.viewStyle}>
       {userProfile ? (
         <>
-          {/* Hiển thị ảnh avatar nếu có, nếu không hiển thị ảnh mặc định */}
+          {/* Show avatar if it exists, else show a default image */}
           <Image
-            source={userProfile.avatar ? { uri: userProfile.avatar } : require('../assets/avatar.png')}
+            source={avatarUrl ? { uri: avatarUrl } : require('../assets/avatar.png')} // Default avatar if none
             style={styles.avatar}
           />
           <Text style={styles.textStyle}>Name: {userProfile.name}</Text>
           <Text style={styles.textStyle}>Email: {userProfile.email}</Text>
           <Text style={styles.textStyle}>Date of Birth: {userProfile.birthdate}</Text>
+          <Text style={styles.textStyle}>Mobile: {userProfile.mobile}</Text>
         </>
       ) : (
         <Text style={styles.textStyle}>No profile data available</Text>
       )}
       <Button
         title="Edit Profile"
-        onPress={() => navigation.navigate('Edit')} // Điều hướng đến EditProfile
+        onPress={() => navigation.navigate('Edit')} 
         color="#2596be"
       />
     </View>
@@ -78,7 +89,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 20, // Đặt khoảng cách dưới để tạo khoảng cách giữa ảnh và thông tin
+    marginBottom: 20,
   },
 });
 

@@ -10,6 +10,7 @@ export const addUser = async (user) => {
       email: user.email,
       mobile: user.mobile,
       password: user.password,
+      avatar: user.avatar || null, // Thêm avatar nếu có, nếu không để null
     });
     console.log('User added successfully');
   } catch (error) {
@@ -25,7 +26,7 @@ export const getUser = async (email) => {
 
     if (docSnap.exists()) {
       console.log('User data:', docSnap.data());
-      return docSnap.data();
+      return docSnap.data(); // Trả về tất cả dữ liệu bao gồm avatar
     } else {
       console.log('No such user found');
       return null;
@@ -39,7 +40,7 @@ export const getUser = async (email) => {
 export const updateUser = async (email, updatedData) => {
   try {
     const userDoc = doc(db, 'users', email);
-    await updateDoc(userDoc, updatedData);
+    await updateDoc(userDoc, updatedData); // Cập nhật dữ liệu, bao gồm avatar nếu có
     console.log('User updated successfully');
   } catch (error) {
     console.error('Error updating user: ', error);

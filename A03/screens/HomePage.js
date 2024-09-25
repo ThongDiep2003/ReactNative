@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, Image, Button, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, Dimensions, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { PieChart } from 'react-native-chart-kit';
+import { FIREBASE_AUTH, getUserProfile } from './FirebaseConfig'; // Import Firebase và hàm getUserProfile
+import Icon from 'react-native-vector-icons/Feather'; // Thêm Icon để sử dụng icon
+import tw from 'twrnc';
 
 const screenWidth = Dimensions.get('window').width;
 
+
 const HomePage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userAvatar, setUserAvatar] = useState('');
+  const [loading, setLoading] = useState(true); // Thêm trạng thái loading để hiển thị ActivityIndicator khi dữ liệu đang tải
   const navigation = useNavigation();
 
   // Dummy data for the pie chart
@@ -20,43 +26,102 @@ const HomePage = () => {
 
   // Dummy data for recent history
   const recentHistory = [
-    { id: '1', title: 'Restaurant Bill', description: 'Detailed information of Restaurant bill.' },
-    { id: '2', title: 'Electricity Bill', description: 'Detailed information of electricity bill.' },
+    { id: '1', title: 'Shopping', amount: '-520,300vnd' },
+    { id: '2', title: 'Eating', amount: '-480,000vnd' },
+    { id: '3', title: 'Entertainment', amount: '-215,000vnd' },
+    { id: '4', title: 'Moving', amount: '-180,300vnd' },
+    { id: '5', title: 'Others', amount: '-100,300vnd' },
   ];
 
   const renderRecentItem = ({ item }) => (
-    <View style={styles.historyItem}>
-      <Image source={{ uri: 'https://via.placeholder.com/50' }} style={styles.historyIcon} />
-      <View style={styles.historyText}>
-        <Text style={styles.historyTitle}>{item.title}</Text>
-        <Text style={styles.historyDescription}>{item.description}</Text>
+    <View style={tw`flex-row items-center mb-4 p-4 bg-gray-100 rounded-lg`}>
+      <Image source={{ uri: 'https://via.placeholder.com/50' }} style={tw`w-12 h-12 rounded-full mr-4`} />
+      <View style={tw`flex-1`}>
+        <Text style={tw`text-lg font-bold`}>{item.title}</Text>
+        <Text style={tw`text-sm text-gray-600`}>{item.amount}</Text>
       </View>
-      <TouchableOpacity style={styles.moreButton}>
+      <TouchableOpacity style={tw`px-2`}>
         <Text>•••</Text>
       </TouchableOpacity>
     </View>
   );
 
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      
+  useEffect(() => {
+    // Lấy thông tin người dùng từ Firebase Auth và Database
+    const fetchUserData = async () => {
+      try {
+        const currentUser = FIREBASE_AUTH.currentUser;
+        if (currentUser) {
+          // Lấy userId từ Authentication
+          const userId = currentUser.uid;
+          // Lấy thông tin người dùng từ Database
+          const userProfile = await getUserProfile(userId);
 
-      {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchBar}
-          placeholder="Search"
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-        />
-        <TouchableOpacity style={styles.searchButton}>
-          <Text>🔍</Text>
+          // Cập nhật thông tin người dùng lên state
+          setUserName(userProfile.name);
+          setUserAvatar(userProfile.avatar); // Avatar được lấy từ profile trong Realtime Database
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false); // Kết thúc trạng thái loading khi dữ liệu đã được tải
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Thêm các nút vào header
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <Icon name="user" size={28} color="#fff" style={{ marginRight: 15 }} />
         </TouchableOpacity>
+      ),
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('Logout')}>
+          <Icon name="log-out" size={28} color="#fff" style={{ marginLeft: 15 }} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  if (loading) {
+    return (
+      <View style={tw`flex-1 justify-center items-center`}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={tw`flex-1 bg-white`}>
+      {/* Header section */}
+      <View style={tw`p-5 flex-row justify-between items-center`}>
+        <View style={tw`flex-row items-center`}>
+          <Image source={{ uri: userAvatar || 'https://via.placeholder.com/60' }} style={tw`w-14 h-14 rounded-full`} />
+          <View style={tw`ml-3`}>
+            <Text style={tw`text-base text-gray-500`}>Welcome back,</Text>
+            <Text style={tw`text-lg font-bold`}>{userName}</Text>
+          </View>
+        </View>
       </View>
 
-      {/* Pie chart and total estimate */}
-      <View style={styles.pieChartContainer}>
+      {/* Expense and income section */}
+      <View style={tw`flex-row justify-around py-4`}>
+        <View style={tw`bg-white shadow-md rounded-lg p-4 flex-1 mx-2`}>
+          <Text style={tw`text-gray-500 text-center`}>Expense</Text>
+          <Text style={tw`text-red-600 font-bold text-center`}>-1,535,334vnd</Text>
+        </View>
+        <View style={tw`bg-white shadow-md rounded-lg p-4 flex-1 mx-2`}>
+          <Text style={tw`text-gray-500 text-center`}>Income</Text>
+          <Text style={tw`text-green-500 font-bold text-center`}>+5,454,320vnd</Text>
+        </View>
+      </View>
+
+      {/* Pie chart */}
+      <View style={tw`items-center mb-6 bg-blue-100 rounded-xl p-5`}>
         <PieChart
           data={pieData}
           width={screenWidth - 40}
@@ -71,126 +136,21 @@ const HomePage = () => {
           backgroundColor={'transparent'}
           paddingLeft={'15'}
           center={[10, 10]}
-          absolute // Shows the percentage inside the pie chart
+          absolute
         />
-        <Text style={styles.totalText}>Total Estimate: $70</Text>
       </View>
 
       {/* Recent history section */}
-      <Text style={styles.historyHeader}>Recent History</Text>
-      <FlatList
-        data={recentHistory}
-        renderItem={renderRecentItem}
-        keyExtractor={(item) => item.id}
-      />
-
-      {/* Profile and Logout Buttons (side by side) */}
-      <View style={styles.buttonRow}>
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Go to Profile"
-            onPress={() => navigation.navigate('Profile')}
-            color="#2596be"
-          />
-        </View>
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Logout"
-            onPress={() => navigation.navigate('Logout')}
-            color="#2596be"
-          />
-        </View>
+      <View style={tw`px-5`}>
+        <Text style={tw`text-lg font-bold mb-3`}>Recent Added</Text>
+        <FlatList
+          data={recentHistory}
+          renderItem={renderRecentItem}
+          keyExtractor={(item) => item.id}
+        />
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  searchBar: {
-    flex: 1,
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-  },
-  searchButton: {
-    marginLeft: 10,
-    padding: 10,
-    backgroundColor: '#ddd',
-    borderRadius: 8,
-  },
-  pieChartContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#E3F2FD',
-    borderRadius: 15,
-    padding: 20,
-  },
-  totalText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  historyHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-  },
-  historyIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 10,
-  },
-  historyText: {
-    flex: 1,
-  },
-  historyTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  historyDescription: {
-    fontSize: 14,
-    color: '#666',
-  },
-  moreButton: {
-    paddingHorizontal: 10,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  buttonContainer: {
-    flex: 1,
-    marginHorizontal: 5, // Spacing between the buttons
-  },
-});
 
 export default HomePage;
