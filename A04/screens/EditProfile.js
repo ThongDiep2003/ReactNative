@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
+import { StyleSheet, Text, TextInput, View, Pressable, Alert, Image } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { get, ref, update } from 'firebase/database'; // Firebase Realtime Database update method
-import { FIREBASE_DB } from './FirebaseConfig'; // Firebase Realtime Database reference
+import { get, ref, update } from 'firebase/database'; // Import Firebase Realtime Database update method
+import { FIREBASE_DB } from './FirebaseConfig'; // Import Firebase Realtime Database reference
 import * as ImagePicker from 'expo-image-picker';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase Storage
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
 
-function EditProfile() {
+const EditProfile = () => {
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
   const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [avatar, setAvatar] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
+  const [mobile, setMobile] = useState(''); // State for mobile
+  const [avatar, setAvatar] = useState(''); // Avatar image URI for the selected image
+  const [avatarUrl, setAvatarUrl] = useState(''); // Avatar image URL for displaying the avatar
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const auth = getAuth();
@@ -30,9 +30,9 @@ function EditProfile() {
             setName(profile.name || '');
             setBirthdate(profile.birthdate || '');
             setEmail(profile.email || '');
-            setMobile(profile.mobile || '');
+            setMobile(profile.mobile || ''); // Get the mobile value from profile
             if (profile.avatarUrl) {
-              setAvatarUrl(profile.avatarUrl);
+              setAvatarUrl(profile.avatarUrl); // Set the current avatar URL
             }
           }
         }
@@ -54,30 +54,49 @@ function EditProfile() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [1, 1], // Square aspect ratio for avatar
       quality: 1,
     });
 
-    if (!result.canceled) {
-      setAvatar(result.uri);
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setAvatar(result.assets[0].uri); // Use result.assets to get URI
     }
   };
 
   const uploadAvatarToStorage = async (uri) => {
-    if (!uri) return null;
+    if (!uri) {
+      console.error("Invalid image URI");
+      return null;
+    }
 
     try {
       const user = auth.currentUser;
       const storage = getStorage();
-      const avatarStorageRef = storageRef(storage, `avatars/${user.uid}.jpg`);
+      const filename = 'avatar_' + user.uid + '_' + new Date().getTime() + '.jpg';
+      const avatarStorageRef = storageRef(storage, `images/${filename}`);
 
       const response = await fetch(uri);
       const blob = await response.blob();
 
-      await uploadBytes(avatarStorageRef, blob);
+      const uploadTask = uploadBytesResumable(avatarStorageRef, blob);
 
-      const downloadUrl = await getDownloadURL(avatarStorageRef);
-      return downloadUrl;
+      return new Promise((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log('Upload is ' + progress + '% done');
+          },
+          (error) => {
+            console.error('Upload failed:', error);
+            reject(error);
+          },
+          async () => {
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadUrl);
+          }
+        );
+      });
     } catch (error) {
       console.error('Error uploading avatar:', error);
       return null;
@@ -94,7 +113,7 @@ function EditProfile() {
       setLoading(true);
 
       let uploadedAvatarUrl = avatarUrl;
-      if (avatar) {
+      if (avatar && avatar !== avatarUrl) {
         uploadedAvatarUrl = await uploadAvatarToStorage(avatar);
       }
 
@@ -120,121 +139,107 @@ function EditProfile() {
 
   return (
     <View style={styles.container}>
-      <Image
-        source={avatar || avatarUrl ? { uri: avatar || avatarUrl } : require('../assets/avatar.png')}
-        style={styles.avatar}
-      />
-      <Text style={styles.label}></Text>
-
-      <View style={styles.form}>
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Name"
-            value={name}
-            onChangeText={setName}
+      <Text style={styles.title}>Edit Profile</Text>
+      <Pressable onPress={handleChooseAvatar}>
+        {avatar || avatarUrl ? (
+          <Image
+            source={{ uri: avatar || avatarUrl }}
+            style={styles.avatar}
           />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            editable={false}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Mobile</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mobile Number"
-            value={mobile}
-            onChangeText={setMobile}
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Date of Birth</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Birthdate (YYYY-MM-DD)"
-            value={birthdate}
-            onChangeText={setBirthdate}
-          />
-        </View>
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarPlaceholderText}>Choose Avatar</Text>
+          </View>
+        )}
+      </Pressable>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder='Name'
+          value={name}
+          onChangeText={setName}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder='Birthdate (YYYY-MM-DD)'
+          value={birthdate}
+          onChangeText={setBirthdate}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder='Email'
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize='none'
+        />
+        <TextInput
+          style={styles.input}
+          placeholder='Mobile Number'
+          value={mobile}
+          onChangeText={setMobile}
+          keyboardType='phone-pad'
+        />
       </View>
-
-      
-
-      <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
+      <Pressable style={styles.button} onPress={handleSave} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save'}</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: '#F9FAFB',
+    padding: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  inputContainer: {
+    width: '100%',
+  },
+  input: {
+    height: 40,
+    borderColor: '#2596be',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginVertical: 10,
+    width: '100%',
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginTop: 30,
-    marginBottom: 10,
-  },
-  nameText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
     marginBottom: 20,
   },
-  form: {
-    width: '100%',
-    paddingHorizontal: 20,
-    marginTop: 10,
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#e1e1e1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  input: {
-    height: 44,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
+  avatarPlaceholderText: {
+    color: '#aaa',
     fontSize: 16,
-    color: '#1F2937',
   },
   button: {
     backgroundColor: '#2596be',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
+    padding: 10,
     borderRadius: 8,
-    marginTop: 30,
     width: '100%',
     alignItems: 'center',
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: 'white',
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 
