@@ -1,56 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Image, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation
-import Icon from 'react-native-vector-icons/Entypo'; // Import Icon Entypo
-import { FIREBASE_DB } from './FirebaseConfig'; // Import Firebase configuration
+import { View, Text, TouchableOpacity, TextInput, FlatList, Image, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Entypo';
+import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from './FirebaseConfig'; // Import Firebase configuration
 import { ref, onValue } from 'firebase/database';
+import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
+import tw from 'tailwind-react-native-classnames'; // Import tailwind-react-native-classnames
 
 const HomePage = () => {
-  const navigation = useNavigation(); // Khởi tạo useNavigation
+  const navigation = useNavigation();
   const [searchTerm, setSearchTerm] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
-  const [filterType, setFilterType] = useState(null); // Để lưu loại lọc hiện tại
+  const [filterType, setFilterType] = useState(null);
+  const [userName, setUserName] = useState('');
+  const [userAvatar, setUserAvatar] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // Hàm thêm giao dịch
-  const handleAddTransaction = () => {
-    navigation.navigate('HomeContent'); // Điều hướng đến HomeContent.js
-  };
+  // Fetch user data from Firebase
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const currentUser = FIREBASE_AUTH.currentUser;
+        if (currentUser) {
+          const userId = currentUser.uid;
+          const userProfile = await getUserProfile(userId);
 
-  // Hàm lọc giao dịch theo loại
-  const handleFilter = (type) => {
-    setFilterType(type);
-    const filteredData = transactions.filter(transaction => {
-      const titleMatch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const dateMatch = transaction.date.toLowerCase().includes(searchTerm.toLowerCase());
-      const typeMatch = type ? transaction.type.toLowerCase() === type.toLowerCase() : true; // Lọc theo loại
-      const amountMatch = !isNaN(Number(searchTerm))
-        ? transaction.amount === Number(searchTerm) // So sánh số
-        : transaction.amount.toString().includes(searchTerm); // So sánh chuỗi
-      const searchDate = new Date(searchTerm);
-      const dateString = new Date(transaction.date).toDateString();
-      const dateMatchByDate = !isNaN(searchDate.getTime()) && dateString.includes(searchDate.toDateString());
-      
-      return (filterType ? typeMatch : true) &&
-             (titleMatch || dateMatch || amountMatch || dateMatchByDate);
-    });
-    setFilteredTransactions(filteredData);
-  };
+          setUserName(userProfile.name);
+          if (userProfile.avatarUrl) {
+            const storage = getStorage();
+            const avatarRef = storageRef(storage, userProfile.avatarUrl);
+            const avatarUrl = await getDownloadURL(avatarRef);
+            setUserAvatar(avatarUrl);
+          } else {
+            setUserAvatar('https://via.placeholder.com/60'); // Default avatar
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Hàm tìm kiếm
-  const handleSearch = (text) => {
-    setSearchTerm(text);
-    handleFilter(filterType); // Lọc lại sau khi thay đổi tìm kiếm
-  };
+    fetchUserData();
+    fetchTransactions();
+  }, []);
 
-  // Hàm xóa bộ lọc
-  const clearFilter = () => {
-    setFilterType(null);
-    setSearchTerm('');
-    setFilteredTransactions(transactions);
-  };
-
-  // Lấy dữ liệu giao dịch từ Firebase Realtime Database
   const fetchTransactions = () => {
     const transactionsRef = ref(FIREBASE_DB, 'transactions');
     onValue(transactionsRef, (snapshot) => {
@@ -60,166 +56,96 @@ const HomePage = () => {
         ...data[key]
       })) : [];
       setTransactions(transactionsList);
-      setFilteredTransactions(transactionsList); // Cập nhật dữ liệu ban đầu
+      setFilteredTransactions(transactionsList);
     }, (error) => {
       console.error('Error fetching transactions:', error);
       Alert.alert('Error', 'Failed to fetch transactions. Please try again.');
     });
   };
 
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-          <Icon name="user" size={28} color="#fff" style={{ marginRight: 15 }} />
-        </TouchableOpacity>
-      ),
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Logout')}>
-          <Icon name="log-out" size={28} color="#fff" style={{ marginLeft: 15 }} />
-        </TouchableOpacity>
-      ),
+  // Filter transactions
+  const handleFilter = (type) => {
+    setFilterType(type);
+    const filteredData = transactions.filter(transaction => {
+      const titleMatch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const typeMatch = type ? transaction.type.toLowerCase() === type.toLowerCase() : true;
+      return typeMatch && titleMatch;
     });
-  }, [navigation]);
+    setFilteredTransactions(filteredData);
+  };
 
-  // Hàm điều hướng đến Transaction
+  // Search transactions
+  const handleSearch = (text) => {
+    setSearchTerm(text);
+    handleFilter(filterType);
+  };
+
   const handlePressTransaction = (transaction) => {
     navigation.navigate('Transaction', { transaction });
   };
 
+  if (loading) {
+    return (
+      <View style={tw`flex-1 justify-center items-center`}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.mainContent}>
+    <View style={tw`flex-1 bg-white`}>
+      {/* User Section */}
+      <View style={tw`p-5 flex-row justify-between items-center bg-gray-100 rounded-b-lg`}>
+        <View style={tw`flex-row items-center`}>
+          <Image source={{ uri: userAvatar }} style={tw`w-14 h-14 rounded-full`} />
+          <View style={tw`ml-3`}>
+            <Text style={tw`text-base text-gray-500`}>Welcome back,</Text>
+            <Text style={tw`text-lg font-bold`}>{userName}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Search and Filter */}
+      <View style={tw`px-5 py-4`}>
         <TextInput
-          style={styles.searchBar}
+          style={tw`bg-gray-200 p-4 rounded-lg mb-4`}
           placeholder="Search transactions"
           value={searchTerm}
           onChangeText={handleSearch}
         />
-        <View style={styles.filterContainer}>
-          <TouchableOpacity
-            style={[styles.filterButton, styles.leftButton]}
-            onPress={() => handleFilter('Expense')}
-          >
-            <Text style={styles.filterButtonText}>Expense</Text>
+        <View style={tw`flex-row justify-between`}>
+          <TouchableOpacity style={tw`flex-1 bg-blue-500 p-3 rounded-lg mr-2`} onPress={() => handleFilter('Expense')}>
+            <Text style={tw`text-white text-center`}>Expense</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={clearFilter}
-          >
-            <Text style={styles.filterButtonText}>Clear Filter</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, styles.rightButton]}
-            onPress={() => handleFilter('Income')}
-          >
-            <Text style={styles.filterButtonText}>Income</Text>
+          <TouchableOpacity style={tw`flex-1 bg-green-500 p-3 rounded-lg ml-2`} onPress={() => handleFilter('Income')}>
+            <Text style={tw`text-white text-center`}>Income</Text>
           </TouchableOpacity>
         </View>
-        <FlatList
-          data={filteredTransactions} // Hiển thị các giao dịch đã lọc
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity 
-              style={styles.transactionItem} 
-              onPress={() => handlePressTransaction(item)} // Điều hướng khi bấm vào giao dịch
-            >
-              {item.image && (
-                <Image source={{ uri: item.image }} style={styles.transactionImage} />
-              )}
-              <View style={styles.transactionDetails}>
-                <Text style={styles.transactionText}>
-                  {item.date} - {item.title} - {item.amount} - {item.type}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
       </View>
-      <TouchableOpacity style={styles.createButton} onPress={handleAddTransaction}>
-        <Text style={styles.createButtonText}>Create New Transaction</Text>
+
+      {/* Transaction List */}
+      <FlatList
+        data={filteredTransactions}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={tw`flex-row p-4 border-b border-gray-200`} onPress={() => handlePressTransaction(item)}>
+            {item.image && (
+              <Image source={{ uri: item.image }} style={tw`w-12 h-12 rounded-full`} />
+            )}
+            <View style={tw`flex-1 ml-4`}>
+              <Text style={tw`text-lg font-bold`}>{item.title}</Text>
+              <Text style={tw`text-gray-500`}>{item.amount}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+
+      {/* Add Transaction Button */}
+      <TouchableOpacity style={tw`bg-purple-500 p-4 rounded-full mx-5 my-5`} onPress={() => navigation.navigate('HomeContent')}>
+        <Text style={tw`text-white text-center`}>Create New Transaction</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-    justifyContent: 'space-between', // Để chứa nội dung chính và nút ở footer
-  },
-  mainContent: {
-    flex: 1, // Chiếm không gian còn lại
-  },
-  searchBar: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  filterButton: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: '#d0d0d0',
-  },
-  leftButton: {
-    marginRight: 10,
-  },
-  rightButton: {
-    marginLeft: 10,
-  },
-  clearButton: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: '#d0d0d0',
-    flex: 1,
-    alignItems: 'center',
-  },
-  filterButtonText: {
-    fontSize: 16,
-    color: '#0163d2',
-  },
-  createButton: {
-    backgroundColor: '#0163d2',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    padding: 10,
-    borderBottomColor: 'gray',
-    borderBottomWidth: 1,
-  },
-  transactionDetails: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  transactionText: {
-    fontSize: 16,
-  },
-  transactionImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 5,
-  },
-});
 
 export default HomePage;
