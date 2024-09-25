@@ -21,9 +21,9 @@ function ProfilePage() {
           setUserProfile(profile);
 
           // If avatar path exists, fetch it from Firebase Storage
-          if (profile.avatar) {
+          if (profile.avatarUrl) { // Use 'avatarUrl' as in EditProfile.js
             const storage = getStorage();
-            const avatarRef = storageRef(storage, profile.avatar); // Fetch avatar path from Storage
+            const avatarRef = storageRef(storage, profile.avatarUrl); // Fetch avatar path from Storage
             const url = await getDownloadURL(avatarRef);
             setAvatarUrl(url); // Set the avatar URL
           }
