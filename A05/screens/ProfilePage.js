@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
-import { StyleSheet, Text, View, Button, Image } from 'react-native'; // Thêm Image để hiển thị ảnh avatar
-import { getUserProfile } from './FirebaseConfig'; // Import hàm lấy thông tin người dùng từ Realtime Database
-import { getAuth } from 'firebase/auth'; // Import để lấy thông tin người dùng hiện tại
+import { useNavigation } from '@react-navigation/native';
+import { StyleSheet, Text, View, TextInput, Button, Image, TouchableOpacity } from 'react-native';
+import { getUserProfile } from './FirebaseConfig';
+import { getAuth } from 'firebase/auth';
+// import { styled } from 'nativewind';
 
 function ProfilePage() {
-  const navigation = useNavigation(); // Lấy đối tượng navigation
+  const navigation = useNavigation();
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const auth = getAuth(); // Lấy đối tượng auth
+  const auth = getAuth();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const user = auth.currentUser; // Lấy người dùng hiện tại
+        const user = auth.currentUser;
         if (user) {
-          const profile = await getUserProfile(user.uid); // Gọi hàm lấy thông tin người dùng
+          const profile = await getUserProfile(user.uid);
           setUserProfile(profile);
         } else {
           throw new Error('User not logged in');
@@ -39,46 +40,135 @@ function ProfilePage() {
   }
 
   return (
-    <View style={styles.viewStyle}>
+    <View style={styles.container}>
       {userProfile ? (
         <>
-          {/* Hiển thị ảnh avatar nếu có, nếu không hiển thị ảnh mặc định */}
+          {/* Profile Image */}
           <Image
             source={userProfile.avatar ? { uri: userProfile.avatar } : require('../assets/avatar.png')}
             style={styles.avatar}
           />
-          <Text style={styles.textStyle}>Name: {userProfile.name}</Text>
-          <Text style={styles.textStyle}>Email: {userProfile.email}</Text>
-          <Text style={styles.textStyle}>Date of Birth: {userProfile.birthdate}</Text>
+          <Text style={styles.nameText}>{userProfile.name}</Text>
+
+          {/* Editable Form */}
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Name</Text>
+              <TextInput
+                style={styles.input}
+                value={userProfile.name}
+                editable={true}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={userProfile.email}
+                editable={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Mobile</Text>
+              <TextInput
+                style={styles.input}
+                value={userProfile.mobile}
+                editable={true}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Date of Birth</Text>
+              
+              <TextInput
+                style={styles.input}
+                value={userProfile.birthdate}
+                editable={true}
+              />
+             
+            </View>
+          </View>
+
+          {/* Edit Button */}
+          <TouchableOpacity style={styles.button}
+          onPress={() => navigation.navigate('Edit')}
+          >
+            <Text style={styles.buttonText}>Edit</Text>
+            
+          </TouchableOpacity>
         </>
       ) : (
         <Text style={styles.textStyle}>No profile data available</Text>
       )}
-      <Button
-        title="Edit Profile"
-        onPress={() => navigation.navigate('Edit')} // Điều hướng đến EditProfile
-        color="#2596be"
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  viewStyle: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 16,
-  },
-  textStyle: {
-    fontSize: 18,
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 20, // Đặt khoảng cách dưới để tạo khoảng cách giữa ảnh và thông tin
+    marginTop: 30,
+    marginBottom: 10,
+  },
+  nameText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 20,
+  },
+  form: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  input: {
+    height: 44,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  dateOfBirth: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dateInput: {
+    width: '30%',
+  },
+  button: {
+    backgroundColor: '#2596be', // Purple button background
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    marginTop: 30,
+    width: '100%',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
