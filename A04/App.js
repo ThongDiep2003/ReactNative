@@ -61,7 +61,7 @@ const App = () => {
         {isLoggedIn ? (
           <>
             <Stack.Screen name="Home" component={HomePage} />
-            <Stack.Screen name="Content" component={HomeContent} />
+            <Stack.Screen name="Add Transaction" component={HomeContent} />
             <Stack.Screen name="Transaction" component={Transaction} />
             <Stack.Screen name="Profile" component={ProfilePage} />
             <Stack.Screen name="Edit" component={EditProfile} />

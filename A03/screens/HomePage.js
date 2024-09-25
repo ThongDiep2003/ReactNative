@@ -5,7 +5,7 @@ import { PieChart } from 'react-native-chart-kit';
 import { FIREBASE_AUTH, getUserProfile } from './FirebaseConfig'; // Import Firebase and getUserProfile
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
 import Icon from 'react-native-vector-icons/Feather'; // For icons
-import tw from 'twrnc';
+import tw from 'tailwind-react-native-classnames';
 
 
 const screenWidth = Dimensions.get('window').width;

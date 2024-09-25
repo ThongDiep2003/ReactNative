@@ -47,6 +47,25 @@ const HomePage = () => {
     fetchTransactions();
   }, []);
 
+  const handleAddTransaction = () => {
+    navigation.navigate('Add Transaction'); 
+  };
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <Icon name="user" size={28} color="#fff" style={{ marginRight: 15 }} />
+        </TouchableOpacity>
+      ),
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('Logout')}>
+          <Icon name="log-out" size={28} color="#fff" style={{ marginLeft: 15 }} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   const fetchTransactions = () => {
     const transactionsRef = ref(FIREBASE_DB, 'transactions');
     onValue(transactionsRef, (snapshot) => {
@@ -114,7 +133,7 @@ const HomePage = () => {
           onChangeText={handleSearch}
         />
         <View style={tw`flex-row justify-between`}>
-          <TouchableOpacity style={tw`flex-1 bg-blue-500 p-3 rounded-lg mr-2`} onPress={() => handleFilter('Expense')}>
+          <TouchableOpacity style={tw`flex-1 bg-purple-500 p-3 rounded-lg mr-2`} onPress={() => handleFilter('Expense')}>
             <Text style={tw`text-white text-center`}>Expense</Text>
           </TouchableOpacity>
           <TouchableOpacity style={tw`flex-1 bg-green-500 p-3 rounded-lg ml-2`} onPress={() => handleFilter('Income')}>
@@ -141,8 +160,8 @@ const HomePage = () => {
       />
 
       {/* Add Transaction Button */}
-      <TouchableOpacity style={tw`bg-purple-500 p-4 rounded-full mx-5 my-5`} onPress={() => navigation.navigate('HomeContent')}>
-        <Text style={tw`text-white text-center`}>Create New Transaction</Text>
+      <TouchableOpacity style={tw`bg-blue-500 p-4 rounded-full mx-5 my-5`} onPress={handleAddTransaction}>
+        <Text style={tw`text-white text-center`}>Add New Transaction</Text>
       </TouchableOpacity>
     </View>
   );

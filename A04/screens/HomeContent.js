@@ -104,7 +104,7 @@ const HomeContent = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Create New Transaction</Text>
+      <Text style={styles.header}>Add New Transaction</Text>
       <TextInput
         style={styles.input}
         placeholder="Date (YYYY-MM-DD)"
