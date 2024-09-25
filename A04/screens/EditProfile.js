@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { StyleSheet, Text, TextInput, View, Pressable, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { get, ref } from 'firebase/database';
-import { sendOTPEmail, generateOTP } from './OTP'; // Import hàm gửi OTP và sinh mã OTP
-import { FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
+import { get, ref, update } from 'firebase/database'; // Firebase Realtime Database update method
+import { FIREBASE_DB } from './FirebaseConfig'; // Firebase Realtime Database reference
+import * as ImagePicker from 'expo-image-picker';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase Storage
 
-const EditProfile = () => {
+function EditProfile() {
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
   const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [avatar, setAvatar] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
-  const auth = getAuth(); // Lấy đối tượng auth
+  const auth = getAuth();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -26,8 +30,10 @@ const EditProfile = () => {
             setName(profile.name || '');
             setBirthdate(profile.birthdate || '');
             setEmail(profile.email || '');
-          } else {
-            throw new Error('No profile data found');
+            setMobile(profile.mobile || '');
+            if (profile.avatarUrl) {
+              setAvatarUrl(profile.avatarUrl);
+            }
           }
         }
       } catch (error) {
@@ -38,8 +44,48 @@ const EditProfile = () => {
     fetchProfile();
   }, [auth]);
 
+  const handleChooseAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'We need permission to access your photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setAvatar(result.uri);
+    }
+  };
+
+  const uploadAvatarToStorage = async (uri) => {
+    if (!uri) return null;
+
+    try {
+      const user = auth.currentUser;
+      const storage = getStorage();
+      const avatarStorageRef = storageRef(storage, `avatars/${user.uid}.jpg`);
+
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      await uploadBytes(avatarStorageRef, blob);
+
+      const downloadUrl = await getDownloadURL(avatarStorageRef);
+      return downloadUrl;
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      return null;
+    }
+  };
+
   const handleSave = async () => {
-    if (!name || !birthdate || !email) {
+    if (!name || !birthdate || !email || !mobile) {
       Alert.alert('All fields are required');
       return;
     }
@@ -47,20 +93,26 @@ const EditProfile = () => {
     try {
       setLoading(true);
 
-      // Tạo mã OTP và gửi email OTP
-      const otp = generateOTP();
-      await sendOTPEmail(email, otp);
+      let uploadedAvatarUrl = avatarUrl;
+      if (avatar) {
+        uploadedAvatarUrl = await uploadAvatarToStorage(avatar);
+      }
 
-      // Điều hướng sang trang nhập OTP và truyền dữ liệu cập nhật
-      navigation.navigate('EnterOTP3', {
+      const user = auth.currentUser;
+      const userRef = ref(FIREBASE_DB, 'users/' + user.uid);
+      await update(userRef, {
         name,
         birthdate,
         email,
-        otp, // Truyền mã OTP
+        mobile,
+        avatarUrl: uploadedAvatarUrl,
       });
+
+      Alert.alert('Profile saved successfully!');
+      navigation.goBack();
     } catch (error) {
-      console.error('Error sending OTP:', error);
-      Alert.alert('Failed to send OTP', error.message);
+      console.error('Error saving profile:', error);
+      Alert.alert('Failed to save profile', error.message);
     } finally {
       setLoading(false);
     }
@@ -68,69 +120,121 @@ const EditProfile = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Edit Profile</Text>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder='Name'
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder='Birthdate (YYYY-MM-DD)'
-          value={birthdate}
-          onChangeText={setBirthdate}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder='Email'
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize='none'
-        />
+      <Image
+        source={avatar || avatarUrl ? { uri: avatar || avatarUrl } : require('../assets/avatar.png')}
+        style={styles.avatar}
+      />
+      <Text style={styles.label}></Text>
+
+      <View style={styles.form}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            editable={false}
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Mobile</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Mobile Number"
+            value={mobile}
+            onChangeText={setMobile}
+            keyboardType="phone-pad"
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Date of Birth</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Birthdate (YYYY-MM-DD)"
+            value={birthdate}
+            onChangeText={setBirthdate}
+          />
+        </View>
       </View>
-      <Pressable style={styles.button} onPress={handleSave} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Sending OTP...' : 'Save'}</Text>
-      </Pressable>
+
+      
+
+      <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
+        <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save'}</Text>
+      </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginTop: 30,
+    marginBottom: 10,
+  },
+  nameText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
     marginBottom: 20,
   },
-  inputContainer: {
+  form: {
     width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
   },
   input: {
-    height: 40,
-    borderColor: '#2596be',
+    height: 44,
+    paddingHorizontal: 12,
     borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: 8,
-    paddingHorizontal: 10,
-    marginVertical: 10,
-    width: '100%',
+    fontSize: 16,
+    color: '#1F2937',
   },
   button: {
     backgroundColor: '#2596be',
-    padding: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
     borderRadius: 8,
+    marginTop: 30,
     width: '100%',
     alignItems: 'center',
   },
   buttonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
   },
 });
 
