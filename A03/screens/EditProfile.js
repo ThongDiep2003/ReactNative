@@ -5,7 +5,7 @@ import { getAuth } from 'firebase/auth';
 import { get, ref, update } from 'firebase/database'; // Import Firebase Realtime Database update method
 import { FIREBASE_DB } from './FirebaseConfig'; // Import Firebase Realtime Database reference
 import * as ImagePicker from 'expo-image-picker';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
 
 const EditProfile = () => {
   const [name, setName] = useState('');
@@ -19,7 +19,6 @@ const EditProfile = () => {
   const auth = getAuth();
 
   useEffect(() => {
-    // Fetch current user profile data
     const fetchProfile = async () => {
       try {
         const user = auth.currentUser;
@@ -46,14 +45,12 @@ const EditProfile = () => {
   }, [auth]);
 
   const handleChooseAvatar = async () => {
-    // Request permission to access the image library
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission required', 'We need permission to access your photos.');
       return;
     }
 
-    // Open the image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -61,29 +58,45 @@ const EditProfile = () => {
       quality: 1,
     });
 
-    if (!result.canceled) {
-      setAvatar(result.uri); // Set the selected image URI
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setAvatar(result.assets[0].uri); // Use result.assets to get URI
     }
   };
 
   const uploadAvatarToStorage = async (uri) => {
-    if (!uri) return null;
+    if (!uri) {
+      console.error("Invalid image URI");
+      return null;
+    }
 
     try {
       const user = auth.currentUser;
       const storage = getStorage();
-      const avatarStorageRef = storageRef(storage, `avatars/${user.uid}.jpg`); // Reference to Firebase Storage
+      const filename = 'avatar_' + user.uid + '_' + new Date().getTime() + '.jpg';
+      const avatarStorageRef = storageRef(storage, `images/${filename}`);
 
-      // Convert the image to blob format
       const response = await fetch(uri);
       const blob = await response.blob();
 
-      // Upload the image to Firebase Storage
-      await uploadBytes(avatarStorageRef, blob);
+      const uploadTask = uploadBytesResumable(avatarStorageRef, blob);
 
-      // Get the download URL of the uploaded image
-      const downloadUrl = await getDownloadURL(avatarStorageRef);
-      return downloadUrl;
+      return new Promise((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log('Upload is ' + progress + '% done');
+          },
+          (error) => {
+            console.error('Upload failed:', error);
+            reject(error);
+          },
+          async () => {
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadUrl);
+          }
+        );
+      });
     } catch (error) {
       console.error('Error uploading avatar:', error);
       return null;
@@ -91,7 +104,7 @@ const EditProfile = () => {
   };
 
   const handleSave = async () => {
-    if (!name || !birthdate || !email || !mobile) { // Check all fields including mobile
+    if (!name || !birthdate || !email || !mobile) {
       Alert.alert('All fields are required');
       return;
     }
@@ -99,24 +112,23 @@ const EditProfile = () => {
     try {
       setLoading(true);
 
-      // Upload avatar if it's changed
       let uploadedAvatarUrl = avatarUrl;
-      if (avatar) {
-        uploadedAvatarUrl = await uploadAvatarToStorage(avatar); // Upload the avatar and get its URL
+      if (avatar && avatar !== avatarUrl) {
+        uploadedAvatarUrl = await uploadAvatarToStorage(avatar);
       }
 
       const user = auth.currentUser;
-      const userRef = ref(FIREBASE_DB, 'users/' + user.uid); // Reference to Firebase Realtime Database
+      const userRef = ref(FIREBASE_DB, 'users/' + user.uid);
       await update(userRef, {
         name,
         birthdate,
         email,
         mobile,
-        avatarUrl: uploadedAvatarUrl, // Update avatar URL
+        avatarUrl: uploadedAvatarUrl,
       });
 
       Alert.alert('Profile saved successfully!');
-      navigation.goBack(); // Navigate back to the previous screen
+      navigation.goBack();
     } catch (error) {
       console.error('Error saving profile:', error);
       Alert.alert('Failed to save profile', error.message);
@@ -131,7 +143,7 @@ const EditProfile = () => {
       <Pressable onPress={handleChooseAvatar}>
         {avatar || avatarUrl ? (
           <Image
-            source={{ uri: avatar || avatarUrl }} // Show selected avatar or previously saved avatar
+            source={{ uri: avatar || avatarUrl }}
             style={styles.avatar}
           />
         ) : (
@@ -163,7 +175,7 @@ const EditProfile = () => {
         <TextInput
           style={styles.input}
           placeholder='Mobile Number'
-          value={mobile} // Show the mobile number value
+          value={mobile}
           onChangeText={setMobile}
           keyboardType='phone-pad'
         />
