@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Dimensions, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { PieChart } from 'react-native-chart-kit';
-import { FIREBASE_AUTH, getUserProfile } from './FirebaseConfig'; // Import Firebase và hàm getUserProfile
-import Icon from 'react-native-vector-icons/Feather'; // Thêm Icon để sử dụng icon
+import { FIREBASE_AUTH, getUserProfile } from './FirebaseConfig'; // Import Firebase and getUserProfile
+import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
+import Icon from 'react-native-vector-icons/Feather'; // For icons
 import tw from 'twrnc';
 
 const screenWidth = Dimensions.get('window').width;
 
-
 const HomePage = () => {
   const [userName, setUserName] = useState('');
   const [userAvatar, setUserAvatar] = useState('');
-  const [loading, setLoading] = useState(true); // Thêm trạng thái loading để hiển thị ActivityIndicator khi dữ liệu đang tải
+  const [loading, setLoading] = useState(true); // Loading state for showing ActivityIndicator
   const navigation = useNavigation();
 
   // Dummy data for the pie chart
@@ -47,31 +47,38 @@ const HomePage = () => {
   );
 
   useEffect(() => {
-    // Lấy thông tin người dùng từ Firebase Auth và Database
+    // Fetch user data and avatar from Firebase Auth and Database
     const fetchUserData = async () => {
       try {
         const currentUser = FIREBASE_AUTH.currentUser;
         if (currentUser) {
-          // Lấy userId từ Authentication
           const userId = currentUser.uid;
-          // Lấy thông tin người dùng từ Database
           const userProfile = await getUserProfile(userId);
 
-          // Cập nhật thông tin người dùng lên state
+          // Update user profile state
           setUserName(userProfile.name);
-          setUserAvatar(userProfile.avatar); // Avatar được lấy từ profile trong Realtime Database
+
+          // Fetch avatar from Firebase Storage if available
+          if (userProfile.avatarUrl) {
+            const storage = getStorage();
+            const avatarRef = storageRef(storage, userProfile.avatarUrl); // Avatar path from Firebase
+            const avatarUrl = await getDownloadURL(avatarRef);
+            setUserAvatar(avatarUrl); // Set avatar URL in state
+          } else {
+            setUserAvatar('https://via.placeholder.com/60'); // Set default avatar if not available
+          }
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
-        setLoading(false); // Kết thúc trạng thái loading khi dữ liệu đã được tải
+        setLoading(false); // Stop loading once data is fetched
       }
     };
 
     fetchUserData();
   }, []);
 
-  // Thêm các nút vào header
+  // Set header buttons
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -100,7 +107,7 @@ const HomePage = () => {
       {/* Header section */}
       <View style={tw`p-5 flex-row justify-between items-center`}>
         <View style={tw`flex-row items-center`}>
-          <Image source={{ uri: userAvatar || 'https://via.placeholder.com/60' }} style={tw`w-14 h-14 rounded-full`} />
+          <Image source={{ uri: userAvatar }} style={tw`w-14 h-14 rounded-full`} />
           <View style={tw`ml-3`}>
             <Text style={tw`text-base text-gray-500`}>Welcome back,</Text>
             <Text style={tw`text-lg font-bold`}>{userName}</Text>
