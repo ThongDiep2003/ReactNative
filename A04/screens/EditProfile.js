@@ -6,6 +6,7 @@ import { get, ref, update } from 'firebase/database'; // Firebase Realtime Datab
 import { FIREBASE_DB } from './FirebaseConfig'; // Firebase Realtime Database reference
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase Storage
+import { generateOTP, sendOTPEmail } from './OTP'; // Import hàm sinh và gửi OTP
 
 function EditProfile() {
   const [name, setName] = useState('');
@@ -99,20 +100,21 @@ function EditProfile() {
       }
 
       const user = auth.currentUser;
-      const userRef = ref(FIREBASE_DB, 'users/' + user.uid);
-      await update(userRef, {
+      const otp = generateOTP(); // Tạo mã OTP
+      await sendOTPEmail(email, otp); // Gửi OTP qua email
+
+      // Điều hướng sang trang nhập OTP và truyền dữ liệu cập nhật
+      navigation.navigate('EnterOTP3', {
         name,
         birthdate,
         email,
-        mobile,
-        avatarUrl: uploadedAvatarUrl,
+        otp, // Truyền mã OTP
       });
-
-      Alert.alert('Profile saved successfully!');
-      navigation.goBack();
     } catch (error) {
-      console.error('Error saving profile:', error);
-      Alert.alert('Failed to save profile', error.message);
+      console.error('Error updating profile:', error);
+      Alert.alert('Update failed', error.message);
+      console.error('Error sending OTP:', error);
+      Alert.alert('Failed to send OTP', error.message);
     } finally {
       setLoading(false);
     }
@@ -120,13 +122,14 @@ function EditProfile() {
 
   return (
     <View style={styles.container}>
+      {/* Avatar hiển thị */}
       <Image
         source={avatar || avatarUrl ? { uri: avatar || avatarUrl } : require('../assets/avatar.png')}
         style={styles.avatar}
       />
-      <Text style={styles.label}></Text>
-
+      
       <View style={styles.form}>
+        {/* Các ô nhập liệu cho hồ sơ */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Name</Text>
           <TextInput
@@ -136,7 +139,6 @@ function EditProfile() {
             onChangeText={setName}
           />
         </View>
-
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Email</Text>
           <TextInput
@@ -147,7 +149,6 @@ function EditProfile() {
             editable={false}
           />
         </View>
-
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Mobile</Text>
           <TextInput
@@ -158,7 +159,6 @@ function EditProfile() {
             keyboardType="phone-pad"
           />
         </View>
-
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Date of Birth</Text>
           <TextInput
@@ -169,8 +169,6 @@ function EditProfile() {
           />
         </View>
       </View>
-
-      
 
       <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save'}</Text>
@@ -193,12 +191,6 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginTop: 30,
     marginBottom: 10,
-  },
-  nameText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 20,
   },
   form: {
     width: '100%',

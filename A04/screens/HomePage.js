@@ -17,7 +17,7 @@ const HomePage = () => {
   const [userAvatar, setUserAvatar] = useState('');
   const [loading, setLoading] = useState(true);
 
-  
+
   // Fetch user data from Firebase
   useEffect(() => {
     const fetchUserData = async () => {

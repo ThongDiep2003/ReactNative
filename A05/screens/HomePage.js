@@ -20,6 +20,7 @@ const HomePage = () => {
       .slice(0, 10); // Lấy top 10 giao dịch
   };
 
+  
   // Hàm thêm giao dịch
   const handleAddTransaction = () => {
     navigation.navigate('HomeContent'); 

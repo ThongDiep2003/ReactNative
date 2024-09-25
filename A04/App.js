@@ -58,8 +58,7 @@ const App = () => {
           headerTintColor: "#fff",
           headerTitleAlign: "center",
         }}>
-        {isLoggedIn ? (
-          <>
+        
             <Stack.Screen name="Home" component={HomePage} />
             <Stack.Screen name="Add Transaction" component={HomeContent} />
             <Stack.Screen name="Transaction" component={Transaction} />
@@ -67,9 +66,9 @@ const App = () => {
             <Stack.Screen name="Edit" component={EditProfile} />
             <Stack.Screen name="Logout" component={LogoutPage} />
             <Stack.Screen name="EditTransaction" component={EditTransaction} />
-          </>
-        ) : (
-          <>
+            
+          
+         
             <Stack.Screen name="Login" component={LoginPage} />
             <Stack.Screen name="Introduction" component={IntroductionPage} />
             <Stack.Screen name="Register" component={RegisterPage} />
@@ -78,8 +77,8 @@ const App = () => {
             <Stack.Screen name="ResetPassword" component={ResetPassword} />
             <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
             <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
-          </>
-        )}
+        
+      
       </Stack.Navigator>
     </NavigationContainer>
   );
