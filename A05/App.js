@@ -1,9 +1,8 @@
-// App.js
 import React, { useEffect, useState } from "react";
 import { StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Icon from 'react-native-vector-icons/Ionicons'; // Import Icon cho Tab và Back
+import Icon from 'react-native-vector-icons/Ionicons'; // Import Icon cho Back
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import các trang
@@ -17,31 +16,24 @@ import ResetPassword from "./screens/ResetPassword";
 import EnterOTP from "./screens/EnterOTP";
 import EnterOTP2 from "./screens/EnterOTP2";
 import EnterOTP3 from "./screens/EnterOTP3";
+import LogoutPage from "./screens/LogoutPage";
 import Transaction from './screens/Transaction';
 import EditTransaction from './screens/EditTransaction';
-import SettingsPage from './screens/SettingsPage'; // Import SettingsPage
-import Language from './screens/LanguagePage'; // Import other Settings related pages
-import ContactUs from './screens/ContactUsPage';
-import ChangePassword from './screens/ChangePasswordPage';
-import PrivacyPolicy from './screens/PrivacyPolicyPage';
 
-// Import TabNavigator
-import TabNavigator from './navigation/TabNavigator';
+// Import TabNavigator cho Bottom Tabs
+import TabNavigator from "./navigation/TabNavigator"; 
 
 const Stack = createNativeStackNavigator();
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
 
+  // Kiểm tra trạng thái đăng nhập
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
         const token = await AsyncStorage.getItem('jwtToken');
-        if (token) {
-          setIsLoggedIn(true);
-        } else {
-          setIsLoggedIn(false);
-        }
+        setIsLoggedIn(!!token); // Kiểm tra token và đặt trạng thái đăng nhập
       } catch (error) {
         console.error('Failed to check login status:', error);
         setIsLoggedIn(false);
@@ -52,7 +44,7 @@ const App = () => {
   }, []);
 
   if (isLoggedIn === null) {
-    return null; // Render nothing or a loading spinner while checking login status
+    return null; // Hiển thị màn hình trắng hoặc spinner khi đang kiểm tra trạng thái đăng nhập
   }
 
   return (
@@ -64,7 +56,6 @@ const App = () => {
           headerStyle: { backgroundColor: "#0163d2" },
           headerTintColor: "#fff",
           headerTitleAlign: "center", // Căn giữa tiêu đề
-          // Chỉ hiện nút Back khi có màn hình để quay lại
           headerLeft: () => (
             navigation.canGoBack() ? (
               <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -74,15 +65,20 @@ const App = () => {
           ),
         })}
       >
-        {/* Tab Navigator */}
-        {isLoggedIn ? (
-          <Stack.Screen 
-            name="Main" 
-            component={TabNavigator} 
-            options={{ headerShown: false }} // Không hiển thị tiêu đề khi ở Tab
-          />
-        ) : (
+        
           <>
+            {/* TabNavigator để chứa các tab chính */}
+            <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
+            <Stack.Screen name="Profile" component={ProfilePage} />
+            <Stack.Screen name="Edit" component={EditProfile} options={{ headerTitle: "Edit Profile" }} />
+            <Stack.Screen name="Transaction" component={Transaction} options={{ headerTitle: "Transaction Details" }} />
+            <Stack.Screen name="EditTransaction" component={EditTransaction} options={{ headerTitle: "Edit Transaction" }} />
+            <Stack.Screen name="Logout" component={LogoutPage} />
+          </>
+      
+          <>
+            {/* Stack Screens cho người dùng chưa đăng nhập */}
+            
             <Stack.Screen name="Login" component={LoginPage} />
             <Stack.Screen name="Introduction" component={IntroductionPage} />
             <Stack.Screen name="Register" component={RegisterPage} />
@@ -91,57 +87,9 @@ const App = () => {
             <Stack.Screen name="ResetPassword" component={ResetPassword} />
             <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
             <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
+            
           </>
-        )}
-
-        {/* Stack Screens */}
-        <Stack.Screen 
-          name="Edit" 
-          component={EditProfile} 
-          options={{ headerTitle: "Edit Profile" }}
-        />
-        <Stack.Screen 
-          name="Transaction" 
-          component={Transaction} 
-          options={{ headerTitle: "Transaction Details" }}
-        />
-        <Stack.Screen 
-          name="EditTransaction" 
-          component={EditTransaction} 
-          options={{ headerTitle: "Edit Transaction" }}
-        />
-
-        {/* Settings Screens */}
-        <Stack.Screen 
-          name="SettingsPage" 
-          component={SettingsPage} 
-          options={{ headerTitle: "Settings" }}
-        />
-        <Stack.Screen 
-          name="ProfilePage" 
-          component={ProfilePage} 
-          options={{ headerTitle: "My Profile" }}
-        />
-        <Stack.Screen 
-          name="ContactUs" 
-          component={ContactUs} 
-          options={{ headerTitle: "Contact Us" }}
-        />
-        <Stack.Screen 
-          name="Language" 
-          component={Language} 
-          options={{ headerTitle: "Language" }}
-        />
-        <Stack.Screen 
-          name="ChangePassword" 
-          component={ChangePassword} 
-          options={{ headerTitle: "Change Password" }}
-        />
-        <Stack.Screen 
-          name="PrivacyPolicy" 
-          component={PrivacyPolicy} 
-          options={{ headerTitle: "Privacy Policy" }}
-        />
+     
       </Stack.Navigator>
     </NavigationContainer>
   );
