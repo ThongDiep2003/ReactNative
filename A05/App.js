@@ -24,6 +24,7 @@ import Language from './screens/LanguagePage'; // Import other Settings related 
 import ContactUs from './screens/ContactUsPage';
 import ChangePassword from './screens/ChangePasswordPage';
 import PrivacyPolicy from './screens/PrivacyPolicyPage';
+import LogoutPage from './screens/LogoutPage';
 
 // Import TabNavigator
 import TabNavigator from './navigation/TabNavigator';
@@ -141,6 +142,11 @@ const App = () => {
           name="PrivacyPolicy" 
           component={PrivacyPolicy} 
           options={{ headerTitle: "Privacy Policy" }}
+        />
+        <Stack.Screen
+          name="LogoutPage"
+          component={LogoutPage}
+          options={{ headerTitle: "Logout" }}
         />
       </Stack.Navigator>
     </NavigationContainer>
