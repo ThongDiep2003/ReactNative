@@ -46,7 +46,7 @@ const HomePage = () => {
   
   // Hàm thêm giao dịch
   const handleAddTransaction = () => {
-    navigation.navigate('HomeContent'); 
+    navigation.navigate('AddTransaction'); 
   };
     fetchUserData();
     fetchTransactions();

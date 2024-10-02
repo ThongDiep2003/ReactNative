@@ -5,7 +5,7 @@ import { FIREBASE_DB, FIREBASE_STORAGE } from './FirebaseConfig'; // Firebase co
 import { ref, set } from 'firebase/database';
 import { getStorage, uploadBytes, getDownloadURL, ref as storageRef } from 'firebase/storage'; // Firebase storage
 
-const HomeContent = ({ navigation }) => {
+const AddTransaction = ({ navigation }) => {
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -192,4 +192,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeContent;
+export default AddTransaction;

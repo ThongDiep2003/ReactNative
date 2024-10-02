@@ -1,13 +1,12 @@
+// App.js
 import React, { useEffect, useState } from "react";
 import { StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons'; // Import Icon cho Tab và Back
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import các trang
-import HomePage from "./screens/HomePage";
 import IntroductionPage from "./screens/IntroductionPage";
 import LoginPage from "./screens/LoginPage";
 import RegisterPage from "./screens/RegisterPage";
@@ -18,64 +17,18 @@ import ResetPassword from "./screens/ResetPassword";
 import EnterOTP from "./screens/EnterOTP";
 import EnterOTP2 from "./screens/EnterOTP2";
 import EnterOTP3 from "./screens/EnterOTP3";
-import LogoutPage from "./screens/LogoutPage";
-import HomeContent from "./screens/HomeContent";
 import Transaction from './screens/Transaction';
 import EditTransaction from './screens/EditTransaction';
+import SettingsPage from './screens/SettingsPage'; // Import SettingsPage
+import Language from './screens/LanguagePage'; // Import other Settings related pages
+import ContactUs from './screens/ContactUsPage';
+import ChangePassword from './screens/ChangePasswordPage';
+import PrivacyPolicy from './screens/PrivacyPolicyPage';
+
+// Import TabNavigator
+import TabNavigator from './navigation/TabNavigator';
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
-// Tạo Tab Navigator
-const TabNavigator = () => {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName;
-          if (route.name === 'Home') {
-            iconName = 'home';
-          } else if (route.name === 'Add') {
-            iconName = 'add-circle';
-          } else if (route.name === 'Profile') {
-            iconName = 'person';
-          } else if (route.name === 'Logout') {
-            iconName = 'log-out';
-          }
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#0163d2',
-        tabBarInactiveTintColor: 'gray',
-        headerTitleAlign: 'center', // Căn giữa tiêu đề
-        headerStyle: {
-          backgroundColor: '#0163d2',
-        },
-        headerTintColor: '#fff',
-      })}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={HomePage} 
-        options={{ headerTitleAlign: "center" }} // Căn giữa tiêu đề
-      />
-      <Tab.Screen 
-        name="Add" 
-        component={HomeContent} 
-        options={{ headerTitleAlign: "center" }} // Căn giữa tiêu đề
-      />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfilePage} 
-        options={{ headerTitleAlign: "center" }} // Căn giữa tiêu đề
-      />
-      <Tab.Screen 
-        name="Logout" 
-        component={LogoutPage} 
-        options={{ headerTitleAlign: "center" }} // Căn giữa tiêu đề
-      />
-    </Tab.Navigator>
-  );
-};
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
@@ -156,6 +109,38 @@ const App = () => {
           name="EditTransaction" 
           component={EditTransaction} 
           options={{ headerTitle: "Edit Transaction" }}
+        />
+
+        {/* Settings Screens */}
+        <Stack.Screen 
+          name="SettingsPage" 
+          component={SettingsPage} 
+          options={{ headerTitle: "Settings" }}
+        />
+        <Stack.Screen 
+          name="ProfilePage" 
+          component={ProfilePage} 
+          options={{ headerTitle: "My Profile" }}
+        />
+        <Stack.Screen 
+          name="ContactUs" 
+          component={ContactUs} 
+          options={{ headerTitle: "Contact Us" }}
+        />
+        <Stack.Screen 
+          name="Language" 
+          component={Language} 
+          options={{ headerTitle: "Language" }}
+        />
+        <Stack.Screen 
+          name="ChangePassword" 
+          component={ChangePassword} 
+          options={{ headerTitle: "Change Password" }}
+        />
+        <Stack.Screen 
+          name="PrivacyPolicy" 
+          component={PrivacyPolicy} 
+          options={{ headerTitle: "Privacy Policy" }}
         />
       </Stack.Navigator>
     </NavigationContainer>
