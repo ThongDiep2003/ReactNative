@@ -25,7 +25,7 @@ import Language from './screens/LanguagePage'; // Import other Settings related 
 import ContactUs from './screens/ContactUsPage';
 import ChangePassword from './screens/ChangePasswordPage';
 import PrivacyPolicy from './screens/PrivacyPolicyPage';
-import LogoutPage from './screens/LogoutPage';
+
 
 
 // Import TabNavigator cho Bottom Tabs
@@ -100,21 +100,9 @@ const App = () => {
 
 
         {/* Stack Screens */}
-        <Stack.Screen 
-          name="Edit" 
-          component={EditProfile} 
-          options={{ headerTitle: "Edit Profile" }}
-        />
-        <Stack.Screen 
-          name="Transaction" 
-          component={Transaction} 
-          options={{ headerTitle: "Transaction Details" }}
-        />
-        <Stack.Screen 
-          name="EditTransaction" 
-          component={EditTransaction} 
-          options={{ headerTitle: "Edit Transaction" }}
-        />
+        
+        
+       
 
         {/* Settings Screens */}
         <Stack.Screen 

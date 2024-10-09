@@ -27,7 +27,7 @@ const Login = () => {
   
       Alert.alert('Login successful');
       // Navigate to the main screen (Main)
-      navigation.navigate('TabNavigator');  // Change from 'TabNavigator' to 'Main'
+      navigation.navigate('Main');  // Change from 'TabNavigator' to 'Main'
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/user-not-found') {
