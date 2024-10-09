@@ -18,37 +18,7 @@ const HomePage = () => {
   const [userAvatar, setUserAvatar] = useState('');
   const [loading, setLoading] = useState(true);
   const [showAllTransactions, setShowAllTransactions] = useState(false); // To toggle between showing all or limited transactions
-  <NavigationContainer>
-  <Tab.Navigator
-    initialRouteName="Home"
-    screenOptions={({ route }) => ({
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
 
-        if (route.name === 'Home') {
-          iconName = 'home';
-        } else if (route.name === 'Profile') {
-          iconName = 'user';
-        } else if (route.name === 'Edit Profile') {
-          iconName = 'edit';
-        } else if (route.name === 'Logout') {
-          iconName = 'log-out';
-        }
-
-        // Return Icon component
-        return <Icon name={iconName} size={size} color={color} />;
-      },
-      tabBarActiveTintColor: 'tomato',
-      tabBarInactiveTintColor: 'gray',
-      headerShown: false, // Hide headers on each tab
-    })}
-  >
-    <Tab.Screen name="Home" component={HomePage} />
-    <Tab.Screen name="Profile" component={ProfilePage} />
-    <Tab.Screen name="Edit Profile" component={EditProfile} />
-    <Tab.Screen name="Logout" component={LogoutPage} />
-  </Tab.Navigator>
-</NavigationContainer>
   // Fetch user data from Firebase
   useEffect(() => {
     const fetchUserData = async () => {
