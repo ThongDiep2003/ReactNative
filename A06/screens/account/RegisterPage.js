@@ -4,7 +4,9 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
 import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
 import { generateOTP, sendOTPEmail } from '../../services/OTP'; // Import các hàm tạo và gửi OTP
-import {EnterOTP2} from '../otp/EnterOTP2'
+import { EnterOTP2 } from '../otp/EnterOTP2';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const RegisterPage = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -13,6 +15,7 @@ const RegisterPage = ({ navigation }) => {
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const auth = FIREBASE_AUTH;
 
   const handleRegister = async () => {
@@ -32,7 +35,6 @@ const RegisterPage = ({ navigation }) => {
 
       // Điều hướng đến màn hình nhập OTP
       navigation.navigate('EnterOTP2', { email: username, name, birthdate, password });
-
     } catch (error) {
       console.error('Registration error:', error);
       Alert.alert('Registration failed', error.message);
@@ -44,6 +46,14 @@ const RegisterPage = ({ navigation }) => {
   // Helper function to encode email for database key
   const encodeEmail = (email) => {
     return email.replace(/\./g, ',');
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      setBirthdate(formattedDate);
+    }
   };
 
   return (
@@ -61,13 +71,26 @@ const RegisterPage = ({ navigation }) => {
           onChangeText={setName}
           autoCorrect={false}
         />
-        <TextInput
-          style={styles.input}
-          placeholder='BIRTHDATE (YYYY-MM-DD)'
-          value={birthdate}
-          onChangeText={setBirthdate}
-          autoCorrect={false}
-        />
+        <View style={styles.birthdateView}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder='BIRTHDATE (YYYY-MM-DD)'
+            value={birthdate}
+            onChangeText={setBirthdate}
+            autoCorrect={false}
+          />
+          <Pressable onPress={() => setShowDatePicker(true)}>
+            <Icon name="calendar" size={24} color="#2596be" style={styles.calendarIcon} />
+          </Pressable>
+        </View>
+        {showDatePicker && (
+          <DateTimePicker
+            value={birthdate ? new Date(birthdate) : new Date()}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+          />
+        )}
         <TextInput
           style={styles.input}
           placeholder='EMAIL'
@@ -132,6 +155,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginVertical: 10,
     width: '100%',
+  },
+  birthdateView: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  calendarIcon: {
+    marginLeft: 10,
   },
   buttonView: {
     marginVertical: 20,
