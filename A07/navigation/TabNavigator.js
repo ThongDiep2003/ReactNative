@@ -7,7 +7,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import HomePage from '../screens/home/HomePage';
 import AddTransaction from '../screens/home/transaction/AddTransactionPage'; 
 import StatisticPage from '../screens/home/StatisticPage'; 
-import BudgetPage from '../screens/home/BudgetPage'; 
+import BudgetPage from '../screens/home/budget/BudgetPage'; 
 import SettingsPage from '../screens/setting/SettingsPage'; // Import Settings Page
 
 const Tab = createBottomTabNavigator();

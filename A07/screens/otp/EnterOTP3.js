@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
 import { verifyOTP } from '../../auths/FirebaseConfig'; // Import hàm xác thực OTP
-import { update, ref } from 'firebase/database'; // Import hàm để cập nhật dữ liệu vào Realtime Database
-import { FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
-import { getAuth } from 'firebase/auth';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth'; // Import hàm deleteUser để xóa tài khoản
+import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
+import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
+
 
 const EnterOTP3 = ({ route, navigation }) => {
   const { name, birthdate, email, otp: sentOtp } = route.params;
