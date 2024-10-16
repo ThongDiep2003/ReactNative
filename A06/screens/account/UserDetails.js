@@ -1,5 +1,5 @@
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from './FirebaseConfig'; // Kết nối với Firestore
+import { db } from '../../auths/FirebaseConfig'; // Kết nối với Firestore
 
 // Hàm thêm người dùng vào Firestore
 export const addUser = async (user) => {
