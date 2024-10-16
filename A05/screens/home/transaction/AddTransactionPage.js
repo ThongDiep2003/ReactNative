@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { FIREBASE_DB, FIREBASE_STORAGE } from './FirebaseConfig'; // Firebase config
+import { FIREBASE_DB, FIREBASE_STORAGE } from '../../../auths/FirebaseConfig'; // Firebase config
 import { ref, set } from 'firebase/database';
 import { getStorage, uploadBytes, getDownloadURL, ref as storageRef } from 'firebase/storage'; // Firebase storage
 

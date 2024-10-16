@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { storeOTP } from './FirebaseConfig'; // Import hàm storeOTP từ FirebaseConfig
+import { storeOTP } from '../auths/FirebaseConfig'; // Import hàm storeOTP từ FirebaseConfig
 
 const mailjetApiKey = '73c36171f78ee2bb969a01f80e96ba9a'; // Thay bằng API Key của bạn
 const mailjetSecretKey = '2382d9a1761ec6a01743a14c5532d361'; // Thay bằng Secret Key của bạn

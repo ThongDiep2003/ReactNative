@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, FlatList, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Entypo';
-import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from './FirebaseConfig'; // Import Firebase configuration
+import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from '../../auths/FirebaseConfig'; // Import Firebase configuration
 import { ref, onValue } from 'firebase/database';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage
 import tw from 'tailwind-react-native-classnames'; // Import tailwind-react-native-classnames
-
 
 const HomePage = () => {
   const navigation = useNavigation();

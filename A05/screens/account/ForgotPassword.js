@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
-import { generateOTP, sendOTPEmail } from './OTP'; // Import các hàm cần thiết
+import { generateOTP, sendOTPEmail } from '../../services/OTP'; // Import các hàm cần thiết
 
 const ForgotPassword = ({ navigation }) => {
   const [email, setEmail] = useState('');

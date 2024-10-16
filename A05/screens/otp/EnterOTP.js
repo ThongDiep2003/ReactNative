@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
-import { verifyOTP } from './FirebaseConfig'; // Import hàm verifyOTP từ FirebaseConfig
+import { verifyOTP } from '../../auths/FirebaseConfig'; // Import hàm verifyOTP từ FirebaseConfig
 
 const EnterOTP = ({ route, navigation }) => {
   const { email } = route.params; // Nhận email từ tham số điều hướng

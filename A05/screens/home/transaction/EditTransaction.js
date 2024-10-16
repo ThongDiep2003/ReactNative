@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { ref, update } from 'firebase/database';
-import { FIREBASE_DB } from './FirebaseConfig'; // Import Firebase configuration
+import { FIREBASE_DB } from '../../../auths/FirebaseConfig'; // Import Firebase configuration
 
 const EditTransaction = ({ route, navigation }) => {
   const { transaction } = route.params; // Nhận tham số từ Transaction

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import { signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FIREBASE_AUTH } from './FirebaseConfig'; // Ensure the correct Firebase path
+import { FIREBASE_AUTH } from '../../auths/FirebaseConfig'; // Ensure the correct Firebase path
 import { CommonActions } from '@react-navigation/native';
 
 const LogoutPage = ({ navigation }) => {

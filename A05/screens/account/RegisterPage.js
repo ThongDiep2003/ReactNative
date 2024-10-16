@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Alert } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { FIREBASE_AUTH, FIREBASE_DB } from './FirebaseConfig'; // Import Realtime Database
+import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
 import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
-import { generateOTP, sendOTPEmail } from './OTP'; // Import các hàm tạo và gửi OTP
-import {EnterOTP2} from './EnterOTP2'
+import { generateOTP, sendOTPEmail } from '../../services/OTP'; // Import các hàm tạo và gửi OTP
+import {EnterOTP2} from '../otp/EnterOTP2'
 
 const RegisterPage = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -49,7 +49,7 @@ const RegisterPage = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <Image
-        source={require('../assets/logo.png')} // Đường dẫn tới ảnh trong thư mục dự án
+        source={require('../../assets/logo.png')} // Đường dẫn tới ảnh trong thư mục dự án
         style={styles.image}
       />
       <Text style={styles.title}>Register</Text>

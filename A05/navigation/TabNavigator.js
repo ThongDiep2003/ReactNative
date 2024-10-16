@@ -4,11 +4,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Import các trang
-import HomePage from '../screens/HomePage';
-import AddTransaction from '../screens/AddTransactionPage'; 
-import StatisticPage from '../screens/StatisticPage'; 
-import BudgetPage from '../screens/BudgetPage'; 
-import SettingsPage from '../screens/SettingsPage'; // Import Settings Page
+import HomePage from '../screens/home/HomePage';
+import AddTransaction from '../screens/home/transaction/AddTransactionPage'; 
+import StatisticPage from '../screens/home/StatisticPage'; 
+import BudgetPage from '../screens/home/budget/BudgetPage'; 
+import SettingsPage from '../screens/setting/SettingsPage'; // Import Settings Page
 
 const Tab = createBottomTabNavigator();
 

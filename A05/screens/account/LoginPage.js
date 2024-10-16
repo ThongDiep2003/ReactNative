@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, Image, Pressable, SafeAreaView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { signInWithEmailAndPassword } from 'firebase/auth'; 
-import { FIREBASE_AUTH } from './FirebaseConfig'; 
+import { FIREBASE_AUTH } from '../../auths/FirebaseConfig'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Login = () => {
@@ -46,7 +46,7 @@ const Login = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Image
-        source={require('../assets/login.png')}
+        source={require('../../assets/login.png')}
         style={styles.image}
       />
       <Text style={styles.title}>Login</Text>

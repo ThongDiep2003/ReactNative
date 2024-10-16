@@ -2,29 +2,34 @@ import React, { useEffect, useState } from "react";
 import { StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Icon from 'react-native-vector-icons/Ionicons'; // Import Icon cho Back
+import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import các trang
-import IntroductionPage from "./screens/IntroductionPage";
-import LoginPage from "./screens/LoginPage";
-import RegisterPage from "./screens/RegisterPage";
-import ForgotPassword from "./screens/ForgotPassword";
-import ProfilePage from "./screens/ProfilePage";
-import EditProfile from "./screens/EditProfile";
-import ResetPassword from "./screens/ResetPassword";
-import EnterOTP from "./screens/EnterOTP";
-import EnterOTP2 from "./screens/EnterOTP2";
-import EnterOTP3 from "./screens/EnterOTP3";
-import LogoutPage from "./screens/LogoutPage";
-import Transaction from './screens/Transaction';
-import EditTransaction from './screens/EditTransaction';
+import SplashScreen from "./screens/splash/SplashScreen";
+import SplashScreen1 from "./screens/splash/SplashScreen1";  
+import SplashScreen2 from "./screens/splash/SplashScreen2";
+import SplashScreen3 from "./screens/splash/SplashScreen3";
 
-import SettingsPage from './screens/SettingsPage'; // Import SettingsPage
-import Language from './screens/LanguagePage'; // Import other Settings related pages
-import ContactUs from './screens/ContactUsPage';
-import ChangePassword from './screens/ChangePasswordPage';
-import PrivacyPolicy from './screens/PrivacyPolicyPage';
+import IntroductionPage from "./screens/introview/IntroductionPage";
+import LoginPage from "./screens/account/LoginPage";
+import RegisterPage from "./screens/account/RegisterPage";
+import ForgotPassword from "./screens/account/ForgotPassword";
+import ProfilePage from "./screens/setting/ProfilePage";
+import EditProfile from "./screens/setting/EditProfile";
+import ResetPassword from "./screens/account/ResetPassword";
+import EnterOTP from "./screens/otp/EnterOTP";
+import EnterOTP2 from "./screens/otp/EnterOTP2";
+import EnterOTP3 from "./screens/otp/EnterOTP3";
+import LogoutPage from "./screens/account/LogoutPage";
+import Transaction from './screens/home/transaction/Transaction';
+import EditTransaction from './screens/home/transaction/EditTransaction';
+
+import SettingsPage from './screens/setting/SettingsPage';
+import Language from './screens/setting/LanguagePage';
+import ContactUs from './screens/setting/ContactUsPage';
+import ChangePassword from './screens/setting/ChangePasswordPage';
+import PrivacyPolicy from './screens/setting/PrivacyPolicyPage';
 
 
 
@@ -58,7 +63,7 @@ const App = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator 
-        initialRouteName={isLoggedIn ? "Main" : "Login"}
+        initialRouteName={isLoggedIn ? "Main" : "SplashScreen"}
         screenOptions={({ navigation }) => ({
           backgroundColor: "white",
           headerStyle: { backgroundColor: "#0163d2" },
@@ -75,6 +80,12 @@ const App = () => {
       >
         
           <>
+            {/* Splash Screen */}
+            <Stack.Screen name="SplashScreen" component={SplashScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="SplashScreen1" component={SplashScreen1} options={{ headerShown: false }} />
+            <Stack.Screen name="SplashScreen2" component={SplashScreen2} options={{ headerShown: false }} />
+            <Stack.Screen name="SplashScreen3" component={SplashScreen3} options={{ headerShown: false }} />
+
             {/* TabNavigator để chứa các tab chính */}
             <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
             <Stack.Screen name="Profile" component={ProfilePage} />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
 import { ref, remove, update } from 'firebase/database';
-import { FIREBASE_DB } from './FirebaseConfig'; // Import Firebase configuration
+import { FIREBASE_DB } from '../../../auths/FirebaseConfig'; // Import Firebase configuration
 
 const Transaction = ({ route, navigation }) => {
   const { transaction } = route.params; // Nhận tham số từ HomePage

@@ -19,7 +19,7 @@ const IntroductionPage = ({ navigation }) => {
         <Text>I'm a Java Developer.</Text>
         
         <Image
-          source={require('../assets/cat.png')} // Đường dẫn tới ảnh trong thư mục dự án
+          source={require('../../assets/cat.png')} // Đường dẫn tới ảnh trong thư mục dự án
           style={styles.image}
         />
   

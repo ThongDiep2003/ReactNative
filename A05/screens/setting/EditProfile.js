@@ -3,10 +3,10 @@ import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import { get, ref, update } from 'firebase/database'; // Firebase Realtime Database update method
-import { FIREBASE_DB } from './FirebaseConfig'; // Firebase Realtime Database reference
+import { FIREBASE_DB } from '../../auths/FirebaseConfig'; // Firebase Realtime Database reference
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase Storage
-import { generateOTP, sendOTPEmail } from './OTP'; // Import hàm sinh và gửi OTP
+import { generateOTP, sendOTPEmail } from '../../services/OTP'; // Import hàm sinh và gửi OTP
 
 function EditProfile() {
   const [name, setName] = useState('');
@@ -124,7 +124,7 @@ function EditProfile() {
     <View style={styles.container}>
       {/* Avatar hiển thị */}
       <Image
-        source={avatar || avatarUrl ? { uri: avatar || avatarUrl } : require('../assets/avatar.png')}
+        source={avatar || avatarUrl ? { uri: avatar || avatarUrl } : require('../../assets/avatar.png')}
         style={styles.avatar}
       />
       

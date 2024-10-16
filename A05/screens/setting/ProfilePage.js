@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native'; 
 import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
-import { getUserProfile } from './FirebaseConfig'; 
+import { getUserProfile } from '../../auths/FirebaseConfig'; 
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 
@@ -54,7 +54,7 @@ function ProfilePage() {
         <>
           {/* Show avatar or default image */}
           <Image
-            source={avatarUrl ? { uri: avatarUrl } : require('../assets/avatar.png')}
+            source={avatarUrl ? { uri: avatarUrl } : require('../../assets/avatar.png')}
             style={styles.avatar}
           />
 
