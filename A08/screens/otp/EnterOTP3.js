@@ -3,7 +3,7 @@ import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from '
 import { verifyOTP } from '../../auths/FirebaseConfig'; // Import hàm xác thực OTP
 import { createUserWithEmailAndPassword, deleteUser, getAuth } from 'firebase/auth'; // Import hàm deleteUser để xóa tài khoản
 import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
-import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
+import { ref, set, update } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
 
 
 const EnterOTP3 = ({ route, navigation }) => {
