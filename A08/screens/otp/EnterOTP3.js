@@ -3,36 +3,33 @@ import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from '
 import { verifyOTP } from '../../auths/FirebaseConfig'; // Import hàm xác thực OTP
 import { createUserWithEmailAndPassword, deleteUser, getAuth } from 'firebase/auth'; // Import hàm deleteUser để xóa tài khoản
 import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
-import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
+import { ref, set, update } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
 
 
 const EnterOTP3 = ({ route, navigation }) => {
-  const { name, birthdate, email, mobile, avatarUrl, otp: sentOtp } = route.params; // Destructure avatarUrl
+  const { name, birthdate, email, otp: sentOtp } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleVerifyOTP = async () => {
     setLoading(true);
     try {
-      // Verify OTP
+      // Xác thực OTP
       const isVerified = await verifyOTP(email, otp);
 
       if (isVerified && otp === sentOtp) {
-        // If OTP is valid, update the user's profile in the Firebase Realtime Database
+        // Nếu OTP đúng, cập nhật thông tin người dùng
         const userRef = ref(FIREBASE_DB, 'users/' + getAuth().currentUser.uid);
         await update(userRef, {
           name: name,
           birthdate: birthdate,
           email: email,
-          mobile: mobile, // Update mobile number
-          avatarUrl: avatarUrl, // Update avatar URL
         });
-
         Alert.alert('Profile updated successfully');
 
-        // Wait for 3 seconds before navigating to profile screen
+        // Thay vì điều hướng ngay lập tức, hãy đợi 3 giây
         setTimeout(() => {
-          navigation.navigate('Profile');
+          navigation.navigate('Profile'); // Quay lại trang profile
         }, 3000);
       } else {
         Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
