@@ -38,6 +38,7 @@ const HomePage = () => {
             setUserAvatar('https://via.placeholder.com/60'); // Default avatar
           }
         }
+        
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {

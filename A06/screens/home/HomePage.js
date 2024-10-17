@@ -136,7 +136,10 @@ const HomePage = () => {
       {/* User Section */}
       <View style={tw`p-5 flex-row justify-between items-center bg-gray-100 rounded-b-lg`}>
         <View style={tw`flex-row items-center`}>
-          <Image source={{ uri: userAvatar }} style={tw`w-14 h-14 rounded-full`} />
+        <Image
+          source={require('../../assets/avatar.png')}
+          style={tw`w-12 h-12 rounded-full`}
+        />
           <View style={tw`ml-3`}>
             <Text style={tw`text-base text-gray-500`}>Welcome back,</Text>
             <Text style={tw`text-lg font-bold`}>{userName}</Text>
@@ -156,7 +159,7 @@ const HomePage = () => {
           <TouchableOpacity
             style={tw`${filterType === 'Expense' ? 'bg-blue-700' : 'bg-blue-500'} flex-1 p-3 rounded-lg mr-2`}
             onPress={() => handleFilter('Expense')}
-          >
+          > 
             <Text style={tw`text-white text-center`}>Expense</Text>
           </TouchableOpacity>
           <TouchableOpacity

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { get, ref, update } from 'firebase/database';
+import { get, ref } from 'firebase/database';
 import { FIREBASE_DB } from '../../auths/FirebaseConfig';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -13,7 +13,7 @@ function EditProfile() {
   const [birthdate, setBirthdate] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [avatar, setAvatar] = useState('');
+  const [avatar, setAvatar] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
@@ -59,28 +59,25 @@ function EditProfile() {
       quality: 1,
     });
 
-    if (!result.canceled) {
-      setAvatar(result.uri);
+    if (!result.canceled && result.assets.length > 0) {
+      setAvatar(result.assets[0].uri);
     }
   };
 
   const uploadAvatarToStorage = async (uri) => {
     if (!uri) return null;
-  
+
     try {
       const user = auth.currentUser;
       const storage = getStorage();
-      const avatarStorageRef = storageRef(storage, `avatars/${user.uid}.jpg`); // Đường dẫn bao gồm "avatars" và user UID
-  
-      const response = await fetch(uri); // Chuyển đổi URI của ảnh thành Blob
+      const avatarStorageRef = storageRef(storage, `avatars/${user.uid}.jpg`);
+
+      const response = await fetch(uri);
       const blob = await response.blob();
-  
-      // Tải lên Firebase Storage
+
       await uploadBytes(avatarStorageRef, blob);
-  
-      // Lấy URL tải xuống của ảnh đã upload
       const downloadUrl = await getDownloadURL(avatarStorageRef);
-      return downloadUrl; // Trả về URL để lưu vào Database hoặc sử dụng tiếp
+      return downloadUrl;
     } catch (error) {
       console.error('Error uploading avatar:', error);
       return null;
@@ -123,13 +120,17 @@ function EditProfile() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={handleChooseAvatar}>
-        <Image
-          source={avatar ? { uri: avatar } : (avatarUrl ? { uri: avatarUrl } : require('../../assets/avatar.png'))}
-          style={styles.avatar}
+      <TouchableOpacity onPress={handleChooseAvatar} style={styles.avatarContainer}>
+        <Image 
+          source={
+            avatar && typeof avatar === 'string' ? { uri: avatar } : 
+            (avatarUrl && typeof avatarUrl === 'string' ? { uri: avatarUrl } : require('../../assets/avatar.png'))
+          } 
+          style={styles.avatar} 
         />
+        <Text style={styles.changeAvatarText}>Thay đổi ảnh đại diện</Text>
       </TouchableOpacity>
-      
+
       <View style={styles.form}>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Name</Text>
@@ -186,12 +187,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#F9FAFB',
   },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginTop: 30,
-    marginBottom: 10,
+    backgroundColor: '#ddd',
+  },
+  changeAvatarText: {
+    marginTop: 10,
+    color: '#007bff',
+    fontWeight: 'bold',
   },
   form: {
     width: '100%',

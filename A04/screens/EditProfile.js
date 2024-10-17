@@ -90,35 +90,35 @@ function EditProfile() {
       Alert.alert('All fields are required');
       return;
     }
-
+  
     try {
       setLoading(true);
-
+  
       let uploadedAvatarUrl = avatarUrl;
       if (avatar) {
         uploadedAvatarUrl = await uploadAvatarToStorage(avatar);
       }
-
-      const user = auth.currentUser;
-      const otp = generateOTP(); // Tạo mã OTP
-      await sendOTPEmail(email, otp); // Gửi OTP qua email
-
-      // Điều hướng sang trang nhập OTP và truyền dữ liệu cập nhật
+  
+      const otp = generateOTP(); // Generate OTP
+      await sendOTPEmail(email, otp); // Send OTP via email
+  
+      // Navigate to OTP verification screen, passing all necessary data
       navigation.navigate('EnterOTP3', {
         name,
         birthdate,
         email,
-        otp, // Truyền mã OTP
+        mobile, // Pass mobile number
+        avatarUrl: uploadedAvatarUrl, // Pass the uploaded avatar URL
+        otp, // Pass OTP
       });
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Update failed', error.message);
-      console.error('Error sending OTP:', error);
-      Alert.alert('Failed to send OTP', error.message);
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <View style={styles.container}>
