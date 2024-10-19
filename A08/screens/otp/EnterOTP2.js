@@ -6,7 +6,7 @@ import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Impo
 import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
 
 const EnterOTP2 = ({ route, navigation }) => {
-  const { email, name, birthdate, password, mobile } = route.params; // Add mobile here
+  const { email, name, birthdate, password } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +26,6 @@ const EnterOTP2 = ({ route, navigation }) => {
           name: name,
           email: email,
           birthdate: birthdate,
-          mobile: mobile, // Save mobile number here
         });
 
         Alert.alert('Registration successful');

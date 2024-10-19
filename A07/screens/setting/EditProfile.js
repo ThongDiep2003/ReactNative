@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { get, ref, update } from 'firebase/database'; // Firebase Realtime Database update method
-import { FIREBASE_DB } from '../../auths/FirebaseConfig'; // Firebase Realtime Database reference
+import { get, ref } from 'firebase/database';
+import { FIREBASE_DB } from '../../auths/FirebaseConfig';
 import * as ImagePicker from 'expo-image-picker';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase Storage
-import { generateOTP, sendOTPEmail } from '../../services/OTP'; // Import hàm sinh và gửi OTP
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { generateOTP, sendOTPEmail } from '../../services/OTP';
 
 function EditProfile() {
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [avatar, setAvatar] = useState('');
+  const [avatar, setAvatar] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
@@ -59,8 +59,8 @@ function EditProfile() {
       quality: 1,
     });
 
-    if (!result.canceled) {
-      setAvatar(result.uri);
+    if (!result.canceled && result.assets.length > 0) {
+      setAvatar(result.assets[0].uri);
     }
   };
 
@@ -76,7 +76,6 @@ function EditProfile() {
       const blob = await response.blob();
 
       await uploadBytes(avatarStorageRef, blob);
-
       const downloadUrl = await getDownloadURL(avatarStorageRef);
       return downloadUrl;
     } catch (error) {
@@ -100,21 +99,20 @@ function EditProfile() {
       }
 
       const user = auth.currentUser;
-      const otp = generateOTP(); // Tạo mã OTP
-      await sendOTPEmail(email, otp); // Gửi OTP qua email
+      const otp = generateOTP();
+      await sendOTPEmail(email, otp);
 
-      // Điều hướng sang trang nhập OTP và truyền dữ liệu cập nhật
       navigation.navigate('EnterOTP3', {
         name,
         birthdate,
         email,
-        otp, // Truyền mã OTP
+        mobile,
+        avatarUrl: uploadedAvatarUrl,
+        otp,
       });
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Update failed', error.message);
-      console.error('Error sending OTP:', error);
-      Alert.alert('Failed to send OTP', error.message);
     } finally {
       setLoading(false);
     }
@@ -122,14 +120,18 @@ function EditProfile() {
 
   return (
     <View style={styles.container}>
-      {/* Avatar hiển thị */}
-      <Image
-        source={avatar || avatarUrl ? { uri: avatar || avatarUrl } : require('../../assets/avatar.png')}
-        style={styles.avatar}
-      />
-      
+      <TouchableOpacity onPress={handleChooseAvatar} style={styles.avatarContainer}>
+        <Image 
+          source={
+            avatar && typeof avatar === 'string' ? { uri: avatar } : 
+            (avatarUrl && typeof avatarUrl === 'string' ? { uri: avatarUrl } : require('../../assets/avatar.png'))
+          } 
+          style={styles.avatar} 
+        />
+        <Text style={styles.changeAvatarText}>Thay đổi ảnh đại diện</Text>
+      </TouchableOpacity>
+
       <View style={styles.form}>
-        {/* Các ô nhập liệu cho hồ sơ */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Name</Text>
           <TextInput
@@ -185,12 +187,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#F9FAFB',
   },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginTop: 30,
-    marginBottom: 10,
+    backgroundColor: '#ddd',
+  },
+  changeAvatarText: {
+    marginTop: 10,
+    color: '#007bff',
+    fontWeight: 'bold',
   },
   form: {
     width: '100%',
