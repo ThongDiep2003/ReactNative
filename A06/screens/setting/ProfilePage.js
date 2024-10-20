@@ -62,22 +62,22 @@ function ProfilePage() {
           <View style={styles.form}>
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Name</Text>
-              <Text style={styles.input}>{userProfile.name}</Text>
+              <Text style={styles.input}>{userProfile.name || ''}</Text>
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
-              <Text style={styles.input}>{userProfile.email}</Text>
+              <Text style={styles.input}>{userProfile.email || ''}</Text>
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Mobile</Text>
-              <Text style={styles.input}>{userProfile.mobile}</Text>
+              <Text style={styles.input}>{userProfile.mobile || ''}</Text>
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Date of Birth</Text>
-              <Text style={styles.input}>{userProfile.birthdate}</Text>
+              <Text style={styles.input}>{userProfile.birthdate || ''}</Text>
             </View>
           </View>
 

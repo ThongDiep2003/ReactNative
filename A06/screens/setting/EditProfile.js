@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { FIREBASE_DB, FIRESTORE_DB } from '../../auths/FirebaseConfig'; // Firestore config
+import { get, ref } from 'firebase/database';
+import { FIREBASE_DB } from '../../auths/FirebaseConfig';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generateOTP, sendOTPEmail } from '../../services/OTP';
@@ -24,10 +24,10 @@ function EditProfile() {
       try {
         const user = auth.currentUser;
         if (user) {
-          const userDocRef = doc(FIRESTORE_DB, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            const profile = userDoc.data();
+          const userRef = ref(FIREBASE_DB, 'users/' + user.uid);
+          const snapshot = await get(userRef);
+          if (snapshot.exists()) {
+            const profile = snapshot.val();
             setName(profile.name || '');
             setBirthdate(profile.birthdate || '');
             setEmail(profile.email || '');
@@ -102,15 +102,6 @@ function EditProfile() {
       const otp = generateOTP();
       await sendOTPEmail(email, otp);
 
-      // Lưu dữ liệu vào Firestore
-      await setDoc(doc(FIRESTORE_DB, 'users', user.uid), {
-        name,
-        birthdate,
-        email,
-        mobile,
-        avatarUrl: uploadedAvatarUrl,
-      });
-
       navigation.navigate('EnterOTP3', {
         name,
         birthdate,
@@ -126,7 +117,6 @@ function EditProfile() {
       setLoading(false);
     }
   };
-
 
   return (
     <View style={styles.container}>
