@@ -26,9 +26,10 @@ const SplashScreen3 = ({ navigation }) => {
       <TouchableOpacity 
             style={[tw`bg-purple-600 px-6 py-3 rounded-full`, {
                 position: 'absolute',
-                bottom: 60,  // Khoảng cách từ đáy màn hình
-                left: 30,
-                right: 30,
+                bottom: 100,  // Khoảng cách từ đáy màn hình
+                left: 50,
+                right: 50,
+                backgroundColor: "#6246EA",
               }]}
             onPress={() => navigation.navigate('Login')} 
           >
