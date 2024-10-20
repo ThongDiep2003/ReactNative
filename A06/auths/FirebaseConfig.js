@@ -3,17 +3,18 @@ import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/aut
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getDatabase, ref, set, get } from 'firebase/database';
 import { encode } from 'base-64'; // Thư viện mã hóa base-64 để mã hóa email
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'; // Import các hàm Firestore
 
 // Firebase configuration object
 const FirebaseConfig = {
-  apiKey: "AIzaSyB3jwuCchb8v8vCnYAV1H_MBpOSB9cv9jw",
-  authDomain: "flowup-a1ead.firebaseapp.com",
-  databaseURL: "https://flowup-a1ead-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "flowup-a1ead",
-  storageBucket: "flowup-a1ead.appspot.com",
-  messagingSenderId: "327504117742",
-  appId: "1:327504117742:web:69ef5dadd6213d0b1258ff",
-  measurementId: "G-VPKPQVMVVT"
+  apiKey: "AIzaSyDJALgnPVtwZMcBxJb5pOhDoNSClwpKL7s",
+  authDomain: "flow-up-sandbox.firebaseapp.com",
+  databaseURL: "https://flow-up-sandbox-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "flow-up-sandbox",
+  storageBucket: "flow-up-sandbox.appspot.com",
+  messagingSenderId: "801098229395",
+  appId: "1:801098229395:web:49ea288669a26e489d8f66",
+  measurementId: "G-JK5PFFG1KY"
 };
 
 // Initialize Firebase app
@@ -23,6 +24,9 @@ export const FIREBASE_APP = initializeApp(FirebaseConfig);
 export const FIREBASE_AUTH = initializeAuth(FIREBASE_APP, {
   persistence: getReactNativePersistence(AsyncStorage)
 });
+
+// Initialize Firestore
+export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
 
 // Initialize Realtime Database
 export const FIREBASE_DB = getDatabase(FIREBASE_APP);
@@ -69,36 +73,37 @@ export const verifyOTP = async (email, otp) => {
   }
 };
 
-// Function to store user profile in Realtime Database (including avatar)
+// Function to store user profile in Firestore (including avatar)
 export const storeUserProfile = async (userId, name, email, birthdate, avatar) => {
   try {
-    const userRef = ref(FIREBASE_DB, 'users/' + userId);
-    await set(userRef, {
+    const userDocRef = doc(FIRESTORE_DB, 'users', userId); // Tham chiếu đến tài liệu của người dùng trong Firestore
+    await setDoc(userDocRef, {
       name: name,
       email: email,
       birthdate: birthdate,
-      avatar: avatar || 'default_avatar_url', // Thêm trường avatar vào profile, nếu không có thì lưu ảnh mặc định
+      avatar: avatar || 'default_avatar_url', // Thêm avatar nếu có, nếu không thì sử dụng mặc định
+      createdAt: Date.now(),
     });
-    console.log('User profile stored successfully');
+    console.log('User profile stored in Firestore successfully');
   } catch (error) {
-    console.error('Error storing user profile in database:', error);
-    throw new Error('Failed to store user profile. Please try again.');
+    console.error('Error storing user profile in Firestore:', error);
+    throw new Error('Failed to store user profile in Firestore. Please try again.');
   }
 };
 
-// Function to get user profile from Realtime Database (including avatar)
+// Function to get user profile from Firestore (including avatar)
 export const getUserProfile = async (userId) => {
   try {
-    const userRef = ref(FIREBASE_DB, 'users/' + userId);
-    const snapshot = await get(userRef);
-    if (snapshot.exists()) {
-      return snapshot.val(); // Trả về đối tượng có cả thông tin avatar
+    const userDocRef = doc(FIRESTORE_DB, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      return userDoc.data(); // Trả về đối tượng có cả thông tin avatar và các trường khác
     } else {
       throw new Error('No profile data found');
     }
   } catch (error) {
-    console.error('Error fetching user profile:', error);
-    throw new Error('Failed to fetch user profile. Please try again.');
+    console.error('Error fetching user profile from Firestore:', error);
+    throw new Error('Failed to fetch user profile from Firestore. Please try again.');
   }
 };
 

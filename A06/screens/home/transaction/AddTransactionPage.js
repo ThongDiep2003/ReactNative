@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { FIREBASE_DB, FIREBASE_STORAGE } from '../../../auths/FirebaseConfig'; // Firebase config
-import { ref, set } from 'firebase/database';
+import { FIRESTORE_DB, FIREBASE_STORAGE } from '../../../auths/FirebaseConfig'; // Firestore config
 import { getStorage, uploadBytes, getDownloadURL, ref as storageRef } from 'firebase/storage'; // Firebase storage
+import { doc, setDoc } from 'firebase/firestore'; // Firestore imports
 
 const AddTransaction = ({ navigation }) => {
   const [date, setDate] = useState('');
@@ -62,7 +62,7 @@ const AddTransaction = ({ navigation }) => {
     }
   };
 
-  // Hàm lưu giao dịch vào Firebase Realtime Database
+  // Hàm lưu giao dịch vào Firestore
   const handleSaveTransaction = async () => {
     try {
       if (!date || !title || !amount || !details || !image) {
@@ -79,8 +79,9 @@ const AddTransaction = ({ navigation }) => {
 
       const transactionId = Date.now().toString();
 
-      const transactionRef = ref(FIREBASE_DB, 'transactions/' + transactionId);
-      await set(transactionRef, {
+      // Sử dụng Firestore để lưu thông tin giao dịch
+      const transactionRef = doc(FIRESTORE_DB, 'transactions', transactionId);
+      await setDoc(transactionRef, {
         date,
         title,
         amount,

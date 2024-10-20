@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
 import { verifyOTP } from '../../auths/FirebaseConfig'; // Import hàm xác thực OTP
 import { createUserWithEmailAndPassword, deleteUser, getAuth } from 'firebase/auth'; // Import hàm deleteUser để xóa tài khoản
-import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
-import { ref, set, update } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
-
+import { FIRESTORE_DB } from '../../auths/FirebaseConfig'; // Import Firestore
+import { doc, updateDoc, setDoc } from 'firebase/firestore'; // Import hàm để thêm dữ liệu vào Firestore
 
 const EnterOTP3 = ({ route, navigation }) => {
   const { name, birthdate, email, mobile, avatarUrl, otp: sentOtp } = route.params; // Destructure avatarUrl
@@ -18,22 +17,29 @@ const EnterOTP3 = ({ route, navigation }) => {
       const isVerified = await verifyOTP(email, otp);
 
       if (isVerified && otp === sentOtp) {
-        // If OTP is valid, update the user's profile in the Firebase Realtime Database
-        const userRef = ref(FIREBASE_DB, 'users/' + getAuth().currentUser.uid);
-        await update(userRef, {
-          name: name,
-          birthdate: birthdate,
-          email: email,
-          mobile: mobile, // Update mobile number
-          avatarUrl: avatarUrl, // Update avatar URL
-        });
+        const auth = getAuth();
+        const user = auth.currentUser;
 
-        Alert.alert('Profile updated successfully');
+        if (user) {
+          // If OTP is valid, update the user's profile in Firestore
+          const userDocRef = doc(FIRESTORE_DB, 'users', user.uid);
+          await updateDoc(userDocRef, {
+            name: name,
+            birthdate: birthdate,
+            email: email,
+            mobile: mobile, // Update mobile number
+            avatarUrl: avatarUrl, // Update avatar URL
+          });
 
-        // Wait for 3 seconds before navigating to profile screen
-        setTimeout(() => {
-          navigation.navigate('Profile');
-        }, 3000);
+          Alert.alert('Profile updated successfully');
+
+          // Wait for 3 seconds before navigating to profile screen
+          setTimeout(() => {
+            navigation.navigate('Profile');
+          }, 3000);
+        } else {
+          Alert.alert('User not authenticated');
+        }
       } else {
         Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
       }
