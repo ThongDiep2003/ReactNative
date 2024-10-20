@@ -1,45 +1,44 @@
 import React, { useState } from 'react';
 import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
-import { verifyOTP } from '../../auths/FirebaseConfig'; // Import hàm xác thực OTP
-import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth'; // Import hàm deleteUser để xóa tài khoản
-import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
-import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
+import { verifyOTP } from '../../auths/FirebaseConfig'; // Import OTP verification function
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth'; // Import deleteUser to remove account
+import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Firebase config
+import { ref, set } from 'firebase/database'; // Import function to store data in Firebase Realtime Database
 
 const EnterOTP2 = ({ route, navigation }) => {
-  const { email,  password } = route.params;
-  const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { email, password } = route.params; // Get email and password from the previous screen
+  const [otp, setOtp] = useState(''); // State to hold the OTP input
+  const [loading, setLoading] = useState(false); // State for showing loading during the process
 
   const handleVerifyOTP = async () => {
     setLoading(true);
     try {
-      const isVerified = await verifyOTP(email, otp); // Xác thực OTP
+      const isVerified = await verifyOTP(email, otp); // Verify the OTP
 
       if (isVerified) {
-        // Nếu OTP đúng, tạo người dùng và lưu thông tin
+        // If OTP is correct, create the user and store user info
         const auth = FIREBASE_AUTH;
         const response = await createUserWithEmailAndPassword(auth, email, password);
         const userId = response.user.uid;
 
-        // Lưu thông tin người dùng vào Realtime Database
+        // Store user information in Realtime Database
         await set(ref(FIREBASE_DB, 'users/' + userId), {
-          name: name,
-          
+          email: email,
         });
 
         Alert.alert('Registration successful');
         navigation.navigate('Login');
       } else {
-        // Nếu OTP sai, thông báo và xóa tài khoản
+        // If OTP is incorrect, delete the user and navigate back to registration
         const auth = FIREBASE_AUTH;
         const user = auth.currentUser;
 
         if (user) {
-          await deleteUser(user); // Xóa tài khoản
+          await deleteUser(user); // Delete the account
         }
 
-        Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
-        navigation.navigate('Register'); // Điều hướng về trang đăng ký
+        Alert.alert('Invalid OTP', 'The OTP you entered is incorrect. Your account has been removed.');
+        navigation.navigate('Register'); // Navigate back to registration screen
       }
     } catch (error) {
       console.error('OTP verification error:', error);
@@ -99,11 +98,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    textAlign: 'center',
   },
   description: {
     fontSize: 16,
     marginBottom: 20,
     color: '#555',
+    textAlign: 'center',
   },
   input: {
     height: 45,
