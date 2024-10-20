@@ -1,151 +1,110 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { FIRESTORE_DB, FIREBASE_STORAGE } from '../../../auths/FirebaseConfig'; // Firestore config
-import { getStorage, uploadBytes, getDownloadURL, ref as storageRef } from 'firebase/storage'; // Firebase storage
-import { doc, setDoc } from 'firebase/firestore'; // Firestore imports
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Button, FlatList } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Để sử dụng icon trong các button danh mục
 
-const AddTransaction = ({ navigation }) => {
-  const [date, setDate] = useState('');
-  const [title, setTitle] = useState('');
+const AddTransaction = () => {
   const [amount, setAmount] = useState('');
-  const [details, setDetails] = useState(''); // Thông tin chi tiết mới thêm
-  const [type, setType] = useState('Expense'); // Default type
-  const [image, setImage] = useState(null);
-  const [uploading, setUploading] = useState(false); // To show loading indicator during upload
+  const [date, setDate] = useState('');
+  const [account, setAccount] = useState('VCB');
+  const [category, setCategory] = useState(null);
+  const [transactionType, setTransactionType] = useState('Expense');
 
-  // Hàm chọn ảnh từ thư viện
-  const pickImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (permissionResult.status !== 'granted') {
-        Alert.alert('Permission Denied', 'Permission to access gallery is required!');
-        return;
-      }
+  const accounts = ['VCB', 'BIDV', 'Cash']; // Các tùy chọn tài khoản
+  const categories = [
+    { id: 1, name: 'Food', icon: 'fast-food' },
+    { id: 2, name: 'Shopping', icon: 'cart' },
+    { id: 3, name: 'Entertainment', icon: 'game-controller' },
+    { id: 4, name: 'Bills', icon: 'receipt' },
+    { id: 5, name: 'Health', icon: 'medkit' },
+    { id: 6, name: 'Travel', icon: 'airplane' },
+  ]; // Các danh mục
 
-      const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!pickerResult.canceled) {
-        setImage(pickerResult.assets[0].uri); // Lấy URI của ảnh được chọn
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick an image. Please try again.');
-    }
+  const handleCategorySelect = (category) => {
+    setCategory(category);
   };
 
-  // Hàm upload ảnh lên Firebase Storage
-  const uploadImageToFirebase = async (uri) => {
-    try {
-      setUploading(true); // Bắt đầu tải lên
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      const storage = getStorage();
-      const imageRef = storageRef(storage, `images/${Date.now()}.jpg`);
-
-      await uploadBytes(imageRef, blob);
-
-      const downloadURL = await getDownloadURL(imageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
-      return null;
-    } finally {
-      setUploading(false); // Kết thúc tải lên
+  const handleSaveTransaction = () => {
+    // Hàm xử lý khi người dùng nhấn "Confirm"
+    if (!amount || !date || !category || !account) {
+      alert('Please fill in all fields');
+      return;
     }
-  };
-
-  // Hàm lưu giao dịch vào Firestore
-  const handleSaveTransaction = async () => {
-    try {
-      if (!date || !title || !amount || !details || !image) {
-        Alert.alert('Error', 'Please fill all the fields and select an image');
-        return;
-      }
-
-      const imageUrl = await uploadImageToFirebase(image);
-
-      if (!imageUrl) {
-        Alert.alert('Error', 'Failed to upload image');
-        return;
-      }
-
-      const transactionId = Date.now().toString();
-
-      // Sử dụng Firestore để lưu thông tin giao dịch
-      const transactionRef = doc(FIRESTORE_DB, 'transactions', transactionId);
-      await setDoc(transactionRef, {
-        date,
-        title,
-        amount,
-        details,  // Lưu thêm trường thông tin chi tiết
-        type,
-        image: imageUrl, // Lưu URL của ảnh
-      });
-
-      Alert.alert('Success', 'Transaction saved successfully');
-      setDate('');
-      setTitle('');
-      setAmount('');
-      setDetails(''); // Reset trường thông tin chi tiết
-      setType('Expense');
-      setImage(null);
-    } catch (error) {
-      console.error('Error saving transaction:', error);
-      Alert.alert('Error', 'Failed to save transaction. Please try again.');
-    }
+    alert('Transaction saved');
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Add New Transaction</Text>
+      <Text style={styles.header}>Transaction</Text>
+
+      {/* Chọn kiểu giao dịch: Income hoặc Expense */}
+      <View style={styles.transactionTypeContainer}>
+        <TouchableOpacity onPress={() => setTransactionType('Income')} style={styles.transactionTypeButton}>
+          <Text style={transactionType === 'Income' ? styles.activeType : styles.inactiveType}>New Income</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setTransactionType('Expense')} style={styles.transactionTypeButton}>
+          <Text style={transactionType === 'Expense' ? styles.activeType : styles.inactiveType}>New Expense</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Nhập số tiền */}
+      <View style={styles.amountContainer}>
+        <TextInput
+          style={styles.amountInput}
+          placeholder="Enter amount"
+          value={amount}
+          onChangeText={setAmount}
+          keyboardType="numeric"
+        />
+        <Text style={styles.currency}>vnd</Text>
+      </View>
+
+      {/* Chọn ngày */}
       <TextInput
         style={styles.input}
-        placeholder="Date (YYYY-MM-DD)"
+        placeholder="Select date"
         value={date}
         onChangeText={setDate}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Title"
-        value={title}
-        onChangeText={setTitle}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Amount"
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Details" // Trường nhập mới cho thông tin chi tiết
-        value={details}
-        onChangeText={setDetails}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Type (Expense/Income)"
-        value={type}
-        onChangeText={setType}
+
+      {/* Chọn tài khoản */}
+      <Text style={styles.label}>From account</Text>
+      <View style={styles.accountContainer}>
+        {accounts.map((acc) => (
+          <TouchableOpacity
+            key={acc}
+            style={[styles.accountButton, account === acc && styles.selectedAccount]}
+            onPress={() => setAccount(acc)}
+          >
+            <Text style={account === acc ? styles.selectedAccountText : styles.accountText}>{acc}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Chọn danh mục */}
+      <Text style={styles.label}>From category</Text>
+      <FlatList
+        data={categories}
+        numColumns={3}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.categoryButton,
+              category?.id === item.id && styles.selectedCategory,
+            ]}
+            onPress={() => handleCategorySelect(item)}
+          >
+            <Ionicons name={item.icon} size={24} color={category?.id === item.id ? 'white' : 'black'} />
+            <Text style={category?.id === item.id ? styles.selectedCategoryText : styles.categoryText}>
+              {item.name}
+            </Text>
+          </TouchableOpacity>
+        )}
       />
 
-      <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
-        <Text style={styles.buttonText}>Pick an Image</Text>
-      </TouchableOpacity>
-
-      {image && <Image source={{ uri: image }} style={styles.image} />}
-
-      <TouchableOpacity style={styles.button} onPress={handleSaveTransaction}>
-        <Text style={styles.buttonText}>{uploading ? 'Uploading...' : 'Save Transaction'}</Text>
+      {/* Nút xác nhận */}
+      <TouchableOpacity style={styles.confirmButton} onPress={handleSaveTransaction}>
+        <Text style={styles.confirmButtonText}>Confirm</Text>
       </TouchableOpacity>
     </View>
   );
@@ -155,41 +114,113 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#fff',
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
   },
+  transactionTypeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  transactionTypeButton: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 10,
+  },
+  activeType: {
+    fontSize: 18,
+    color: '#6200ee',
+    fontWeight: 'bold',
+  },
+  inactiveType: {
+    fontSize: 18,
+    color: '#9e9e9e',
+  },
+  amountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 36,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    marginRight: 10,
+  },
+  currency: {
+    fontSize: 24,
+    color: '#9e9e9e',
+  },
   input: {
     height: 40,
     borderColor: 'gray',
     borderWidth: 1,
-    marginBottom: 15,
+    marginBottom: 20,
     paddingHorizontal: 10,
-  },
-  button: {
-    backgroundColor: '#0163d2',
-    padding: 10,
     borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 15,
   },
-  buttonText: {
-    color: '#fff',
+  label: {
     fontSize: 16,
+    marginBottom: 10,
   },
-  imageButton: {
-    backgroundColor: '#4CAF50',
+  accountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  accountButton: {
+    flex: 1,
     padding: 10,
+    marginHorizontal: 5,
     borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#6200ee',
     alignItems: 'center',
-    marginTop: 15,
   },
-  image: {
-    width: 200,
-    height: 200,
-    marginTop: 10,
+  selectedAccount: {
+    backgroundColor: '#6200ee',
+  },
+  accountText: {
+    color: '#6200ee',
+  },
+  selectedAccountText: {
+    color: 'white',
+  },
+  categoryButton: {
+    flex: 1,
+    padding: 10,
+    margin: 5,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+  },
+  selectedCategory: {
+    backgroundColor: '#6200ee',
+  },
+  categoryText: {
+    marginTop: 5,
+    color: '#333',
+  },
+  selectedCategoryText: {
+    color: 'white',
+  },
+  confirmButton: {
+    backgroundColor: '#6200ee',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
