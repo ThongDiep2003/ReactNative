@@ -66,7 +66,7 @@ const App = () => {
         initialRouteName={isLoggedIn ? "Main" : "SplashScreen"}
         screenOptions={({ navigation }) => ({
           backgroundColor: "white",
-          headerStyle: { backgroundColor: "#0163d2" },
+          headerStyle: { backgroundColor: "#6246EA" },
           headerTintColor: "#fff",
           headerTitleAlign: "center", // Căn giữa tiêu đề
           headerLeft: () => (
