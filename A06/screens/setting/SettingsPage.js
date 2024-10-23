@@ -38,12 +38,12 @@ const SettingsPage = ({ navigation }) => {
       </TouchableOpacity>
 
       <Text style={styles.sectionHeader}>Security</Text>
-      <TouchableOpacity 
+      {/* <TouchableOpacity 
         style={styles.item}
         onPress={() => navigation.navigate('ChangePassword')} // Navigate to ChangePassword
       >
         <Text style={styles.itemText}>Change Password</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <TouchableOpacity 
         style={styles.item}
