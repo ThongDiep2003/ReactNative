@@ -137,7 +137,7 @@ const HomePage = () => {
       <View style={tw`p-5 flex-row justify-between items-center bg-gray-100 rounded-b-lg`}>
         <View style={tw`flex-row items-center`}>
         <Image
-          source={require('../../assets/avatar.png')}
+          oke source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')}
           style={tw`w-12 h-12 rounded-full`}
         />
           <View style={tw`ml-3`}>
