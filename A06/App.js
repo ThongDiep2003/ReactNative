@@ -31,7 +31,8 @@ import ContactUs from './screens/setting/ContactUsPage';
 import ChangePassword from './screens/setting/ChangePasswordPage';
 import PrivacyPolicy from './screens/setting/PrivacyPolicyPage';
 
-
+import Move2 from './screens/move/Move2';
+import Move3 from './screens/move/Move3';
 
 // Import TabNavigator cho Bottom Tabs
 import TabNavigator from "./navigation/TabNavigator"; 
@@ -66,13 +67,13 @@ const App = () => {
         initialRouteName={isLoggedIn ? "Main" : "SplashScreen"}
         screenOptions={({ navigation }) => ({
           backgroundColor: "white",
-          headerStyle: { backgroundColor: "#6246EA" },
-          headerTintColor: "#fff",
+          headerStyle: { backgroundColor: "#f5f5f5" },
+          headerTintColor: "#1E1E2D",
           headerTitleAlign: "center", // Căn giữa tiêu đề
           headerLeft: () => (
             navigation.canGoBack() ? (
               <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Icon name="arrow-back" size={24} color="#fff" />
+                <Icon name="arrow-back" size={24} color="#1E1E2D" />
               </TouchableOpacity>
             ) : null
           ),
@@ -80,6 +81,7 @@ const App = () => {
       >
         
           <>
+
             {/* Splash Screen */}
             <Stack.Screen name="SplashScreen" component={SplashScreen} options={{ headerShown: false }} />
             <Stack.Screen name="SplashScreen1" component={SplashScreen1} options={{ headerShown: false }} />
@@ -102,8 +104,15 @@ const App = () => {
             <Stack.Screen name="Introduction" component={IntroductionPage} />
             <Stack.Screen name="Register" component={RegisterPage} />
             <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-            <Stack.Screen name="EnterOTP" component={EnterOTP} />
+            
             <Stack.Screen name="ResetPassword" component={ResetPassword} />
+            
+            {/* Move */}
+            <Stack.Screen name="Move2" component={Move2} />
+            <Stack.Screen name="Move3" component={Move3} />
+
+            {/* OTP */}
+            <Stack.Screen name="EnterOTP" component={EnterOTP} />
             <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
             <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
             

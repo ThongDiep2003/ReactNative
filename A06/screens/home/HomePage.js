@@ -141,7 +141,7 @@ const HomePage = () => {
           style={tw`w-12 h-12 rounded-full`}
         />
           <View style={tw`ml-3`}>
-            <Text style={tw`text-base text-gray-500`}>Welcome back,</Text>
+            <Text style={tw`text-base text-gray-500`}>Welcome</Text>
             <Text style={tw`text-lg font-bold`}>{userName}</Text>
           </View>
         </View>

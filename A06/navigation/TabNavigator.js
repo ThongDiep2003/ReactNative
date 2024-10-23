@@ -36,8 +36,8 @@ const TabNavigator = () => {
         tabBarActiveTintColor: '#0163d2',
         tabBarInactiveTintColor: 'gray',
         headerTitleAlign: 'center',
-        headerStyle: { backgroundColor: '#0163d2' },
-        headerTintColor: '#fff',
+        headerStyle: { backgroundColor: '#F9FAFB' },
+        headerTintColor: '#1E1E2D',
       })}
     >
       <Tab.Screen name="Home" component={HomePage} />

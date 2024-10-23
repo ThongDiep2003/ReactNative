@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
+import { Alert, SafeAreaView, StyleSheet, TextInput, Text, View, TouchableOpacity } from 'react-native';
 import { verifyOTP } from '../../auths/FirebaseConfig'; // Import hàm xác thực OTP
 import { createUserWithEmailAndPassword, deleteUser, getAuth } from 'firebase/auth'; // Import hàm deleteUser để xóa tài khoản
-import { FIRESTORE_DB } from '../../auths/FirebaseConfig'; // Import Firestore
-import { doc, updateDoc, setDoc } from 'firebase/firestore'; // Import hàm để thêm dữ liệu vào Firestore
+import { FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Firebase Realtime Database config
+import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Firebase Realtime Database
 
 const EnterOTP3 = ({ route, navigation }) => {
   const { name, birthdate, email, mobile, avatarUrl, otp: sentOtp } = route.params; // Destructure avatarUrl
@@ -21,21 +21,21 @@ const EnterOTP3 = ({ route, navigation }) => {
         const user = auth.currentUser;
 
         if (user) {
-          // If OTP is valid, update the user's profile in Firestore
-          const userDocRef = doc(FIRESTORE_DB, 'users', user.uid);
-          await updateDoc(userDocRef, {
+          // If OTP is valid, store the user's profile in Realtime Database
+          const userId = user.uid;
+          await set(ref(FIREBASE_DB, 'users/' + userId), {
             name: name,
             birthdate: birthdate,
             email: email,
-            mobile: mobile, // Update mobile number
-            avatarUrl: avatarUrl, // Update avatar URL
+            mobile: mobile, // Store mobile number
+            avatarUrl: avatarUrl, // Store avatar URL
           });
 
-          Alert.alert('Profile updated successfully');
+          
 
           // Wait for 3 seconds before navigating to profile screen
           setTimeout(() => {
-            navigation.navigate('Profile');
+            navigation.navigate('Move3');
           }, 3000);
         } else {
           Alert.alert('User not authenticated');
@@ -55,6 +55,9 @@ const EnterOTP3 = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
         <Text style={styles.title}>Enter OTP</Text>
+        <Text style={styles.description}>
+          Please enter the OTP sent to your email address to verify your account.
+        </Text>
         <TextInput
           style={styles.input}
           placeholder="Enter OTP"
@@ -63,12 +66,13 @@ const EnterOTP3 = ({ route, navigation }) => {
           autoCapitalize="none"
           keyboardType="numeric"
         />
-        <Button
-          title={loading ? 'Verifying...' : 'Verify OTP'}
+        <TouchableOpacity
+          style={styles.button}
           onPress={handleVerifyOTP}
           disabled={loading}
-          color="#2596be"
-        />
+        >
+          <Text style={styles.buttonText}>{loading ? 'Verifying...' : 'Verify OTP'}</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -83,29 +87,51 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   innerContainer: {
-    width: '100%',
-    maxWidth: 400,
+    width: '90%',
     padding: 20,
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 5,
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 20,
   },
+  description: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#555',
+  },
   input: {
-    height: 45,
-    borderColor: '#2596be',
+    height: 50,
+    width: '100%',
+    borderColor: '#e1e1e1',
+    textAlign: 'center',
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 25,
     marginBottom: 20,
     paddingHorizontal: 10,
+  },
+  button: {
+    height: 50,
+    backgroundColor: '#6246EA',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

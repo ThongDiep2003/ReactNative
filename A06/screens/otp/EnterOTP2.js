@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
+import { Alert, SafeAreaView, StyleSheet, TextInput, Text, View, TouchableOpacity } from 'react-native';
 import { verifyOTP } from '../../auths/FirebaseConfig'; // Import OTP verification function
 import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth'; // Import deleteUser to remove account
 import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Firebase config
@@ -26,8 +26,9 @@ const EnterOTP2 = ({ route, navigation }) => {
           email: email,
         });
 
-        Alert.alert('Registration successful');
-        navigation.navigate('Login');
+        setTimeout(() => {
+          navigation.navigate('Move2');
+        }, 3000);
       } else {
         // If OTP is incorrect, delete the user and navigate back to registration
         const auth = FIREBASE_AUTH;
@@ -37,7 +38,7 @@ const EnterOTP2 = ({ route, navigation }) => {
           await deleteUser(user); // Delete the account
         }
 
-        Alert.alert('Invalid OTP', 'The OTP you entered is incorrect. Your account has been removed.');
+        Alert.alert('Invalid OTP', 'The OTP you entered is incorrect. Please retry to register again.');
         navigation.navigate('Register'); // Navigate back to registration screen
       }
     } catch (error) {
@@ -53,7 +54,7 @@ const EnterOTP2 = ({ route, navigation }) => {
       <View style={styles.innerContainer}>
         <Text style={styles.title}>Enter OTP</Text>
         <Text style={styles.description}>
-          We have sent an OTP to your email address. Please enter it below to complete the registration.
+          We have sent an OTP to your email address. Please enter it to complete the registration.
         </Text>
         <TextInput
           style={styles.input}
@@ -63,12 +64,13 @@ const EnterOTP2 = ({ route, navigation }) => {
           autoCapitalize="none"
           keyboardType="numeric"
         />
-        <Button
-          title={loading ? 'Verifying...' : 'Verify OTP'}
+        <TouchableOpacity
+          style={styles.button}
           onPress={handleVerifyOTP}
           disabled={loading}
-          color="#2596be"
-        />
+        >
+          <Text style={styles.buttonText}>{loading ? 'Verifying...' : 'Verify OTP'}</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -83,36 +85,51 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   innerContainer: {
-    width: '100%',
-    maxWidth: 400,
+    width: '90%',
     padding: 20,
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 5,
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 20,
   },
   description: {
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: 'center',
     marginBottom: 20,
     color: '#555',
-    textAlign: 'center',
   },
   input: {
-    height: 45,
-    borderColor: '#2596be',
+    height: 50,
+    width: '100%',
+    borderColor: '#e1e1e1',
+    textAlign: 'center',
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 25,
     marginBottom: 20,
     paddingHorizontal: 10,
+  },
+  button: {
+    height: 50,
+    backgroundColor: '#6246EA',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
