@@ -132,7 +132,7 @@ const HomePage = () => {
   }
 
   return (
-    <View style={tw`flex-1 bg-white`}>
+    <View style={[tw`flex-1 bg-white`, { marginTop: 20 }] }>
       {/* User Section */}
       <View style={tw`p-5 flex-row justify-between items-center bg-gray-100 rounded-b-lg`}>
         <View style={tw`flex-row items-center`}>
