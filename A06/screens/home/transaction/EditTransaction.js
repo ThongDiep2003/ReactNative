@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { ref, update } from 'firebase/database';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig'; // Import Firebase configuration
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { ref, update, onValue } from 'firebase/database';
+import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const EditTransaction = ({ route, navigation }) => {
   const { transaction } = route.params; // Nhận tham số từ Transaction
@@ -9,32 +10,41 @@ const EditTransaction = ({ route, navigation }) => {
   const [date, setDate] = useState(transaction.date);
   const [title, setTitle] = useState(transaction.title);
   const [amount, setAmount] = useState(transaction.amount);
-  const [type, setType] = useState(transaction.type);
-  const [details, setDetails] = useState(transaction.details);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(transaction.category);
 
-  // Hàm lưu thay đổi giao dịch vào Firebase
+  useEffect(() => {
+    // Lấy danh sách danh mục từ Firebase
+    const categoriesRef = ref(FIREBASE_DB, 'categories');
+    onValue(categoriesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const categoryList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setCategories(categoryList);
+      }
+    });
+  }, []);
+
+  // Hàm cập nhật giao dịch vào Firebase
   const handleUpdateTransaction = async () => {
     try {
-      // Validate input fields
       if (!date || !title || !amount) {
-        Alert.alert('Error', 'Please fill all the fields');
+        Alert.alert('Error', 'Please fill all fields');
         return;
       }
 
-      // Tạo tham chiếu đến giao dịch cần cập nhật
       const transactionRef = ref(FIREBASE_DB, 'transactions/' + transaction.id);
-
-      // Cập nhật thông tin giao dịch
       await update(transactionRef, {
         date,
         title,
         amount,
-        type,
-        details,
+        category: selectedCategory,
       });
 
       Alert.alert('Success', 'Transaction updated successfully');
-      // Quay lại màn hình trước đó
       navigation.goBack();
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -45,38 +55,26 @@ const EditTransaction = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Edit Transaction</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Date (YYYY-MM-DD)"
-        value={date}
-        onChangeText={setDate}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Title"
-        value={title}
-        onChangeText={setTitle}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Amount"
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Type (Expense/Income)"
-        value={type}
-        onChangeText={setType}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Details"
-        value={details}
-        onChangeText={setDetails}
-      />
 
+      {/* Hiển thị danh mục đã chọn */}
+      <Text style={styles.label}>Selected Category:</Text>
+      <View style={styles.categoryContainer}>
+        {selectedCategory && (
+          <Icon name={selectedCategory.icon} size={40} color="#6200ee" />
+        )}
+      </View>
+
+      {/* Danh sách danh mục */}
+      <Text style={styles.label}>Choose Category:</Text>
+      <View style={styles.categoryList}>
+        {categories.map((cat) => (
+          <TouchableOpacity key={cat.id} onPress={() => setSelectedCategory(cat)}>
+            <Icon name={cat.icon} size={40} color="gray" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Nút lưu thay đổi */}
       <TouchableOpacity style={styles.button} onPress={handleUpdateTransaction}>
         <Text style={styles.buttonText}>Save Changes</Text>
       </TouchableOpacity>
@@ -88,29 +86,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#ffffff',
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
   },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 15,
-    paddingHorizontal: 10,
+  label: {
+    fontSize: 18,
+    marginVertical: 10,
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  categoryList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
   },
   button: {
     backgroundColor: '#4CAF50',
-    padding: 10,
+    padding: 15,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 15,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
   },
 });
 

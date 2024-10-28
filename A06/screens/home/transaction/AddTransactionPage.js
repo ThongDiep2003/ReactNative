@@ -1,15 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Button, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
+import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
+import { ref, onValue } from 'firebase/database';
 
 const AddTransaction = () => {
+  const navigation = useNavigation();
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [account, setAccount] = useState('VCB');
+  const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState(null);
+  const [type, setType] = useState('Expense'); // Default type
+
+  useEffect(() => {
+    // Fetch categories from Firebase
+    const categoriesRef = ref(FIREBASE_DB, 'categories');
+    onValue(categoriesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const categoryList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setCategories(categoryList);
+      }
+    });
+  }, []);
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -25,11 +46,17 @@ const AddTransaction = () => {
     setCategory(selectedCategory);
   };
 
+  const handleSaveTransaction = () => {
+    // Logic to save transaction goes here
+    Alert.alert('Transaction Saved', `Type: ${type}, Amount: ${amount}, Date: ${date.toLocaleDateString()}`);
+    // Resetting the form can be done here if needed
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Add Transactions</Text>
 
-      {/* Số tiền */}
+      {/* Amount Input */}
       <View style={styles.amountContainer}>
         <TextInput
           style={styles.amountInput}
@@ -41,7 +68,7 @@ const AddTransaction = () => {
         <Text style={styles.currency}>VND</Text>
       </View>
 
-      {/* Chọn ngày */}
+      {/* Date Picker */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
         <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
       </TouchableOpacity>
@@ -54,8 +81,39 @@ const AddTransaction = () => {
         />
       )}
 
-      {/* Tài khoản */}
-      <Text style={styles.sectionTitle}>From account</Text>
+      
+      {/* Category Selection */}
+      <Text style={styles.sectionTitle}>From category</Text>
+      <View style={styles.categoryContainer}>
+        {categories.map((cat) => (
+          <TouchableOpacity key={cat.id} onPress={() => handleCategorySelect(cat)}>
+            <Icon
+              name={cat.icon}  // Assuming each category has an 'icon' property
+              size={40}
+              color={cat.id === category?.id ? '#6200ee' : 'gray'}
+              style={styles.categoryIcon}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Type Selection */}
+      <Text style={styles.sectionTitle}>Transaction Type</Text>
+      <View style={styles.chipContainer}>
+        {['Expense', 'Income'].map((t) => (
+          <Chip
+            key={t}
+            mode="outlined"
+            selected={type === t}
+            onPress={() => setType(t)}
+            style={styles.chip}
+          >
+            {t}
+          </Chip>
+        ))}
+      </View>
+{/* Account Selection */}
+<Text style={styles.sectionTitle}>From account</Text>
       <View style={styles.chipContainer}>
         {['VCB', 'BIDV', 'Cash'].map((acc) => (
           <Chip
@@ -70,23 +128,16 @@ const AddTransaction = () => {
         ))}
       </View>
 
-      {/* Danh mục */}
-      <Text style={styles.sectionTitle}>From category</Text>
-      <View style={styles.categoryContainer}>
-        {['food', 'shopping', 'entertainment', 'health', 'travel'].map((cat, index) => (
-          <TouchableOpacity key={index} onPress={() => handleCategorySelect(cat)}>
-            <Icon
-              name={cat === category ? 'checkmark-circle' : 'ellipse-outline'}
-              size={40}
-              color={cat === category ? '#6200ee' : 'gray'}
-              style={styles.categoryIcon}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Add New Category Button */}
+      <TouchableOpacity
+        style={styles.addCategoryButton}
+        onPress={() => navigation.navigate('Category')}
+      >
+        <Text style={styles.addCategoryText}>Add New Category</Text>
+      </TouchableOpacity>
 
-      {/* Nút lưu */}
-      <Button mode="contained" onPress={() => Alert.alert('Saved')}>
+      {/* Save Button */}
+      <Button mode="contained" onPress={handleSaveTransaction}>
         Save Transaction
       </Button>
     </View>
@@ -151,11 +202,20 @@ const styles = StyleSheet.create({
   },
   categoryContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     marginVertical: 20,
   },
   categoryIcon: {
     marginHorizontal: 10,
+  },
+  addCategoryButton: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  addCategoryText: {
+    color: '#6200ee',
+    fontSize: 16,
   },
 });
 

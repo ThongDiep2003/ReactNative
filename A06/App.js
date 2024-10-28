@@ -24,6 +24,7 @@ import EnterOTP3 from "./screens/otp/EnterOTP3";
 import LogoutPage from "./screens/account/LogoutPage";
 import Transaction from './screens/home/transaction/Transaction';
 import EditTransaction from './screens/home/transaction/EditTransaction';
+import CategoryPage from './screens/home/transaction/CategoryPage';
 
 import SettingsPage from './screens/setting/SettingsPage';
 import Language from './screens/setting/LanguagePage';
@@ -95,6 +96,7 @@ const App = () => {
             <Stack.Screen name="Transaction" component={Transaction} options={{ headerTitle: "Transaction Details" }} />
             <Stack.Screen name="EditTransaction" component={EditTransaction} options={{ headerTitle: "Edit Transaction" }} />
             <Stack.Screen name="Logout" component={LogoutPage} />
+            <Stack.Screen name="Category" component={CategoryPage} />
           </>
       
           <>
