@@ -5,7 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
-import { ref, onValue } from 'firebase/database';
+import { ref, push, onValue } from 'firebase/database';
 
 const AddTransaction = () => {
   const navigation = useNavigation();
@@ -46,10 +46,33 @@ const AddTransaction = () => {
     setCategory(selectedCategory);
   };
 
-  const handleSaveTransaction = () => {
-    // Logic to save transaction goes here
-    Alert.alert('Transaction Saved', `Type: ${type}, Amount: ${amount}, Date: ${date.toLocaleDateString()}`);
-    // Resetting the form can be done here if needed
+  const handleSaveTransaction = async () => {
+    if (!amount || !category) {
+      Alert.alert('Validation Error', 'Please enter an amount and select a category.');
+      return;
+    }
+
+    // Transaction data to save
+    const newTransaction = {
+      amount,
+      date: date.toISOString(),
+      account,
+      category: { id: category.id, icon: category.icon },
+      type,
+      
+    };
+
+    try {
+      // Reference to transactions in Firebase
+      const transactionsRef = ref(FIREBASE_DB, 'transactions');
+      await push(transactionsRef, newTransaction);
+
+      Alert.alert('Success', 'Transaction added successfully.');
+      navigation.goBack(); // Navigate back after saving
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      Alert.alert('Error', 'Failed to save transaction. Please try again.');
+    }
   };
 
   return (
@@ -81,7 +104,6 @@ const AddTransaction = () => {
         />
       )}
 
-      
       {/* Category Selection */}
       <Text style={styles.sectionTitle}>From category</Text>
       <View style={styles.categoryContainer}>
@@ -112,8 +134,9 @@ const AddTransaction = () => {
           </Chip>
         ))}
       </View>
-{/* Account Selection */}
-<Text style={styles.sectionTitle}>From account</Text>
+
+      {/* Account Selection */}
+      <Text style={styles.sectionTitle}>From account</Text>
       <View style={styles.chipContainer}>
         {['VCB', 'BIDV', 'Cash'].map((acc) => (
           <Chip

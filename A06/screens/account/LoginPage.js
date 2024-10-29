@@ -77,7 +77,7 @@ const Login = () => {
             onValueChange={setClick}
             trackColor={{ true: 'green', false: 'gray' }}
           />
-          <Text style={styles.rememberText}>Remember Me</Text>
+          {/* <Text style={styles.rememberText}>Remember Me</Text> */}
         </View>
         <View>
           <Pressable onPress={() => navigation.navigate('ForgotPassword')}> 

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import tw from 'tailwind-react-native-classnames';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig'; // Import cấu hình Firebase
-import { ref, set } from 'firebase/database'; // Import các phương thức cần thiết từ Firebase
+import { FIREBASE_DB } from '../../../auths/FirebaseConfig'; // Import Firebase configuration
+import { ref, set } from 'firebase/database'; // Import methods from Firebase
 
+// List of available icons
 const iconList = [
   'car', 'food', 'gift', 'home', 'wallet', 'medical-bag', 'truck-fast', 'gamepad-variant', 'bank', 'shopping-outline'
 ];
@@ -15,10 +16,10 @@ const CategoryPage = ({ navigation }) => {
 
   const handleAddCategory = () => {
     if (categoryName && selectedIcon) {
-      const categoryId = Date.now().toString(); // Tạo ID cho danh mục
+      const categoryId = Date.now().toString(); // Generate ID for category
       const categoryRef = ref(FIREBASE_DB, `categories/${categoryId}`);
 
-      // Lưu danh mục vào Firebase Realtime Database
+      // Save category to Firebase Realtime Database
       set(categoryRef, {
         name: categoryName,
         icon: selectedIcon,
