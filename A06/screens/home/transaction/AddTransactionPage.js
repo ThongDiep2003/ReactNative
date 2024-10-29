@@ -4,7 +4,7 @@ import { Button, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { ref, push, onValue } from 'firebase/database';
 
 const AddTransaction = () => {
@@ -17,8 +17,8 @@ const AddTransaction = () => {
   const [category, setCategory] = useState(null);
   const [type, setType] = useState('Expense'); // Default type
 
+  // Fetch categories from Firebase
   useEffect(() => {
-    // Fetch categories from Firebase
     const categoriesRef = ref(FIREBASE_DB, 'categories');
     onValue(categoriesRef, (snapshot) => {
       const data = snapshot.val();
@@ -52,26 +52,29 @@ const AddTransaction = () => {
       return;
     }
 
-    // Transaction data to save
-    const newTransaction = {
-      amount,
-      date: date.toISOString(),
-      account,
-      category: { id: category.id, icon: category.icon },
-      type,
-      
-    };
+    const currentUser = FIREBASE_AUTH.currentUser;
+    if (currentUser) {
+      const newTransaction = {
+        amount,
+        date: date.toISOString(),
+        account,
+        category: { id: category.id, icon: category.icon },
+        type,
+      };
 
-    try {
-      // Reference to transactions in Firebase
-      const transactionsRef = ref(FIREBASE_DB, 'transactions');
-      await push(transactionsRef, newTransaction);
+      try {
+        // Thêm giao dịch vào trong nhánh transactions của từng user
+        const userTransactionsRef = ref(FIREBASE_DB, `users/${currentUser.uid}/transactions`);
+        await push(userTransactionsRef, newTransaction);
 
-      Alert.alert('Success', 'Transaction added successfully.');
-      navigation.goBack(); // Navigate back after saving
-    } catch (error) {
-      console.error('Error saving transaction:', error);
-      Alert.alert('Error', 'Failed to save transaction. Please try again.');
+        Alert.alert('Success', 'Transaction added successfully.');
+        navigation.goBack(); // Navigate back after saving
+      } catch (error) {
+        console.error('Error saving transaction:', error);
+        Alert.alert('Error', 'Failed to save transaction. Please try again.');
+      }
+    } else {
+      Alert.alert('Error', 'User not authenticated.');
     }
   };
 
