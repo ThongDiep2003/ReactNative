@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   addCategoryButton: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   addCategoryText: {
     color: '#6246EA',
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   saveButton: {
-    marginVertical: 20,
+    marginVertical: 5,
     paddingVertical: 10,
     borderRadius: 10,
   },
