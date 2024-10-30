@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Button, Chip, FAB } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
@@ -15,7 +15,6 @@ const BudgetPage = ({ navigation }) => {
   const [today, setToday] = useState('');
 
   useEffect(() => {
-    // Lấy dữ liệu tổng ngân sách và tổng chi tiêu từ Firebase
     const budgetRef = ref(FIREBASE_DB, 'budget');
     onValue(budgetRef, (snapshot) => {
       const data = snapshot.val();
@@ -25,7 +24,6 @@ const BudgetPage = ({ navigation }) => {
       }
     });
 
-    // Lấy danh sách các danh mục chi tiêu
     const categoriesRef = ref(FIREBASE_DB, 'categories');
     onValue(categoriesRef, (snapshot) => {
       const data = snapshot.val();
@@ -38,23 +36,20 @@ const BudgetPage = ({ navigation }) => {
       }
     });
 
-    // Tính số ngày còn lại và ngày hôm nay
     const todayDate = moment().format('MMMM Do YYYY');
     setToday(todayDate);
     const endOfMonth = moment().endOf('month');
     setDaysLeft(endOfMonth.diff(moment(), 'days'));
 
-    // Reset ngân sách vào cuối tháng
     if (moment().date() === endOfMonth.date()) {
       update(budgetRef, { totalBudget: 0, totalExpense: 0 });
     }
   }, []);
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
       <Text style={styles.header}>Budget</Text>
 
-      {/* Tabs for Personal and Household Budgets */}
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tab, styles.activeTab]}>
           <Text style={styles.tabText}>Personal</Text>
@@ -64,7 +59,6 @@ const BudgetPage = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Date and Add Budget Section */}
       <View style={styles.dateAddContainer}>
         <View style={styles.dateInfoContainer}>
           <Text style={styles.dateText}>Tháng {moment().format('MMMM YYYY')}</Text>
@@ -75,7 +69,6 @@ const BudgetPage = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Sub Tabs for Budgets and Goals */}
       <View style={styles.subTabContainer}>
         <TouchableOpacity
           onPress={() => setSelectedSubTab('Budget')}
@@ -91,7 +84,6 @@ const BudgetPage = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Total Budget Section */}
       {selectedSubTab === 'Budget' && (
         <View style={styles.budgetContainer}>
           <Text style={styles.sectionTitle}>Total budget</Text>
@@ -112,7 +104,6 @@ const BudgetPage = ({ navigation }) => {
         </View>
       )}
 
-      {/* Goals Section */}
       {selectedSubTab === 'Goal' && (
         <View style={styles.goalsContainer}>
           <Text style={styles.sectionTitle}>Goals</Text>
@@ -120,7 +111,6 @@ const BudgetPage = ({ navigation }) => {
         </View>
       )}
 
-      {/* Category Details */}
       <View style={styles.categoryListContainer}>
         {categories.map((cat) => (
           <View key={cat.id} style={styles.categoryItem}>
@@ -133,11 +123,10 @@ const BudgetPage = ({ navigation }) => {
         ))}
       </View>
 
-      {/* Edit Budget Button */}
       <TouchableOpacity style={styles.editButton}>
         <Text style={styles.editButtonText}>Do you want to edit budget? Edit</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
