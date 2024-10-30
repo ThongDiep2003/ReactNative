@@ -28,7 +28,7 @@ const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color, size, focused }) => {
           let iconName;
 
           if (route.name === 'Home') {
@@ -41,10 +41,15 @@ const TabNavigator = () => {
             iconName = 'settings';
           }
 
-          return <Icon name={iconName} size={size} color={color} />;
+          return (
+            <View style={{ alignItems: 'center' }}>
+              {focused && <View style={styles.activeTabIndicator} />}
+              <Icon name={iconName} size={size} color={color} />
+            </View>
+          );
         },
         tabBarActiveTintColor: '#6246EA', // Màu khi được chọn
-        tabBarInactiveTintColor: '#6246EA', // Màu khi không được chọn
+        tabBarInactiveTintColor: '#808080', // Màu khi không được chọn
         headerShown: false, // Ẩn header
         tabBarStyle: styles.tabBar, // Tùy chỉnh thanh tab
       })}
@@ -99,6 +104,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 5,
     elevation: 5,
+  },
+  activeTabIndicator: {
+    width: 30,
+    height: 3,
+    backgroundColor: '#6246EA',
+    marginBottom: 5,
+    borderRadius: 1.5,
   },
 });
 

@@ -26,6 +26,10 @@ import Transaction from './screens/home/transaction/Transaction';
 import EditTransaction from './screens/home/transaction/EditTransaction';
 import CategoryPage from './screens/home/transaction/CategoryPage';
 
+import BudgetPage from "./screens/home/budget/BudgetPage";
+import AddBudgetPage from "./screens/home/budget/AddBudgetPage";
+
+
 import SettingsPage from './screens/setting/SettingsPage';
 import Language from './screens/setting/LanguagePage';
 import ContactUs from './screens/setting/ContactUsPage';
@@ -122,9 +126,6 @@ const App = () => {
 
 
         {/* Stack Screens */}
-        
-        
-       
 
         {/* Settings Screens */}
         <Stack.Screen 
@@ -162,6 +163,18 @@ const App = () => {
           component={LogoutPage}
           options={{ headerTitle: "Logout" }}
         />
+
+    {/* Settings Screens */}
+    <Stack.Screen
+      name="BudgetPage"
+      component={BudgetPage}
+      options={{ headerTitle: "Budget" }}
+    />
+    <Stack.Screen
+      name="AddBudget"
+      component={AddBudgetPage}
+      options={{ headerTitle: "Add Budget" }}
+    />
       </Stack.Navigator>
     </NavigationContainer>
   );
