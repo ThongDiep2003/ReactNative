@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, PanResponder, Animated } from 'react-native';
 import { Button, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { ref, push, onValue } from 'firebase/database';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const AddTransaction = () => {
+  const scrollY = useState(new Animated.Value(0))[0];
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderMove: Animated.event(
+      [null, { dy: scrollY }],
+      { useNativeDriver: false }
+    ),
+  });
   const navigation = useNavigation();
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date());
@@ -79,11 +88,11 @@ const AddTransaction = () => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer} {...panResponder.panHandlers}>
       <Text style={styles.pageHeader}>Add Transaction</Text>
       <View style={styles.headerContainer}>
-        <Text style={[styles.header, type === 'Income' && styles.inactiveTab]} onPress={() => setType('Income')}>New Income</Text>
-        <Text style={[styles.header, type === 'Expense' && styles.inactiveTab]} onPress={() => setType('Expense')}>New Expense</Text>
+        <Text style={[styles.header, type === 'Income' ? styles.activeTab : styles.inactiveTab]} onPress={() => setType('Income')}>New Income</Text>
+        <Text style={[styles.header, type === 'Expense' ? styles.activeTab : styles.inactiveTab]} onPress={() => setType('Expense')}>New Expense</Text>
       </View>
 
       {/* Amount Input */}
@@ -132,10 +141,18 @@ const AddTransaction = () => {
         ))}
       </View>
 
+      {/* Add New Category Button */}
+      <TouchableOpacity
+        style={styles.addCategoryButton}
+        onPress={() => navigation.navigate('Category')}
+      >
+        <Text style={styles.addCategoryText}>Add New Category</Text>
+      </TouchableOpacity>
+
       {/* Account Selection */}
       <Text style={styles.sectionTitle}>Select Account</Text>
       <View style={styles.accountContainer}>
-        {['VCB', 'BIDV', 'Cash'].map((acc) => (
+        {['VCB', 'BIDV', 'Momo', 'Cash'].map((acc) => (
           <Chip
             key={acc}
             mode="outlined"
@@ -149,19 +166,13 @@ const AddTransaction = () => {
         ))}
       </View>
 
-      {/* Add New Category Button */}
-      <TouchableOpacity
-        style={styles.addCategoryButton}
-        onPress={() => navigation.navigate('Category')}
-      >
-        <Text style={styles.addCategoryText}>+ Add New Category</Text>
-      </TouchableOpacity>
+      
 
       {/* Save Button */}
       <Button mode="contained" onPress={handleSaveTransaction} buttonColor="#6246EA" style={styles.saveButton}>
         Save Transaction
       </Button>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 };
 
@@ -177,6 +188,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
+    paddingBottom: 100,
   },
   pageHeader: {
     fontSize: 24,
@@ -195,8 +207,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     paddingVertical: 10,
     borderBottomWidth: 2,
-    borderBottomColor: '#6246EA',
+  },
+  activeTab: {
     color: '#6246EA',
+    borderBottomColor: '#6246EA',
   },
   inactiveTab: {
     color: 'gray',
@@ -209,7 +223,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   amountInput: {
-    fontSize: 28,
+    fontSize: 24,
     borderBottomWidth: 2,
     borderColor: '#6246EA',
     width: '70%',
@@ -252,7 +266,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     backgroundColor: '#fafafa',
-    width: '30%',
+    width: '23%',
   },
   selectedCategoryButton: {
     backgroundColor: '#D1C8FF',
@@ -289,7 +303,7 @@ const styles = StyleSheet.create({
   },
   addCategoryButton: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 5,
   },
   addCategoryText: {
     color: '#6246EA',
