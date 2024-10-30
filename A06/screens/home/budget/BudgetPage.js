@@ -274,6 +274,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     color: '#6200ee',
     fontSize: 16,
+    marginBottom: 20,
   },
   fab: {
     position: 'absolute',

@@ -109,7 +109,10 @@ const CategoryPage = ({ navigation }) => {
 
       {/* Add Category Button */}
       <TouchableOpacity
-        style={tw`mt-10 bg-purple-500 p-4 rounded-full flex-row justify-center items-center`}
+        style={[
+          tw`mt-10 p-4 rounded-full flex-row justify-center items-center`,
+          { backgroundColor: '#6246EA' } // Thay đổi mã màu tại đây
+        ]}
         onPress={handleAddCategory}
       >
         <Text style={tw`text-white text-lg font-bold`}>Add Category</Text>
@@ -130,6 +133,17 @@ const styles = StyleSheet.create({
   },
   selectedIcon: {
     backgroundColor: '#6200ee',
+  },
+  addcategoryButton: {
+    height: 50,
+    backgroundColor: '#6246EA',
+    borderRadius: 9999, // rounded-full
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    flexDirection: 'row',
+    marginTop: 40, // mt-10
+    padding: 16,   // p-4
   },
 });
 

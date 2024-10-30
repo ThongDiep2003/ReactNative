@@ -67,7 +67,7 @@ const AddTransaction = () => {
         amount,
         date: date.toISOString(),
         account,
-        category: { id: category.id, icon: category.icon },
+        category: { id: category.id, icon: category.icon, name: category.name }, // Thêm cả tên category
         type,
       };
 
@@ -165,8 +165,6 @@ const AddTransaction = () => {
           </Chip>
         ))}
       </View>
-
-      
 
       {/* Save Button */}
       <Button mode="contained" onPress={handleSaveTransaction} buttonColor="#6246EA" style={styles.saveButton}>
@@ -311,9 +309,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   saveButton: {
-    marginVertical: 5,
-    paddingVertical: 10,
-    borderRadius: 10,
+    height: 50,
+    backgroundColor: '#6246EA',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
   },
 });
 
