@@ -5,9 +5,45 @@ import tw from 'tailwind-react-native-classnames';
 import { FIREBASE_DB } from '../../../auths/FirebaseConfig'; // Import Firebase configuration
 import { ref, set } from 'firebase/database'; // Import methods from Firebase
 
-// List of available icons
+// List of available icons with fixed colors
 const iconList = [
-  'car', 'food', 'gift', 'home', 'wallet', 'medical-bag', 'truck-fast', 'gamepad-variant', 'bank', 'shopping-outline'
+  { name: 'car', color: '#f44336' },
+  { name: 'food', color: '#e91e63' },
+  { name: 'gift', color: '#9c27b0' },
+  { name: 'home', color: '#673ab7' },
+  { name: 'wallet', color: '#3f51b5' },
+  { name: 'medical-bag', color: '#2196f3' },
+  { name: 'truck-fast', color: '#03a9f4' },
+  { name: 'gamepad-variant', color: '#00bcd4' },
+  { name: 'bank', color: '#009688' },
+  { name: 'shopping-outline', color: '#4caf50' },
+  { name: 'cash', color: '#ff9800' },
+  { name: 'airplane', color: '#ff5722' },
+  { name: 'basketball', color: '#795548' },
+  { name: 'bed', color: '#607d8b' },
+  { name: 'bike', color: '#8bc34a' },
+  { name: 'book-open-page-variant', color: '#ffc107' },
+  { name: 'camera', color: '#9e9e9e' },
+  { name: 'cat', color: '#ff5722' },
+  { name: 'chair-rolling', color: '#3f51b5' },
+  { name: 'chart-line', color: '#ff4081' },
+  { name: 'cellphone', color: '#4caf50' },
+  { name: 'city', color: '#673ab7' },
+  { name: 'coffee', color: '#795548' },
+  { name: 'dog', color: '#ff9800' },
+  { name: 'dumbbell', color: '#9c27b0' },
+  { name: 'emoticon-happy-outline', color: '#2196f3' },
+  { name: 'factory', color: '#00bcd4' },
+  { name: 'file-document', color: '#8bc34a' },
+  { name: 'flower', color: '#e91e63' },
+  { name: 'fridge-outline', color: '#3f51b5' },
+  { name: 'guitar-electric', color: '#673ab7' },
+  { name: 'headphones', color: '#607d8b' },
+  { name: 'hospital-building', color: '#ff4081' },
+  { name: 'human-male-female', color: '#03a9f4' },
+  { name: 'key-variant', color: '#795548' },
+  { name: 'laptop', color: '#ff9800' },
+  { name: 'leaf', color: '#4caf50' },
 ];
 
 const CategoryPage = ({ navigation }) => {
@@ -22,10 +58,10 @@ const CategoryPage = ({ navigation }) => {
       // Save category to Firebase Realtime Database
       set(categoryRef, {
         name: categoryName,
-        icon: selectedIcon,
+        icon: selectedIcon.name,
       })
         .then(() => {
-          alert(`Category "${categoryName}" added with icon "${selectedIcon}"`);
+          alert(`Category "${categoryName}" added with icon "${selectedIcon.name}"`);
           // Reset fields after adding
           setCategoryName('');
           setSelectedIcon(null);
@@ -56,7 +92,7 @@ const CategoryPage = ({ navigation }) => {
       <Text style={tw`text-lg font-bold mb-3`}>Choose an Icon</Text>
       <FlatList
         data={iconList}
-        keyExtractor={(item) => item}
+        keyExtractor={(item) => item.name}
         numColumns={5}
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -66,7 +102,7 @@ const CategoryPage = ({ navigation }) => {
             ]}
             onPress={() => setSelectedIcon(item)}
           >
-            <Icon name={item} size={30} color={selectedIcon === item ? "#ffffff" : "#555"} />
+            <Icon name={item.name} size={30} color={selectedIcon === item ? "#ffffff" : item.color} />
           </TouchableOpacity>
         )}
       />
