@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Button, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -79,14 +79,18 @@ const AddTransaction = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Add Transactions</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <Text style={styles.pageHeader}>Add Transaction</Text>
+      <View style={styles.headerContainer}>
+        <Text style={[styles.header, type === 'Income' && styles.inactiveTab]} onPress={() => setType('Income')}>New Income</Text>
+        <Text style={[styles.header, type === 'Expense' && styles.inactiveTab]} onPress={() => setType('Expense')}>New Expense</Text>
+      </View>
 
       {/* Amount Input */}
       <View style={styles.amountContainer}>
         <TextInput
           style={styles.amountInput}
-          placeholder="0"
+          placeholder="Enter amount"
           keyboardType="numeric"
           value={amount}
           onChangeText={setAmount}
@@ -96,6 +100,7 @@ const AddTransaction = () => {
 
       {/* Date Picker */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
+        <Icon name="calendar" size={24} color="#6246EA" />
         <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
       </TouchableOpacity>
       {showDatePicker && (
@@ -108,46 +113,36 @@ const AddTransaction = () => {
       )}
 
       {/* Category Selection */}
-      <Text style={styles.sectionTitle}>From category</Text>
+      <Text style={styles.sectionTitle}>Select Category</Text>
       <View style={styles.categoryContainer}>
-        {categories.map((cat) => (
-          <TouchableOpacity key={cat.id} onPress={() => handleCategorySelect(cat)}>
+        {categories.map((cat, index) => (
+          <TouchableOpacity
+            key={cat.id}
+            onPress={() => handleCategorySelect(cat)}
+            style={[styles.categoryButton, cat.id === category?.id && styles.selectedCategoryButton]}
+          >
             <Icon
-              name={cat.icon}  // Assuming each category has an 'icon' property
-              size={40}
-              color={cat.id === category?.id ? '#6200ee' : 'gray'}
+              name={cat.icon}
+              size={30}
+              color={cat.id === category?.id ? '#6246EA' : CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
               style={styles.categoryIcon}
             />
+            <Text style={[styles.categoryText, cat.id === category?.id && styles.selectedCategoryText]}>{cat.name}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Type Selection */}
-      <Text style={styles.sectionTitle}>Transaction Type</Text>
-      <View style={styles.chipContainer}>
-        {['Expense', 'Income'].map((t) => (
-          <Chip
-            key={t}
-            mode="outlined"
-            selected={type === t}
-            onPress={() => setType(t)}
-            style={styles.chip}
-          >
-            {t}
-          </Chip>
-        ))}
-      </View>
-
       {/* Account Selection */}
-      <Text style={styles.sectionTitle}>From account</Text>
-      <View style={styles.chipContainer}>
+      <Text style={styles.sectionTitle}>Select Account</Text>
+      <View style={styles.accountContainer}>
         {['VCB', 'BIDV', 'Cash'].map((acc) => (
           <Chip
             key={acc}
             mode="outlined"
             selected={account === acc}
             onPress={() => handleAccountSelect(acc)}
-            style={styles.chip}
+            style={[styles.accountChip, account === acc && styles.selectedAccountChip]}
+            textStyle={account === acc ? styles.selectedAccountText : null}
           >
             {acc}
           </Chip>
@@ -159,89 +154,151 @@ const AddTransaction = () => {
         style={styles.addCategoryButton}
         onPress={() => navigation.navigate('Category')}
       >
-        <Text style={styles.addCategoryText}>Add New Category</Text>
+        <Text style={styles.addCategoryText}>+ Add New Category</Text>
       </TouchableOpacity>
 
       {/* Save Button */}
-      <Button mode="contained" onPress={handleSaveTransaction}>
+      <Button mode="contained" onPress={handleSaveTransaction} buttonColor="#6246EA" style={styles.saveButton}>
         Save Transaction
       </Button>
-    </View>
+    </ScrollView>
   );
 };
+
+const CATEGORY_COLORS = [
+  '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50',
+  '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#607d8b'
+];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
-  header: {
+  contentContainer: {
+    padding: 20,
+  },
+  pageHeader: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    marginTop: 20,
     textAlign: 'center',
+    marginBottom: 20,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  header: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    paddingVertical: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: '#6246EA',
+    color: '#6246EA',
+  },
+  inactiveTab: {
+    color: 'gray',
+    borderBottomColor: 'transparent',
   },
   amountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
   },
   amountInput: {
-    fontSize: 36,
-    borderBottomWidth: 1,
-    borderColor: 'gray',
+    fontSize: 28,
+    borderBottomWidth: 2,
+    borderColor: '#6246EA',
     width: '70%',
     textAlign: 'center',
+    marginRight: 10,
   },
   currency: {
     fontSize: 18,
-    marginLeft: 5,
+    color: '#6246EA',
   },
   datePicker: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: 'gray',
-    marginVertical: 10,
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#e0f7fa',
+    marginBottom: 20,
   },
   dateText: {
     fontSize: 18,
-    color: '#333',
+    marginLeft: 10,
+    color: '#6246EA',
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 15,
-    marginBottom: 5,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  chip: {
-    marginRight: 5,
-    backgroundColor: '#f1f1f1',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#333',
   },
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginVertical: 20,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  categoryButton: {
+    alignItems: 'center',
+    marginBottom: 15,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#fafafa',
+    width: '30%',
+  },
+  selectedCategoryButton: {
+    backgroundColor: '#D1C8FF',
   },
   categoryIcon: {
-    marginHorizontal: 10,
+    marginBottom: 5,
+  },
+  selectedCategoryIcon: {
+    backgroundColor: '#6246EA',
+  },
+  categoryText: {
+    fontSize: 14,
+    color: '#6246EA',
+  },
+  selectedCategoryText: {
+    color: '#6246EA',
+    fontWeight: 'bold',
+  },
+  accountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 30,
+  },
+  accountChip: {
+    backgroundColor: '#e3f2fd',
+    marginHorizontal: 5,
+  },
+  selectedAccountChip: {
+    backgroundColor: '#D1C8FF',
+  },
+  selectedAccountText: {
+    color: '#6246EA',
+    fontWeight: 'bold',
   },
   addCategoryButton: {
     alignItems: 'center',
-    marginVertical: 10,
+    marginBottom: 30,
   },
   addCategoryText: {
-    color: '#6200ee',
+    color: '#6246EA',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  saveButton: {
+    marginVertical: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
 });
 
