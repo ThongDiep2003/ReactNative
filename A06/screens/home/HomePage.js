@@ -120,7 +120,6 @@ const HomePage = () => {
       </View>
     );
   }
-
   
   return (
     <View style={[tw`flex-1 bg-white`, { marginTop: 0 }]}>
