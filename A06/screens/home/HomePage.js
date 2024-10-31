@@ -65,7 +65,7 @@ const HomePage = () => {
             const data = snapshot.val();
             if (data) {
               const fetchedTransactions = Object.values(data).reverse();
-              setTransactions(fetchedTransactions.slice(0, 5)); // Get recent 5 transactions 
+              setTransactions(fetchedTransactions.slice(0, 10)); // Get recent 5 transactions 
 
               // Calculate total income, expense, and prepare expense data for chart
               let income = 0;
@@ -165,10 +165,9 @@ const HomePage = () => {
           padAngle={0.02}
         />
       </View>
-
       {/* Recent Transactions */}
-      <View style={[tw`mt-5 p-5`, {marginTop:0}]}>
-        <View style={tw`flex-row justify-between`}>
+      <View style={[tw`mt-5 p-6 flex-1`]}>
+        <View style={tw`flex-row justify-between mb-3`}>
           <Text style={tw`text-lg font-bold`}>Recent Added</Text>
           <TouchableOpacity onPress={() => navigation.navigate('AllTransaction')}>
             <Text style={tw`text-blue-500`}>See All</Text>
@@ -183,7 +182,7 @@ const HomePage = () => {
 
             return (
               <TouchableOpacity onPress={() => handleTransactionPress(item)}>
-                <View style={tw`flex-row justify-between py-2 items-center`}>
+                <View style={tw`flex-row justify-between py-3 items-center border-b border-gray-200`}>
                   <Icon name={item.category.icon} size={24} color={color} style={tw`mr-3`} />
                   
                   {/* Transaction details */}
@@ -200,6 +199,7 @@ const HomePage = () => {
               </TouchableOpacity>
             );
           }}
+          contentContainerStyle={{ paddingBottom: 20 }} // Padding ở dưới cùng để các giao dịch cuối cùng hiển thị thoáng hơn
         />
       </View>
     </View>
