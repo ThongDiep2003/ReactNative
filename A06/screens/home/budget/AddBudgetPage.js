@@ -38,7 +38,7 @@ const AddBudgetPage = ({ navigation }) => {
       <Text style={styles.header}>Add New Budget</Text>
       
       <View style={styles.inputContainer}>
-        <Icon name="currency-vnd" size={25} color="gray" style={styles.icon} />
+        <Icon name="cash" size={25} color="gray" style={styles.icon} />
         <TextInput
           style={styles.input}
           placeholder="Enter Amount (VND)"
