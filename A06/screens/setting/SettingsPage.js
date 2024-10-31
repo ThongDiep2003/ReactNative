@@ -29,6 +29,8 @@ const SettingsPage = ({ navigation }) => {
       >
         <Text style={styles.itemText}>Contact Us</Text>
       </TouchableOpacity>
+
+
       <Text style={styles.sectionHeader}>Security</Text>
       {/* <TouchableOpacity 
         style={styles.item}
@@ -44,7 +46,12 @@ const SettingsPage = ({ navigation }) => {
         <Text style={styles.itemText}>Privacy Policy</Text>
       </TouchableOpacity>
       {/* Logout button */}
-      
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => navigation.navigate('LogoutPage')} // Navigate to LogoutPage
+      >
+        <Text style={styles.itemText}>Logout</Text>
+      </TouchableOpacity>
 
       <Text style={styles.footerText}>Choose what data you share with us</Text>
     </View>

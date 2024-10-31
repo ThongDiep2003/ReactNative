@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, FlatList, Dimensions } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, Image, TouchableOpacity, FlatList } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Cập nhật import
 import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from '../../auths/FirebaseConfig';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { ref, onValue } from 'firebase/database';
@@ -9,8 +9,6 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PieChart } from 'react-native-svg-charts';
 import { Text as SVGText } from 'react-native-svg';
 
-
-// List of available icons with fixed colors
 const iconList = [
   { name: 'car', color: '#f44336' },
   { name: 'food', color: '#e91e63' },
@@ -39,75 +37,95 @@ const HomePage = () => {
   const [transactions, setTransactions] = useState([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
-  const [expenseCategories, setExpenseCategories] = useState([]); // Store expense data for chart
+  const [expenseCategories, setExpenseCategories] = useState([]);
+  const [incomeCategories, setIncomeCategories] = useState([]);
+  const [displayType, setDisplayType] = useState('Expense');
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const currentUser = FIREBASE_AUTH.currentUser;
-        if (currentUser) {
-          const userId = currentUser.uid;
-          const userProfile = await getUserProfile(userId);
+  // Hàm fetch dữ liệu
+  const fetchUserData = async () => {
+    try {
+      const currentUser = FIREBASE_AUTH.currentUser;
+      if (currentUser) {
+        const userId = currentUser.uid;
+        const userProfile = await getUserProfile(userId);
 
-          setUserName(userProfile.name);
-          if (userProfile.avatarUrl) {
-            const storage = getStorage();
-            const avatarRef = storageRef(storage, userProfile.avatarUrl);
-            const avatarUrl = await getDownloadURL(avatarRef);
-            setUserAvatar(avatarUrl);
-          } else {
-            setUserAvatar('https://via.placeholder.com/60');
-          }
-
-          // Fetch transactions
-          const transactionsRef = ref(FIREBASE_DB, `users/${userId}/transactions`);
-          onValue(transactionsRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-              const fetchedTransactions = Object.values(data).reverse();
-              setTransactions(fetchedTransactions.slice(0, 10)); // Get recent 5 transactions 
-
-              // Calculate total income, expense, and prepare expense data for chart
-              let income = 0;
-              let expense = 0;
-              const categoryData = {};
-
-              fetchedTransactions.forEach((transaction) => {
-                if (transaction.type === 'Income') {
-                  income += parseFloat(transaction.amount);
-                } else if (transaction.type === 'Expense') {
-                  expense += parseFloat(transaction.amount);
-                  
-                  // Prepare data for donut chart
-                  if (categoryData[transaction.category.id]) {
-                    categoryData[transaction.category.id].amount += parseFloat(transaction.amount);
-                  } else {
-                    const categoryIcon = iconList.find(icon => icon.name === transaction.category.icon);
-                    const color = categoryIcon ? categoryIcon.color : '#6246EA';
-                    categoryData[transaction.category.id] = {
-                      amount: parseFloat(transaction.amount),
-                      color: color,
-                      name: transaction.category.name,
-                    };
-                  }
-                }
-              });
-              
-              setTotalIncome(income);
-              setTotalExpense(expense);
-              setExpenseCategories(Object.values(categoryData));
-            }
-          });
+        setUserName(userProfile.name);
+        if (userProfile.avatarUrl) {
+          const storage = getStorage();
+          const avatarRef = storageRef(storage, userProfile.avatarUrl);
+          const avatarUrl = await getDownloadURL(avatarRef);
+          setUserAvatar(avatarUrl);
+        } else {
+          setUserAvatar('https://via.placeholder.com/60');
         }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchUserData();
-  }, []);
+        const transactionsRef = ref(FIREBASE_DB, `users/${userId}/transactions`);
+        onValue(transactionsRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+            const fetchedTransactions = Object.values(data).reverse();
+            setTransactions(fetchedTransactions.slice(0, 10));
+
+            let income = 0;
+            let expense = 0;
+            const expenseData = {};
+            const incomeData = {};
+
+            fetchedTransactions.forEach((transaction) => {
+              if (transaction.type === 'Income') {
+                income += parseFloat(transaction.amount);
+
+                if (incomeData[transaction.category.id]) {
+                  incomeData[transaction.category.id].amount += parseFloat(transaction.amount);
+                } else {
+                  const categoryIcon = iconList.find(icon => icon.name === transaction.category.icon);
+                  const color = categoryIcon ? categoryIcon.color : '#6246EA';
+                  incomeData[transaction.category.id] = {
+                    amount: parseFloat(transaction.amount),
+                    color: color,
+                    name: transaction.category.name,
+                  };
+                }
+              } else if (transaction.type === 'Expense') {
+                expense += parseFloat(transaction.amount);
+
+                if (expenseData[transaction.category.id]) {
+                  expenseData[transaction.category.id].amount += parseFloat(transaction.amount);
+                } else {
+                  const categoryIcon = iconList.find(icon => icon.name === transaction.category.icon);
+                  const color = categoryIcon ? categoryIcon.color : '#6246EA';
+                  expenseData[transaction.category.id] = {
+                    amount: parseFloat(transaction.amount),
+                    color: color,
+                    name: transaction.category.name,
+                  };
+                }
+              }
+            });
+
+            setTotalIncome(income);
+            setTotalExpense(expense);
+            setExpenseCategories(Object.values(expenseData));
+            setIncomeCategories(Object.values(incomeData));
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sử dụng useFocusEffect để fetch lại dữ liệu khi trang được mở lại
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserData();
+    }, [])
+  );
+
+  const handleExpensePress = () => setDisplayType('Expense');
+  const handleIncomePress = () => setDisplayType('Income');
 
   const handleTransactionPress = (transaction) => {
     navigation.navigate('Transaction', { transaction });
@@ -120,11 +138,10 @@ const HomePage = () => {
       </View>
     );
   }
-  
+
   return (
     <View style={[tw`flex-1 bg-white`, { marginTop: 0 }]}>
-      {/* User Section */}
-      <View style={[tw`p-5 flex-row justify-between items-center  rounded-b-lg`, { marginTop: 20 }]}>
+      <View style={[tw`p-5 flex-row justify-between items-center rounded-b-lg`, { marginTop: 20 }]}>
         <View style={tw`flex-row items-center`}>
           <Image
             source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')}
@@ -139,23 +156,23 @@ const HomePage = () => {
 
       {/* Expense and Income Summary */}
       <View style={tw`flex-row justify-around mt-5`}>
-        <View style={[tw`bg-red-100 p-5 rounded-lg`, { width: 175 }]}>
+        <TouchableOpacity onPress={handleExpensePress} style={[tw`p-5 rounded-lg`, { backgroundColor: displayType === 'Expense' ? '#ffebee' : '#f5f5f5', width: 175 }]}>
           <Text style={tw`text-sm text-black`}>Expense</Text>
           <Text style={tw`text-lg font-bold text-red-600`}>- {totalExpense.toLocaleString()} VND</Text>
-        </View>
-        <View style={[tw`bg-green-100 p-5 rounded-lg`, { width: 175 }]}>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleIncomePress} style={[tw`p-5 rounded-lg`, { backgroundColor: displayType === 'Income' ? '#e8f5e9' : '#f5f5f5', width: 175 }]}>
           <Text style={tw`text-sm text-black`}>Income</Text>
           <Text style={tw`text-lg font-bold text-green-600`}>+ {totalIncome.toLocaleString()} VND</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
-      {/* Donut Chart for Expense Categories */}
-      <View style={[tw`mt-5 mb-5 p-5  rounded-lg`, {marginBottom:0}]}>
-        <Text style={tw`text-lg font-bold text-center mb-3`}>Expense Distribution</Text>
+      {/* Donut Chart for Expense or Income Categories */}
+      <View style={[tw`mt-5 mb-5 p-5 rounded-lg`, { marginBottom: 0 }]}>
+        <Text style={tw`text-lg font-bold text-center mb-3`}>{displayType} Distribution</Text>
         <PieChart
           style={{ height: 175 }}
-          data={expenseCategories.map((item) => ({
-            value: item.amount,
+          data={(displayType === 'Expense' ? expenseCategories : incomeCategories).map((item) => ({
+            value: Math.abs(item.amount),
             svg: { fill: item.color },
             key: item.name,
           }))}
@@ -164,41 +181,29 @@ const HomePage = () => {
           padAngle={0.02}
         />
       </View>
+
       {/* Recent Transactions */}
       <View style={[tw`mt-5 p-6 flex-1`]}>
         <View style={tw`flex-row justify-between mb-3`}>
-          <Text style={tw`text-lg font-bold`}>Recent Added</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('AllTransaction')}>
-            <Text style={tw`text-blue-500`}>See All</Text>
+          <Text style={tw`text-lg font-bold`}>Recent Transactions</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('TransactionList')}>
+            <Text style={tw`text-sm text-blue-500`}>See All</Text>
           </TouchableOpacity>
         </View>
         <FlatList
-          data={transactions}
+          data={transactions.filter((transaction) => transaction.type === displayType)}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleTransactionPress(item)} style={tw`flex-row justify-between bg-gray-100 p-3 rounded-lg mb-2`}>
+              <View style={tw`flex-row items-center`}>
+                <Icon name={item.category.icon} size={24} color={iconList.find(icon => icon.name === item.category.icon)?.color || '#000'} />
+                <Text style={tw`ml-2`}>{item.category.name}</Text>
+              </View>
+              <Text style={tw`${item.type === 'Expense' ? 'text-red-600' : 'text-green-600'} font-bold`}>
+                {item.type === 'Expense' ? '-' : '+'} {item.amount.toLocaleString()} VND
+              </Text>
+            </TouchableOpacity>
+          )}
           keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => {
-            const categoryIcon = iconList.find(icon => icon.name === item.category.icon);
-            const color = categoryIcon ? categoryIcon.color : '#6246EA';
-
-            return (
-              <TouchableOpacity onPress={() => handleTransactionPress(item)}>
-                <View style={tw`flex-row justify-between py-3 items-center border-b border-gray-200`}>
-                  <Icon name={item.category.icon} size={24} color={color} style={tw`mr-3`} />
-                  
-                  {/* Transaction details */}
-                  <View style={tw`flex-1`}>
-                    <Text style={tw`text-base font-semibold`}>{item.category.name}</Text>
-                    <Text style={tw`text-sm text-gray-500`}>{new Date(item.date).toLocaleDateString()}</Text>
-                  </View>
-                  
-                  {/* Transaction amount */}
-                  <Text style={tw`text-base text-black`}>
-                    {item.type === 'Expense' ? '- ' : '+ '}{parseFloat(item.amount).toLocaleString()} VND
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-          contentContainerStyle={{ paddingBottom: 20 }} // Padding ở dưới cùng để các giao dịch cuối cùng hiển thị thoáng hơn
         />
       </View>
     </View>
