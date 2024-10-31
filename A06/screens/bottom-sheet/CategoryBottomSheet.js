@@ -67,7 +67,7 @@ const CategoryBottomSheet = ({ isVisible, onClose, onAddCategory }) => {
           setCategoryName('');
           setSelectedIcon(null);
           modalizeRef.current?.close();
-          onAddCategory();
+          onAddCategory(categoryName);;
         })
         .catch((error) => {
           console.error("Error adding category: ", error);

@@ -29,14 +29,6 @@ const SettingsPage = ({ navigation }) => {
       >
         <Text style={styles.itemText}>Contact Us</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={styles.item}
-        onPress={() => navigation.navigate('Logout')} // Navigate to ProfilePage
-      >
-        <Text style={styles.itemText}>Logout</Text>
-      </TouchableOpacity>
-
       <Text style={styles.sectionHeader}>Security</Text>
       {/* <TouchableOpacity 
         style={styles.item}

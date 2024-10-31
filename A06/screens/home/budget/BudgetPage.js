@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { Button, Chip, FAB } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
 import { ref, onValue, update } from 'firebase/database';
 import moment from 'moment';
+import { PieChart } from 'react-native-svg-charts';
+import { Text as SvgText } from 'react-native-svg';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const BudgetPage = ({ navigation }) => {
   const [totalBudget, setTotalBudget] = useState(0);
@@ -12,7 +13,6 @@ const BudgetPage = ({ navigation }) => {
   const [categories, setCategories] = useState([]);
   const [selectedSubTab, setSelectedSubTab] = useState('Budget');
   const [daysLeft, setDaysLeft] = useState(0);
-  const [today, setToday] = useState('');
 
   useEffect(() => {
     const budgetRef = ref(FIREBASE_DB, 'budget');
@@ -36,8 +36,6 @@ const BudgetPage = ({ navigation }) => {
       }
     });
 
-    const todayDate = moment().format('MMMM Do YYYY');
-    setToday(todayDate);
     const endOfMonth = moment().endOf('month');
     setDaysLeft(endOfMonth.diff(moment(), 'days'));
 
@@ -45,6 +43,44 @@ const BudgetPage = ({ navigation }) => {
       update(budgetRef, { totalBudget: 0, totalExpense: 0 });
     }
   }, []);
+
+  // Data for Pie Chart
+  const pieData = [
+    {
+      key: 1,
+      value: totalExpense,
+      svg: { fill: '#FF6347' },
+      label: 'Expense',
+    },
+    {
+      key: 2,
+      value: totalBudget - totalExpense,
+      svg: { fill: '#4CAF50' },
+      label: 'Remaining',
+    },
+  ].filter((data) => data.value > 0);
+
+  // Render function for Pie Chart Labels
+  const Labels = ({ slices }) => {
+    return slices.map((slice, index) => {
+      const { pieCentroid, data } = slice;
+      return (
+        <SvgText
+          key={index}
+          x={pieCentroid[0]}
+          y={pieCentroid[1]}
+          fill="white"
+          textAnchor="middle"
+          alignmentBaseline="middle"
+          fontSize={16}
+          stroke="black"
+          strokeWidth={0.2}
+        >
+          {data.label}
+        </SvgText>
+      );
+    });
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -69,28 +105,17 @@ const BudgetPage = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.subTabContainer}>
-        <TouchableOpacity
-          onPress={() => setSelectedSubTab('Budget')}
-          style={[styles.subTab, selectedSubTab === 'Budget' && styles.activeSubTab]}
-        >
-          <Text style={[styles.subTabText, selectedSubTab === 'Budget' && styles.activeSubTabText]}>Budgets</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setSelectedSubTab('Goal')}
-          style={[styles.subTab, selectedSubTab === 'Goal' && styles.activeSubTab]}
-        >
-          <Text style={[styles.subTabText, selectedSubTab === 'Goal' && styles.activeSubTabText]}>Goals</Text>
-        </TouchableOpacity>
-      </View>
-
       {selectedSubTab === 'Budget' && (
         <View style={styles.budgetContainer}>
           <Text style={styles.sectionTitle}>Total budget</Text>
-          <View style={styles.budgetCircle}>
-            <Text style={styles.budgetRemain}>Remain</Text>
-            <Text style={styles.budgetValue}>{(totalBudget - totalExpense).toLocaleString()} VND</Text>
-          </View>
+          <PieChart
+            style={{ height: 200 }}
+            valueAccessor={({ item }) => item.value}
+            data={pieData}
+            outerRadius="95%"
+          >
+            <Labels />
+          </PieChart>
           <View style={styles.budgetDetailContainer}>
             <View style={styles.budgetDetailItem}>
               <Text>Expense</Text>
@@ -185,52 +210,9 @@ const styles = StyleSheet.create({
     color: '#6200ee',
     fontWeight: 'bold',
   },
-  subTabContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    padding: 5,
-    marginVertical: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 20,
-  },
-  subTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 15,
-    marginHorizontal: 5,
-  },
-  activeSubTab: {
-    backgroundColor: '#6200ee',
-  },
-  subTabText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  activeSubTabText: {
-    color: '#fff',
-  },
   budgetContainer: {
     alignItems: 'center',
     marginBottom: 20,
-  },
-  budgetCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 10,
-    borderColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  budgetRemain: {
-    fontSize: 16,
-    color: 'gray',
-  },
-  budgetValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   budgetDetailContainer: {
     flexDirection: 'row',
@@ -275,12 +257,6 @@ const styles = StyleSheet.create({
     color: '#6200ee',
     fontSize: 16,
     marginBottom: 20,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 30,
-    backgroundColor: '#6200ee',
   },
 });
 
