@@ -23,6 +23,7 @@ import EnterOTP2 from "./screens/otp/EnterOTP2";
 import EnterOTP3 from "./screens/otp/EnterOTP3";
 import LogoutPage from "./screens/account/LogoutPage";
 import Transaction from './screens/home/transaction/Transaction';
+import AllTransaction from './screens/home/transaction/AllTransaction';
 import EditTransaction from './screens/home/transaction/EditTransaction';
 import CategoryPage from './screens/home/transaction/CategoryPage';
 
@@ -98,6 +99,7 @@ const App = () => {
             <Stack.Screen name="Profile" component={ProfilePage} />
             <Stack.Screen name="Edit" component={EditProfile} options={{ headerTitle: "Edit Profile" }} />
             <Stack.Screen name="Transaction" component={Transaction} options={{ headerTitle: "Transaction Details" }} />
+            <Stack.Screen name="AllTransaction" component={AllTransaction} options={{ headerTitle: "All Transaction" }} />
             <Stack.Screen name="EditTransaction" component={EditTransaction} options={{ headerTitle: "Edit Transaction" }} />
             <Stack.Screen name="Logout" component={LogoutPage} />
             <Stack.Screen name="Category" component={CategoryPage} />

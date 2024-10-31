@@ -121,6 +121,7 @@ const HomePage = () => {
     );
   }
 
+  
   return (
     <View style={[tw`flex-1 bg-white`, { marginTop: 0 }]}>
       {/* User Section */}

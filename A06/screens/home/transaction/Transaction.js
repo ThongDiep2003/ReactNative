@@ -39,7 +39,7 @@ const Transaction = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.pageHeader}>Transaction Details</Text>
+      {/* <Text style={styles.pageHeader}>Transaction Details</Text> */}
 
       {/* Type Selection */}
       <View style={styles.headerContainer}>
@@ -77,7 +77,7 @@ const Transaction = ({ route, navigation }) => {
       <View style={styles.buttonContainer}>
         <Button
           mode="contained"
-          color="#4CAF50"
+          
           onPress={handleEditTransaction}
           style={styles.button}
         >
@@ -85,7 +85,7 @@ const Transaction = ({ route, navigation }) => {
         </Button>
         <Button
           mode="contained"
-          color="red"
+         
           onPress={handleDeleteTransaction}
           style={styles.button}
         >
@@ -174,11 +174,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   accountChip: {
+    
     backgroundColor: '#e3f2fd',
     paddingVertical: 10,
     paddingHorizontal: 20,
     alignSelf: 'center',
-    marginBottom: 30,
+    marginBottom: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -186,8 +187,11 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   button: {
-    flex: 1,
+   
+    borderRadius: 25,
     marginHorizontal: 5,
+    backgroundColor: '#6246EA',
+    
   },
 });
 
