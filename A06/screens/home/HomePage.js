@@ -178,11 +178,11 @@ const HomePage = () => {
       <View style={tw`flex-row justify-around mt-5`}>
         <TouchableOpacity onPress={handleExpensePress} style={[tw`p-5 rounded-lg`, { backgroundColor: displayType === 'Expense' ? '#ffebee' : '#f5f5f5', width: 175 }]}>
           <Text style={tw`text-sm text-black`}>Expense</Text>
-          <Text style={tw`text-lg font-bold text-red-600`}>- {totalExpense.toLocaleString()} VND</Text>
+          <Text style={tw`text-base  font-bold text-red-600`}>- {totalExpense.toLocaleString()} VND</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleIncomePress} style={[tw`p-5 rounded-lg`, { backgroundColor: displayType === 'Income' ? '#e8f5e9' : '#f5f5f5', width: 175 }]}>
           <Text style={tw`text-sm text-black`}>Income</Text>
-          <Text style={tw`text-lg font-bold text-green-600`}>+ {totalIncome.toLocaleString()} VND</Text>
+          <Text style={tw`text-base  font-bold text-green-600`}>+ {totalIncome.toLocaleString()} VND</Text>
         </TouchableOpacity>
       </View>
 
@@ -206,7 +206,7 @@ const HomePage = () => {
       <View style={[tw`mt-5 p-6 flex-1`]}>
         <View style={tw`flex-row justify-between mb-3`}>
           <Text style={tw`text-lg font-bold`}>Recent Transactions</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('TransactionList')}>
+          <TouchableOpacity onPress={() => navigation.navigate('AllTransaction')}>
             <Text style={tw`text-sm text-blue-500`}>See All</Text>
           </TouchableOpacity>
         </View>
