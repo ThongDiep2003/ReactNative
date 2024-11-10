@@ -1,35 +1,26 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
-import { ref, remove, update } from 'firebase/database';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig'; // Import Firebase configuration
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { ref, remove } from 'firebase/database';
+import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
+import { Chip, Button } from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Transaction = ({ route, navigation }) => {
-  const { transaction } = route.params; // Nhận tham số từ HomePage
+  const { transaction } = route.params;
 
-  // Hàm xóa giao dịch khỏi Firebase
   const handleDeleteTransaction = () => {
     Alert.alert(
       "Confirm Delete",
       "Are you sure you want to delete this transaction?",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           onPress: async () => {
             try {
-              // Tạo tham chiếu đến giao dịch cần xóa
               const transactionRef = ref(FIREBASE_DB, 'transactions/' + transaction.id);
-
-              // Xóa giao dịch khỏi Firebase Realtime Database
               await remove(transactionRef);
-
-              // Hiển thị thông báo xóa thành công
               Alert.alert('Deleted', 'Transaction has been deleted successfully.');
-
-              // Điều hướng quay lại màn hình trước đó
               navigation.goBack();
             } catch (error) {
               console.error('Error deleting transaction:', error);
@@ -42,39 +33,65 @@ const Transaction = ({ route, navigation }) => {
     );
   };
 
-  // Hàm điều hướng đến màn hình chỉnh sửa giao dịch
   const handleEditTransaction = () => {
     navigation.navigate('EditTransaction', { transaction });
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Transaction Details</Text>
+      {/* <Text style={styles.pageHeader}>Transaction Details</Text> */}
 
-      {/* Hiển thị các thông tin chi tiết của giao dịch */}
-      <Text style={styles.detail}>Date: {transaction.date}</Text>
-      <Text style={styles.detail}>Title: {transaction.title}</Text>
-      <Text style={styles.detail}>Amount: {transaction.amount}</Text>
-      <Text style={styles.detail}>Type: {transaction.type}</Text>
-      <Text style={styles.detail}>Details: {transaction.details}</Text>
+      {/* Type Selection */}
+      <View style={styles.headerContainer}>
+        <Text style={[styles.header, transaction.type === 'Income' ? styles.activeTab : styles.inactiveTab]}>Income</Text>
+        <Text style={[styles.header, transaction.type === 'Expense' ? styles.activeTab : styles.inactiveTab]}>Expense</Text>
+      </View>
 
-      {/* Hiển thị ảnh */}
-      {transaction.image && (
-        <Image
-          source={{ uri: transaction.image }}
-          style={styles.image}
-        />
+      {/* Amount Display */}
+      <View style={styles.amountContainer}>
+        <Text style={styles.amountText}>{transaction.amount} VND</Text>
+      </View>
+
+      {/* Date Display */}
+      <TouchableOpacity style={styles.datePicker}>
+        <Icon name="calendar" size={24} color="#6246EA" />
+        <Text style={styles.dateText}>{new Date(transaction.date).toLocaleDateString()}</Text>
+      </TouchableOpacity>
+
+      {/* Category Display */}
+      {transaction.category && (
+        <View style={styles.detailContainer}>
+          <Text style={styles.sectionTitle}>Category</Text>
+          <View style={styles.categoryContainer}>
+            <Icon name={transaction.category.icon} size={30} color="#6246EA" style={styles.categoryIcon} />
+            <Text style={styles.categoryText}>{transaction.category.name}</Text>
+          </View>
+        </View>
       )}
 
-      {/* Nút Xóa giao dịch */}
-      <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteTransaction}>
-        <Text style={styles.deleteButtonText}>Delete Transaction</Text>
-      </TouchableOpacity>
+      {/* Account Display */}
+      <Text style={styles.sectionTitle}>Account</Text>
+      <Chip mode="outlined" style={styles.accountChip}>{transaction.account}</Chip>
 
-      {/* Nút Chỉnh sửa giao dịch */}
-      <TouchableOpacity style={styles.editButton} onPress={handleEditTransaction}>
-        <Text style={styles.editButtonText}>Edit Transaction</Text>
-      </TouchableOpacity>
+      {/* Buttons for Edit and Delete */}
+      <View style={styles.buttonContainer}>
+        <Button
+          mode="contained"
+          
+          onPress={handleEditTransaction}
+          style={styles.button}
+        >
+          Edit Transaction
+        </Button>
+        <Button
+          mode="contained"
+         
+          onPress={handleDeleteTransaction}
+          style={styles.button}
+        >
+          Delete Transaction
+        </Button>
+      </View>
     </View>
   );
 };
@@ -83,42 +100,98 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#ffffff',
   },
-  header: {
+  pageHeader: {
     fontSize: 24,
     fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginBottom: 20,
   },
-  detail: {
+  header: {
     fontSize: 18,
+    fontWeight: 'bold',
+    paddingVertical: 10,
+    borderBottomWidth: 2,
+  },
+  activeTab: {
+    color: '#6246EA',
+    borderBottomColor: '#6246EA',
+  },
+  inactiveTab: {
+    color: 'gray',
+    borderBottomColor: 'transparent',
+  },
+  amountContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  amountText: {
+    fontSize: 24,
+    color: '#FF5722',
+    fontWeight: 'bold',
+  },
+  datePicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#e0f7fa',
+    marginBottom: 20,
+  },
+  dateText: {
+    fontSize: 18,
+    marginLeft: 10,
+    color: '#6246EA',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#333',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#f1f1f1',
+    marginBottom: 20,
+  },
+  categoryIcon: {
+    marginRight: 8,
+  },
+  categoryText: {
+    fontSize: 18,
+    color: '#6246EA',
+    fontWeight: 'bold',
+  },
+  accountChip: {
+    
+    backgroundColor: '#e3f2fd',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignSelf: 'center',
     marginBottom: 10,
   },
-  image: {
-    width: 300,
-    height: 300,
-    marginTop: 20,
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 30,
   },
-  deleteButton: {
-    backgroundColor: 'red',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  editButton: {
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 16,
+  button: {
+   
+    borderRadius: 25,
+    marginHorizontal: 5,
+    backgroundColor: '#6246EA',
+    
   },
 });
 

@@ -1,25 +1,23 @@
 import React, { useState } from 'react';
-import { Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Alert } from 'react-native';
+import { Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Alert, TouchableOpacity } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Realtime Database
-import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Realtime Database
-import { generateOTP, sendOTPEmail } from '../../services/OTP'; // Import các hàm tạo và gửi OTP
-import {EnterOTP2} from '../otp/EnterOTP2'
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { FIREBASE_AUTH, FIREBASE_DB } from '../../auths/FirebaseConfig';
+import { ref, set } from 'firebase/database';
+import { generateOTP, sendOTPEmail } from '../../services/OTP';
 
 const RegisterPage = ({ navigation }) => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
-  const [birthdate, setBirthdate] = useState('');
-    const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const auth = FIREBASE_AUTH;
-  
 
   const handleRegister = async () => {
+    if (!email || !password || !confirmPassword) {
+      Alert.alert('All fields are required');
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert('Passwords do not match');
       return;
@@ -27,15 +25,10 @@ const RegisterPage = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // Tạo mã OTP và gửi qua email
       const otp = generateOTP();
-      await sendOTPEmail(username, otp);
-
-      // Lưu mã OTP vào Realtime Database để xác thực sau
-      await set(ref(FIREBASE_DB, 'otp/' + encodeEmail(username)), { otp: otp, timestamp: Date.now() });
-
-      // Điều hướng đến màn hình nhập OTP
-      navigation.navigate('EnterOTP2', { email: username, name, birthdate, password });
+      await sendOTPEmail(email, otp);
+      await set(ref(FIREBASE_DB, 'otp/' + encodeEmail(email)), { otp: otp, timestamp: Date.now() });
+      navigation.navigate('EnterOTP2', { email, password });
 
     } catch (error) {
       console.error('Registration error:', error);
@@ -45,65 +38,30 @@ const RegisterPage = ({ navigation }) => {
     }
   };
 
-  // Helper function to encode email for database key
   const encodeEmail = (email) => {
     return email.replace(/\./g, ',');
   };
 
-  const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      const formattedDate = selectedDate.toISOString().split('T')[0];
-      setBirthdate(formattedDate);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
+      <Text style={styles.welcomeText}>Welcome to us,</Text>
+      <Text style={styles.subText}>Hello there, create New account</Text>
       <Image
-        source={require('../../assets/logo.png')} // Đường dẫn tới ảnh trong thư mục dự án
+        source={require('../../assets/logo.png')}
         style={styles.image}
       />
-      <Text style={styles.title}>Register</Text>
       <View style={styles.inputView}>
         <TextInput
           style={styles.input}
-          placeholder='NAME'
-          value={name}
-          onChangeText={setName}
-          autoCorrect={false}
-        />
-        <View style={styles.birthdateView}>
-          <TextInput
-            style={[styles.input, { flex: 1 }]}
-            placeholder='BIRTHDATE (YYYY-MM-DD)'
-            value={birthdate}
-            onChangeText={setBirthdate}
-            autoCorrect={false}
-          />
-          <Pressable onPress={() => setShowDatePicker(true)}>
-            <Icon name="calendar" size={24} color="#2596be" style={styles.calendarIcon} />
-          </Pressable>
-        </View>
-        {showDatePicker && (
-          <DateTimePicker
-            value={birthdate ? new Date(birthdate) : new Date()}
-            mode="date"
-            display="default"
-            onChange={handleDateChange}
-          />
-        )}
-        <TextInput
-          style={styles.input}
-          placeholder='EMAIL'
-          value={username}
-          onChangeText={setUsername}
+          placeholder='Email'
+          value={email}
+          onChangeText={setEmail}
           autoCorrect={false}
           autoCapitalize='none'
         />
         <TextInput
           style={styles.input}
-          placeholder='PASSWORD'
+          placeholder='Password'
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -112,7 +70,7 @@ const RegisterPage = ({ navigation }) => {
         />
         <TextInput
           style={styles.input}
-          placeholder='CONFIRM PASSWORD'
+          placeholder='Confirm Password'
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -121,11 +79,27 @@ const RegisterPage = ({ navigation }) => {
         />
       </View>
 
+      <View style={styles.termsContainer}>
+        <TouchableOpacity style={styles.checkbox}>
+          <Text>✓</Text>
+        </TouchableOpacity>
+        <View style={styles.termsTextContainer}>
+          <Text style={styles.termsText}>By creating an account you agree to our</Text>
+          <Text style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy')}>
+            Term and Conditions
+          </Text>
+        </View>
+      </View>
+
       <View style={styles.buttonView}>
         <Pressable style={styles.button} onPress={handleRegister} disabled={loading}>
-          <Text style={styles.buttonText}>REGISTER</Text>
+          <Text style={styles.buttonText}>Sign up</Text>
         </Pressable>
       </View>
+
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <Text style={styles.loginText}>Have an account?</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -133,54 +107,83 @@ const RegisterPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    paddingHorizontal: 50,
+    backgroundColor: '#fff',
   },
   image: {
-    width: 100,
-    height: 100,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    height: 165,
+    width: 213,
+    left: 40,
+    right: 50,
     marginVertical: 20,
   },
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: "#6246EA",
+    textAlign: 'center',
+  },
+  subText: {
+    fontSize: 16,
+    color: '#6e6d7a',
+    textAlign: 'center',
+    marginBottom: -20,
+  },
   inputView: {
-    width: '100%',
+    marginVertical: 10,
   },
   input: {
-    height: 40,
-    borderColor: '#2596be',
+    height: 50,
+    borderColor: '#e1e1e1',
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    borderRadius: 25,
+    paddingHorizontal: 15,
     marginVertical: 10,
-    width: '100%',
   },
-  birthdateView: {
+  termsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 10,
   },
-  calendarIcon: {
-    marginLeft: 10,
+  termsTextContainer: {
+    flexDirection: 'column',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#6246EA",
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  termsText: {
+    color: '#6e6d7a',
+  },
+  link: {
+    color: "#6246EA",
+    textDecorationLine: 'underline',
   },
   buttonView: {
-    marginVertical: 20,
-    width: '100%',
-    alignItems: 'center',
+    marginVertical: 10,
   },
   button: {
-    backgroundColor: '#2596be',
-    padding: 10,
-    borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
+    backgroundColor: "#6246EA",
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
     color: 'white',
+    fontWeight: 'bold',
     fontSize: 16,
+  },
+  loginText: {
+    color: "#6246EA",
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

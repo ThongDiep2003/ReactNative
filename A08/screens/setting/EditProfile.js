@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   avatar: {
+    marginTop: 30,
     width: 100,
     height: 100,
     borderRadius: 50,
@@ -216,27 +217,34 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   input: {
-    height: 44,
+    height: 50,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 8,
+    borderRadius: 25,
     fontSize: 16,
     color: '#1F2937',
+    textAlignVertical: 'center', // Align text vertically in the middle
   },
   button: {
-    backgroundColor: '#2596be',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
+    height: 50,
+    backgroundColor: '#6246EA',
+    justifyContent: 'center',
+    
+    borderRadius: 25,
     marginTop: 30,
-    width: '100%',
+    width: '90%',
     alignItems: 'center',
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  textStyle: {
+    fontSize: 18,
+    color: '#6B7280',
+    marginTop: 20,
   },
 });
 

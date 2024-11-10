@@ -27,7 +27,7 @@ const Login = () => {
   
       Alert.alert('Login successful');
       // Navigate to the main screen (Main)
-      navigation.navigate('Main');  // Change from 'TabNavigator' to 'Main'
+      navigation.navigate('Main');
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/user-not-found') {
@@ -45,15 +45,16 @@ const Login = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Welcome Back</Text>
+      <Text style={styles.subtitle}>Hello there, sign in to continue</Text>
       <Image
         source={require('../../assets/login.png')}
         style={styles.image}
       />
-      <Text style={styles.title}>Login</Text>
       <View style={styles.inputView}>
         <TextInput
           style={styles.input}
-          placeholder='EMAIL'
+          placeholder='Username'
           value={username}
           onChangeText={setUsername}
           autoCorrect={false}
@@ -61,7 +62,7 @@ const Login = () => {
         />
         <TextInput
           style={styles.input}
-          placeholder='PASSWORD'
+          placeholder='Password'
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -76,25 +77,25 @@ const Login = () => {
             onValueChange={setClick}
             trackColor={{ true: 'green', false: 'gray' }}
           />
-          <Text style={styles.rememberText}>Remember Me</Text>
+          {/* <Text style={styles.rememberText}>Remember Me</Text> */}
         </View>
         <View>
           <Pressable onPress={() => navigation.navigate('ForgotPassword')}> 
-            <Text style={styles.forgetText}>Forgot Password?</Text>
+            <Text style={styles.forgetText}>Forgot your password?</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.buttonView}>
         <Pressable style={styles.button} onPress={handleLogin} disabled={loading}>
-          <Text style={styles.buttonText}>LOGIN</Text>
+          <Text style={styles.buttonText}>Sign in</Text>
         </Pressable>
       </View>
       
       <Text style={styles.footerText}>
         Don't have an account?{' '}
         <Text style={styles.register} onPress={() => navigation.navigate('Register')}>
-          Register
+          Sign Up
         </Text>
       </Text>
     </SafeAreaView>
@@ -106,32 +107,42 @@ export default Login;
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    paddingTop: 70,
+    paddingTop: 40,
+    backgroundColor: '#FFFFFF',
+    flex: 1,
   },
   image: {
-    height: 160,
-    width: 170,
+    height: 165,
+    width: 213,
+    marginVertical: 20,
   },
   title: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "bold",
-    textTransform: "uppercase",
     textAlign: "center",
-    paddingVertical: 40,
-    color: "#2596be",
+    color: "#6246EA",
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#999999",
+    marginBottom: 20,
   },
   inputView: {
     gap: 15,
     width: "100%",
     paddingHorizontal: 40,
-    marginBottom: 5,
+    marginBottom: 10,
   },
   input: {
     height: 50,
-    paddingHorizontal: 20,
-    borderColor: "#2596be",
+    paddingHorizontal: 15,
+    borderColor: "#E0E0E0",
     borderWidth: 1,
-    borderRadius: 7,
+    borderRadius: 25,
+    backgroundColor: "#FFFFFF",
+    fontSize: 16,
   },
   rememberView: {
     width: "100%",
@@ -139,27 +150,27 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     flexDirection: "row",
-    marginBottom: 8,
+    marginBottom: 25,
   },
   switch: {
     flexDirection: "row",
-    gap: 1,
+    gap: 5,
     justifyContent: "center",
     alignItems: "center",
   },
   rememberText: {
     fontSize: 13,
+    color: "#333333",
   },
   forgetText: {
-    fontSize: 11,
-    color: "#2596be",
+    fontSize: 13,
+    color: "#6246EA",
   },
+  
   button: {
-    backgroundColor: "#2596be",
-    height: 45,
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
+    backgroundColor: "#6246EA",
+    height: 50,
+    borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -171,13 +182,15 @@ const styles = StyleSheet.create({
   buttonView: {
     width: "100%",
     paddingHorizontal: 50,
+    marginBottom: 20,
   },
   footerText: {
     textAlign: "center",
-    color: "gray",
+    color: "#333333",
   },
   register: {
-    color: "#2596be",
-    fontSize: 13,
+    color: "#6246EA",
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });
