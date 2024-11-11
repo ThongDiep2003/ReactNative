@@ -94,7 +94,6 @@ const AddTransaction = () => {
 
   return (
     <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer} {...panResponder.panHandlers}>
-      <Text style={styles.pageHeader}>Add Transaction</Text>
       <View style={styles.headerContainer}>
         <Text
           style={[styles.header, type === 'Income' ? styles.activeTab : styles.inactiveTab]}
@@ -270,7 +269,7 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start', // Align items tightly on the left
     marginBottom: 20,
   },
   categoryButton: {
@@ -285,10 +284,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1C8FF',
   },
   categoryIcon: {
-    marginBottom: 5,
+    marginBottom: 3,
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#6246EA',
   },
   selectedCategoryText: {

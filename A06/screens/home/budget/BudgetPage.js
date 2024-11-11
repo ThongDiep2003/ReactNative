@@ -84,7 +84,6 @@ const BudgetPage = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-      <Text style={styles.header}>Budget</Text>
 
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tab, styles.activeTab]}>

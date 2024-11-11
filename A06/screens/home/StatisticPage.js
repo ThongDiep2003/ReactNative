@@ -163,14 +163,7 @@ const StatisticPage = ({ navigation }) => {
       <SafeAreaView style={styles.container}>
         <StatusBar backgroundColor="#f5f5f5" barStyle="dark-content" />
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerLeftAction}
-            onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>{'<'}</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Thống kê</Text>
-        </View>
+
   
         <ScrollView
           style={styles.contentScroll}
@@ -231,9 +224,10 @@ const StatisticPage = ({ navigation }) => {
                   backgroundColor: '#ffffff',
                   backgroundGradientFrom: '#ffffff',
                   backgroundGradientTo: '#ffffff',
-                  decimalPlaces: 2,
+                  decimalPlaces: 0,
                   color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  formatYLabel: (value) => parseInt(value).toLocaleString(),
                   style: {
                     borderRadius: 16,
                   },
@@ -271,9 +265,10 @@ const StatisticPage = ({ navigation }) => {
                   backgroundColor: '#ffffff',
                   backgroundGradientFrom: '#ffffff',
                   backgroundGradientTo: '#ffffff',
-                  decimalPlaces: 2,
+                  decimalPlaces: 0,
                   color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  formatYLabel: (value) => parseInt(value).toLocaleString(),
                   style: {
                     borderRadius: 16,
                   },

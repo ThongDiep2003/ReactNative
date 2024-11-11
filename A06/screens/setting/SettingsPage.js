@@ -5,7 +5,6 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 const SettingsPage = ({ navigation }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
       
       <Text style={styles.sectionHeader}>General</Text>
       <TouchableOpacity 

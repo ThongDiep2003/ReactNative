@@ -1,65 +1,74 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
-import { ref, push } from 'firebase/database';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import moment from 'moment';
 
 const AddBudgetPage = ({ navigation }) => {
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
+  const [categoryName, setCategoryName] = useState('');
+  const [selectedIcon, setSelectedIcon] = useState('tshirt-crew-outline'); // Default icon
+  const [selectedParentCategory, setSelectedParentCategory] = useState(null);
 
-  const handleAddBudget = () => {
-    if (amount && category) {
-      const categoryRef = ref(FIREBASE_DB, 'categories');
-      push(categoryRef, {
-        name: category,
-        amount: parseFloat(amount),
-        date: moment().format('MMMM Do YYYY'),
-      });
+  const parentCategories = ['Giao lưu', 'Tiết kiệm', 'Du lịch', 'Trả nợ', 'Khám bệnh'];
 
-      const budgetRef = ref(FIREBASE_DB, 'budget');
-      push(budgetRef, {
-        category: category,
-        amount: parseFloat(amount),
-        date: moment().format('MMMM Do YYYY'),
-      }).then(() => {
-        setAmount('');
-        setCategory('');
-        navigation.goBack();
-      });
-    } else {
-      alert('Please enter all fields');
+  const handleIconChange = () => {
+    navigation.navigate('CategorySelection', {
+      onIconSelected: (icon) => setSelectedIcon(icon),
+    });
+  };
+
+  const handleSubmit = () => {
+    if (!categoryName || !selectedParentCategory) {
+      alert('Vui lòng điền đầy đủ thông tin');
+      return;
     }
+
+    // Handle submission logic here
+    console.log('Category Submitted:', {
+      name: categoryName,
+      icon: selectedIcon,
+      parentCategory: selectedParentCategory,
+    });
+
+    navigation.goBack();
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Add New Budget</Text>
-      
-      <View style={styles.inputContainer}>
-        <Icon name="cash" size={25} color="gray" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Amount (VND)"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={(text) => setAmount(text)}
-        />
+      {/* Icon Section */}
+      <View style={styles.iconContainer}>
+        <TouchableOpacity onPress={handleIconChange}>
+          <View style={styles.iconCircle}>
+            <Icon name={selectedIcon} size={50} color="#fff" />
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.changeIconText}>Đổi biểu tượng</Text>
       </View>
 
-      <View style={styles.inputContainer}>
-        <Icon name="format-list-bulleted" size={25} color="gray" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Category"
-          value={category}
-          onChangeText={(text) => setCategory(text)}
-        />
-      </View>
-
-      <TouchableOpacity style={styles.addButton} onPress={handleAddBudget}>
-        <Text style={styles.addButtonText}>Add Budget</Text>
+      {/* Input Fields */}
+      <Text style={styles.label}>Tên danh mục (0/30) *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Nhập tên"
+        maxLength={30}
+        value={categoryName}
+        onChangeText={(text) => setCategoryName(text)}
+      />
+      {/* Confirm Button */}
+      <TouchableOpacity
+        style={[
+          styles.confirmButton,
+          (!categoryName || !selectedParentCategory) && styles.disabledButton,
+        ]}
+        onPress={handleSubmit}
+        disabled={!categoryName || !selectedParentCategory}
+      >
+        <Text style={styles.confirmButtonText}>Xác nhận</Text>
       </TouchableOpacity>
     </View>
   );
@@ -68,38 +77,107 @@ const AddBudgetPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8f8f8',
     padding: 20,
-    backgroundColor: '#ffffff',
   },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 30,
-  },
-  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderColor: 'gray',
-    marginBottom: 20,
+    backgroundColor: '#f7d4e4',
+    padding: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  icon: {
+  backButton: {
     marginRight: 10,
   },
-  input: {
-    flex: 1,
+  headerTitle: {
     fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
   },
-  addButton: {
-    backgroundColor: '#6200ee',
+  iconContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f39cc3',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  changeIconText: {
+    color: '#f39cc3',
+    fontSize: 14,
+    marginTop: 10,
+    fontWeight: 'bold',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  dropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#fff',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  suggestionChip: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    marginRight: 10,
+  },
+  selectedChip: {
+    backgroundColor: '#f39cc3',
+    borderColor: '#f39cc3',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  selectedChipText: {
+    color: '#fff',
+  },
+  confirmButton: {
+    backgroundColor: '#f39cc3',
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
+    marginTop: 20,
   },
-  addButtonText: {
-    color: '#ffffff',
+  disabledButton: {
+    backgroundColor: '#ddd',
+  },
+  confirmButtonText: {
     fontSize: 18,
+    color: '#fff',
     fontWeight: 'bold',
   },
 });
