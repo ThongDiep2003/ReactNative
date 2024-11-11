@@ -202,6 +202,7 @@ const HomePage = () => {
         />
       </View>
 
+
       {/* Recent Transactions */}
       <View style={[tw`mt-5 p-6 flex-1`]}>
         <View style={tw`flex-row justify-between mb-3`}>
