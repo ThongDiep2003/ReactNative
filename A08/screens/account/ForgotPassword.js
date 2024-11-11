@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Alert, Button, SafeAreaView, StyleSheet, TextInput, Text, View } from 'react-native';
-import { generateOTP, sendOTPEmail } from '../../services/OTP'; // Import các hàm cần thiết
+import { Alert, SafeAreaView, StyleSheet, TextInput, Text, View, TouchableOpacity } from 'react-native';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth'; // Import chức năng reset password từ Firebase
+import { FIREBASE_AUTH } from '../../auths/FirebaseConfig';  // Import Firebase từ file cấu hình của bạn
 
 const ForgotPassword = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSendOTP = async () => {
+  // Hàm gửi email reset password
+  const handleResetPassword = async () => {
     if (!email) {
       Alert.alert('Error', 'Please enter your email');
       return;
@@ -14,15 +16,14 @@ const ForgotPassword = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const otp = generateOTP(); // Tạo mã OTP
-      // Gửi mã OTP qua email
-      await sendOTPEmail(email, otp);
-      // Lưu mã OTP vào Realtime Database hoặc bất kỳ nơi nào bạn muốn để xác thực sau
-      Alert.alert('Success', 'OTP has been sent to your email.');
-      navigation.navigate('EnterOTP', { email }); // Điều hướng đến màn hình nhập OTP
+      // Sử dụng Firebase để gửi email reset password
+      const auth = FIREBASE_AUTH;
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert('Success', 'A password reset link has been sent to your email.');
+      navigation.goBack(); // Quay lại màn hình trước đó
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to send OTP: ' + error.message);
+      Alert.alert('Error', 'Failed to send reset link: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -31,24 +32,21 @@ const ForgotPassword = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
-        <Text style={styles.title}>Forgot Password</Text>
-        <Text style={styles.description}>
-          Enter your email address below and we will send you an OTP to reset your password.
-        </Text>
+        <Text style={styles.title}>Forgot password</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your email"
+          placeholder="Type your email"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
         />
-        <Button
-          title={loading ? 'Sending...' : 'Send OTP'}
-          onPress={handleSendOTP}
-          disabled={loading}
-          color="#2596be" // Thay đổi màu nút
-        />
+        <Text style={styles.description}>
+          We will send you an email with a link to reset your password account.
+        </Text>
+        <TouchableOpacity style={styles.button} onPress={handleResetPassword} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send'}</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -60,39 +58,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
-    padding: 16, // Thêm padding cho container
+    padding: 16,
   },
   innerContainer: {
-    width: '100%',
-    maxWidth: 400, // Giới hạn chiều rộng
-    padding: 20, // Thêm padding cho innerContainer
-    backgroundColor: 'white', // Thay đổi màu nền để làm nổi bật nội dung
-    borderRadius: 10, // Bo góc cho container
-    shadowColor: '#000', // Thêm bóng đổ cho container
+    width: '90%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 5, // Thêm hiệu ứng nổi bật
+    elevation: 5,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 20,
-  },
-  description: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: '#555', // Thay đổi màu chữ mô tả
   },
   input: {
-    height: 45,
-    borderColor: '#2596be',
+    height: 50,
+    borderColor: '#e0e0e0',
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 25,
+    paddingHorizontal: 20,
     marginBottom: 20,
-    paddingHorizontal: 10,
+    fontSize: 16,
+    backgroundColor: '#fafafa',
+  },
+  description: {
+    fontSize: 14,
+    color: '#7e7e7e',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  button: {
+    height: 50,
+    backgroundColor: '#6246EA',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
 export default ForgotPassword;
-

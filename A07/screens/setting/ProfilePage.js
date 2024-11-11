@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native'; 
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigation, useFocusEffect } from '@react-navigation/native'; 
 import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
 import { getUserProfile } from '../../auths/FirebaseConfig'; 
 import { getAuth } from 'firebase/auth';
@@ -12,33 +12,37 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const auth = getAuth();
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const user = auth.currentUser;
-        if (user) {
-          const profile = await getUserProfile(user.uid);
-          setUserProfile(profile);
+  const fetchProfile = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const profile = await getUserProfile(user.uid);
+        setUserProfile(profile);
 
-          // Fetch avatar from Firebase Storage if exists
-          if (profile.avatarUrl) {
-            const storage = getStorage();
-            const avatarRef = storageRef(storage, profile.avatarUrl);
-            const url = await getDownloadURL(avatarRef);
-            setAvatarUrl(url);
-          }
-        } else {
-          throw new Error('User not logged in');
+        // Fetch avatar from Firebase Storage if exists
+        if (profile.avatarUrl) {
+          const storage = getStorage();
+          const avatarRef = storageRef(storage, profile.avatarUrl);
+          const url = await getDownloadURL(avatarRef);
+          setAvatarUrl(url);
         }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-      } finally {
-        setLoading(false);
+      } else {
+        throw new Error('User not logged in');
       }
-    };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchProfile();
-  }, [auth]);
+  // Refresh profile data when the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchProfile();
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -62,22 +66,22 @@ function ProfilePage() {
           <View style={styles.form}>
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Name</Text>
-              <Text style={styles.input}>{userProfile.name}</Text>
+              <Text style={styles.input}>{userProfile.name || ''}</Text>
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
-              <Text style={styles.input}>{userProfile.email}</Text>
+              <Text style={styles.input}>{userProfile.email || ''}</Text>
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Mobile</Text>
-              <Text style={styles.input}>{userProfile.mobile}</Text>
+              <Text style={styles.input}>{userProfile.mobile || ''}</Text>
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Date of Birth</Text>
-              <Text style={styles.input}>{userProfile.birthdate}</Text>
+              <Text style={styles.input}>{userProfile.birthdate || ''}</Text>
             </View>
           </View>
 
@@ -125,22 +129,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   input: {
-    height: 44,
+    height: 50,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 8,
+    borderRadius: 25,
     fontSize: 16,
     color: '#1F2937',
     textAlignVertical: 'center', // Align text vertically in the middle
   },
   button: {
-    backgroundColor: '#2596be',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
+    height: 50,
+    backgroundColor: '#6246EA',
+    justifyContent: 'center',
+    borderRadius: 25,
     marginTop: 30,
-    width: '100%',
+    width: '90%',
     alignItems: 'center',
   },
   buttonText: {

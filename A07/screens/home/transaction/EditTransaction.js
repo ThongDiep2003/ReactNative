@@ -1,40 +1,70 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { ref, update } from 'firebase/database';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig'; // Import Firebase configuration
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Button, Chip } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { ref, update, onValue } from 'firebase/database';
+import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
+import { useNavigation } from '@react-navigation/native';
 
-const EditTransaction = ({ route, navigation }) => {
+const EditTransaction = ({ route }) => {
+  const navigation = useNavigation();
   const { transaction } = route.params; // Nhận tham số từ Transaction
 
-  const [date, setDate] = useState(transaction.date);
-  const [title, setTitle] = useState(transaction.title);
-  const [amount, setAmount] = useState(transaction.amount);
-  const [type, setType] = useState(transaction.type);
-  const [details, setDetails] = useState(transaction.details);
+  const [amount, setAmount] = useState(transaction.amount.toString());
+  const [date, setDate] = useState(new Date(transaction.date));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [account, setAccount] = useState(transaction.account || 'VCB');
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(transaction.category);
+  const [type, setType] = useState(transaction.type || 'Expense');
 
-  // Hàm lưu thay đổi giao dịch vào Firebase
-  const handleUpdateTransaction = async () => {
-    try {
-      // Validate input fields
-      if (!date || !title || !amount) {
-        Alert.alert('Error', 'Please fill all the fields');
-        return;
+  useEffect(() => {
+    // Lấy danh sách danh mục từ Firebase
+    const categoriesRef = ref(FIREBASE_DB, 'categories');
+    onValue(categoriesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const categoryList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setCategories(categoryList);
       }
+    });
+  }, []);
 
-      // Tạo tham chiếu đến giao dịch cần cập nhật
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShowDatePicker(false);
+    setDate(currentDate);
+  };
+
+  const handleAccountSelect = (selectedAccount) => {
+    setAccount(selectedAccount);
+  };
+
+  const handleCategorySelect = (selectedCategory) => {
+    setSelectedCategory(selectedCategory);
+  };
+
+  const handleSaveChanges = async () => {
+    if (!amount || !selectedCategory) {
+      Alert.alert('Validation Error', 'Please enter an amount and select a category.');
+      return;
+    }
+
+    try {
       const transactionRef = ref(FIREBASE_DB, 'transactions/' + transaction.id);
-
-      // Cập nhật thông tin giao dịch
       await update(transactionRef, {
-        date,
-        title,
         amount,
+        date: date.toISOString(),
+        account,
+        category: { id: selectedCategory.id, icon: selectedCategory.icon },
         type,
-        details,
       });
 
-      Alert.alert('Success', 'Transaction updated successfully');
-      // Quay lại màn hình trước đó
+      Alert.alert('Success', 'Transaction updated successfully.');
       navigation.goBack();
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -45,41 +75,83 @@ const EditTransaction = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Edit Transaction</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Date (YYYY-MM-DD)"
-        value={date}
-        onChangeText={setDate}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Title"
-        value={title}
-        onChangeText={setTitle}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Amount"
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Type (Expense/Income)"
-        value={type}
-        onChangeText={setType}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Details"
-        value={details}
-        onChangeText={setDetails}
-      />
 
-      <TouchableOpacity style={styles.button} onPress={handleUpdateTransaction}>
-        <Text style={styles.buttonText}>Save Changes</Text>
+      {/* Amount Input */}
+      <View style={styles.amountContainer}>
+        <TextInput
+          style={styles.amountInput}
+          placeholder="0"
+          keyboardType="numeric"
+          value={amount}
+          onChangeText={setAmount}
+        />
+        <Text style={styles.currency}>VND</Text>
+      </View>
+
+      {/* Date Picker */}
+      <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
+        <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
       </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+        />
+      )}
+
+      {/* Category Selection */}
+      <Text style={styles.sectionTitle}>From category</Text>
+      <View style={styles.categoryContainer}>
+        {categories.map((cat) => (
+          <TouchableOpacity key={cat.id} onPress={() => handleCategorySelect(cat)}>
+            <Icon
+              name={cat.icon}  // Assuming each category has an 'icon' property
+              size={40}
+              color={cat.id === selectedCategory?.id ? '#6200ee' : 'gray'}
+              style={styles.categoryIcon}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Type Selection */}
+      <Text style={styles.sectionTitle}>Transaction Type</Text>
+      <View style={styles.chipContainer}>
+        {['Expense', 'Income'].map((t) => (
+          <Chip
+            key={t}
+            mode="outlined"
+            selected={type === t}
+            onPress={() => setType(t)}
+            style={styles.chip}
+          >
+            {t}
+          </Chip>
+        ))}
+      </View>
+
+      {/* Account Selection */}
+      <Text style={styles.sectionTitle}>From account</Text>
+      <View style={styles.chipContainer}>
+        {['VCB', 'BIDV', 'Cash'].map((acc) => (
+          <Chip
+            key={acc}
+            mode="outlined"
+            selected={account === acc}
+            onPress={() => handleAccountSelect(acc)}
+            style={styles.chip}
+          >
+            {acc}
+          </Chip>
+        ))}
+      </View>
+
+      {/* Save Button */}
+      <Button mode="contained" onPress={handleSaveChanges}>
+        Save Changes
+      </Button>
     </View>
   );
 };
@@ -88,29 +160,66 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#fff',
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    marginTop: 20,
+    textAlign: 'center',
   },
-  input: {
-    height: 40,
+  amountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  amountInput: {
+    fontSize: 36,
+    borderBottomWidth: 1,
     borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 15,
-    paddingHorizontal: 10,
+    width: '70%',
+    textAlign: 'center',
   },
-  button: {
-    backgroundColor: '#4CAF50',
+  currency: {
+    fontSize: 18,
+    marginLeft: 5,
+  },
+  datePicker: {
+    alignItems: 'center',
     padding: 10,
     borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 15,
+    borderWidth: 1,
+    borderColor: 'gray',
+    marginVertical: 10,
   },
-  buttonText: {
-    color: '#fff',
+  dateText: {
+    fontSize: 18,
+    color: '#333',
+  },
+  sectionTitle: {
     fontSize: 16,
+    fontWeight: '600',
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  chip: {
+    marginRight: 5,
+    backgroundColor: '#f1f1f1',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginVertical: 20,
+  },
+  categoryIcon: {
+    marginHorizontal: 10,
   },
 });
 

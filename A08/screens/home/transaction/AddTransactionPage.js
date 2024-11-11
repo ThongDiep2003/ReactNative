@@ -1,194 +1,320 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { FIREBASE_DB, FIREBASE_STORAGE } from '../../../auths/FirebaseConfig'; // Firebase config
-import { ref, set } from 'firebase/database';
-import { getStorage, uploadBytes, getDownloadURL, ref as storageRef } from 'firebase/storage'; // Firebase storage
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, PanResponder, Animated } from 'react-native';
+import { Button, Chip } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
+import { ref, push, onValue } from 'firebase/database';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
-const AddTransaction = ({ navigation }) => {
-  const [date, setDate] = useState('');
-  const [title, setTitle] = useState('');
+const AddTransaction = () => {
+  const scrollY = useState(new Animated.Value(0))[0];
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderMove: Animated.event(
+      [null, { dy: scrollY }],
+      { useNativeDriver: false }
+    ),
+  });
+  const navigation = useNavigation();
   const [amount, setAmount] = useState('');
-  const [details, setDetails] = useState(''); // Thông tin chi tiết mới thêm
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [account, setAccount] = useState('VCB');
+  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState(null);
   const [type, setType] = useState('Expense'); // Default type
-  const [image, setImage] = useState(null);
-  const [uploading, setUploading] = useState(false); // To show loading indicator during upload
 
-  // Hàm chọn ảnh từ thư viện
-  const pickImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (permissionResult.status !== 'granted') {
-        Alert.alert('Permission Denied', 'Permission to access gallery is required!');
-        return;
+  // Fetch categories from Firebase
+  useEffect(() => {
+    const categoriesRef = ref(FIREBASE_DB, 'categories');
+    onValue(categoriesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const categoryList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setCategories(categoryList);
       }
+    });
+  }, []);
 
-      const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!pickerResult.canceled) {
-        setImage(pickerResult.assets[0].uri); // Lấy URI của ảnh được chọn
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick an image. Please try again.');
-    }
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShowDatePicker(false);
+    setDate(currentDate);
   };
 
-  // Hàm upload ảnh lên Firebase Storage
-  const uploadImageToFirebase = async (uri) => {
-    try {
-      setUploading(true); // Bắt đầu tải lên
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      const storage = getStorage();
-      const imageRef = storageRef(storage, `images/${Date.now()}.jpg`);
-
-      await uploadBytes(imageRef, blob);
-
-      const downloadURL = await getDownloadURL(imageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
-      return null;
-    } finally {
-      setUploading(false); // Kết thúc tải lên
-    }
+  const handleAccountSelect = (selectedAccount) => {
+    setAccount(selectedAccount);
   };
 
-  // Hàm lưu giao dịch vào Firebase Realtime Database
+  const handleCategorySelect = (selectedCategory) => {
+    setCategory(selectedCategory);
+  };
+
   const handleSaveTransaction = async () => {
-    try {
-      if (!date || !title || !amount || !details || !image) {
-        Alert.alert('Error', 'Please fill all the fields and select an image');
-        return;
-      }
+    if (!amount || !category) {
+      Alert.alert('Validation Error', 'Please enter an amount and select a category.');
+      return;
+    }
 
-      const imageUrl = await uploadImageToFirebase(image);
-
-      if (!imageUrl) {
-        Alert.alert('Error', 'Failed to upload image');
-        return;
-      }
-
-      const transactionId = Date.now().toString();
-
-      const transactionRef = ref(FIREBASE_DB, 'transactions/' + transactionId);
-      await set(transactionRef, {
-        date,
-        title,
+    const currentUser = FIREBASE_AUTH.currentUser;
+    if (currentUser) {
+      const newTransaction = {
         amount,
-        details,  // Lưu thêm trường thông tin chi tiết
+        date: date.toISOString(),
+        account,
+        category: { id: category.id, icon: category.icon, name: category.name }, // Thêm cả tên category
         type,
-        image: imageUrl, // Lưu URL của ảnh
-      });
+      };
 
-      Alert.alert('Success', 'Transaction saved successfully');
-      setDate('');
-      setTitle('');
-      setAmount('');
-      setDetails(''); // Reset trường thông tin chi tiết
-      setType('Expense');
-      setImage(null);
-    } catch (error) {
-      console.error('Error saving transaction:', error);
-      Alert.alert('Error', 'Failed to save transaction. Please try again.');
+      try {
+        // Thêm giao dịch vào trong nhánh transactions của từng user
+        const userTransactionsRef = ref(FIREBASE_DB, `users/${currentUser.uid}/transactions`);
+        await push(userTransactionsRef, newTransaction);
+
+        Alert.alert('Success', 'Transaction added successfully.');
+        navigation.goBack(); // Navigate back after saving
+      } catch (error) {
+        console.error('Error saving transaction:', error);
+        Alert.alert('Error', 'Failed to save transaction. Please try again.');
+      }
+    } else {
+      Alert.alert('Error', 'User not authenticated.');
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Add New Transaction</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Date (YYYY-MM-DD)"
-        value={date}
-        onChangeText={setDate}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Title"
-        value={title}
-        onChangeText={setTitle}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Amount"
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="numeric"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Details" // Trường nhập mới cho thông tin chi tiết
-        value={details}
-        onChangeText={setDetails}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Type (Expense/Income)"
-        value={type}
-        onChangeText={setType}
-      />
+    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer} {...panResponder.panHandlers}>
+      <Text style={styles.pageHeader}>Add Transaction</Text>
+      <View style={styles.headerContainer}>
+        <Text style={[styles.header, type === 'Income' ? styles.activeTab : styles.inactiveTab]} onPress={() => setType('Income')}>New Income</Text>
+        <Text style={[styles.header, type === 'Expense' ? styles.activeTab : styles.inactiveTab]} onPress={() => setType('Expense')}>New Expense</Text>
+      </View>
 
-      <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
-        <Text style={styles.buttonText}>Pick an Image</Text>
+      {/* Amount Input */}
+      <View style={styles.amountContainer}>
+        <TextInput
+          style={styles.amountInput}
+          placeholder="Enter amount"
+          keyboardType="numeric"
+          value={amount}
+          onChangeText={setAmount}
+        />
+        <Text style={styles.currency}>VND</Text>
+      </View>
+
+      {/* Date Picker */}
+      <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
+        <Icon name="calendar" size={24} color="#6246EA" />
+        <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
+      </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+        />
+      )}
+
+      {/* Category Selection */}
+      <Text style={styles.sectionTitle}>Select Category</Text>
+      <View style={styles.categoryContainer}>
+        {categories.map((cat, index) => (
+          <TouchableOpacity
+            key={cat.id}
+            onPress={() => handleCategorySelect(cat)}
+            style={[styles.categoryButton, cat.id === category?.id && styles.selectedCategoryButton]}
+          >
+            <Icon
+              name={cat.icon}
+              size={30}
+              color={cat.id === category?.id ? '#6246EA' : CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
+              style={styles.categoryIcon}
+            />
+            <Text style={[styles.categoryText, cat.id === category?.id && styles.selectedCategoryText]}>{cat.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Add New Category Button */}
+      <TouchableOpacity
+        style={styles.addCategoryButton}
+        onPress={() => navigation.navigate('Category')}
+      >
+        <Text style={styles.addCategoryText}>Add New Category</Text>
       </TouchableOpacity>
 
-      {image && <Image source={{ uri: image }} style={styles.image} />}
+      {/* Account Selection */}
+      <Text style={styles.sectionTitle}>Select Account</Text>
+      <View style={styles.accountContainer}>
+        {['VCB', 'BIDV', 'Momo', 'Cash'].map((acc) => (
+          <Chip
+            key={acc}
+            mode="outlined"
+            selected={account === acc}
+            onPress={() => handleAccountSelect(acc)}
+            style={[styles.accountChip, account === acc && styles.selectedAccountChip]}
+            textStyle={account === acc ? styles.selectedAccountText : null}
+          >
+            {acc}
+          </Chip>
+        ))}
+      </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleSaveTransaction}>
-        <Text style={styles.buttonText}>{uploading ? 'Uploading...' : 'Save Transaction'}</Text>
-      </TouchableOpacity>
-    </View>
+      {/* Save Button */}
+      <Button mode="contained" onPress={handleSaveTransaction} buttonColor="#6246EA" style={styles.saveButton}>
+        Save Transaction
+      </Button>
+    </KeyboardAwareScrollView>
   );
 };
+
+const CATEGORY_COLORS = [
+  '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50',
+  '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#607d8b'
+];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    backgroundColor: '#ffffff',
   },
-  header: {
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  pageHeader: {
     fontSize: 24,
     fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginBottom: 20,
   },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
+  header: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    paddingVertical: 10,
+    borderBottomWidth: 2,
+  },
+  activeTab: {
+    color: '#6246EA',
+    borderBottomColor: '#6246EA',
+  },
+  inactiveTab: {
+    color: 'gray',
+    borderBottomColor: 'transparent',
+  },
+  amountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 30,
+  },
+  amountInput: {
+    fontSize: 24,
+    borderBottomWidth: 2,
+    borderColor: '#6246EA',
+    width: '70%',
+    textAlign: 'center',
+    marginRight: 10,
+  },
+  currency: {
+    fontSize: 18,
+    color: '#6246EA',
+  },
+  datePicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#e0f7fa',
+    marginBottom: 20,
+  },
+  dateText: {
+    fontSize: 18,
+    marginLeft: 10,
+    color: '#6246EA',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#333',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  categoryButton: {
+    alignItems: 'center',
     marginBottom: 15,
-    paddingHorizontal: 10,
-  },
-  button: {
-    backgroundColor: '#0163d2',
     padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 15,
+    borderRadius: 10,
+    backgroundColor: '#fafafa',
+    width: '23%',
   },
-  buttonText: {
-    color: '#fff',
+  selectedCategoryButton: {
+    backgroundColor: '#D1C8FF',
+  },
+  categoryIcon: {
+    marginBottom: 5,
+  },
+  selectedCategoryIcon: {
+    backgroundColor: '#6246EA',
+  },
+  categoryText: {
+    fontSize: 14,
+    color: '#6246EA',
+  },
+  selectedCategoryText: {
+    color: '#6246EA',
+    fontWeight: 'bold',
+  },
+  accountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 30,
+  },
+  accountChip: {
+    backgroundColor: '#e3f2fd',
+    marginHorizontal: 5,
+  },
+  selectedAccountChip: {
+    backgroundColor: '#D1C8FF',
+  },
+  selectedAccountText: {
+    color: '#6246EA',
+    fontWeight: 'bold',
+  },
+  addCategoryButton: {
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  addCategoryText: {
+    color: '#6246EA',
     fontSize: 16,
+    fontWeight: 'bold',
   },
-  imageButton: {
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 5,
+  saveButton: {
+    height: 50,
+    backgroundColor: '#6246EA',
+    borderRadius: 25,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 15,
-  },
-  image: {
-    width: 200,
-    height: 200,
-    marginTop: 10,
+    width: '100%',
   },
 });
 

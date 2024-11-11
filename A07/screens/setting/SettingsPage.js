@@ -30,20 +30,14 @@ const SettingsPage = ({ navigation }) => {
         <Text style={styles.itemText}>Contact Us</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity 
-        style={styles.item}
-        onPress={() => navigation.navigate('Logout')} // Navigate to ProfilePage
-      >
-        <Text style={styles.itemText}>Logout</Text>
-      </TouchableOpacity>
 
       <Text style={styles.sectionHeader}>Security</Text>
-      <TouchableOpacity 
+      {/* <TouchableOpacity 
         style={styles.item}
         onPress={() => navigation.navigate('ChangePassword')} // Navigate to ChangePassword
       >
         <Text style={styles.itemText}>Change Password</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <TouchableOpacity 
         style={styles.item}
@@ -74,6 +68,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    marginTop: 20,
+    textAlign: 'center',
   },
   sectionHeader: {
     fontSize: 18,
