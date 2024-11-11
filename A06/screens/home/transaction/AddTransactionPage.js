@@ -24,7 +24,7 @@ const AddTransaction = () => {
   const [account, setAccount] = useState('VCB');
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState(null);
-  const [type, setType] = useState('Expense'); // Default type
+  const [type, setType] = useState('Expense'); // Default to Expense
 
   // Fetch categories from Firebase
   useEffect(() => {
@@ -40,6 +40,11 @@ const AddTransaction = () => {
       }
     });
   }, []);
+
+  const getFilteredCategories = () => {
+    // Filter categories based on the selected type
+    return categories.filter((cat) => cat.type === type);
+  };
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -67,17 +72,17 @@ const AddTransaction = () => {
         amount,
         date: date.toISOString(),
         account,
-        category: { id: category.id, icon: category.icon, name: category.name }, // Thêm cả tên category
+        category: { id: category.id, icon: category.icon, name: category.name },
         type,
       };
 
       try {
-        // Thêm giao dịch vào trong nhánh transactions của từng user
+        // Save transaction to Firebase
         const userTransactionsRef = ref(FIREBASE_DB, `users/${currentUser.uid}/transactions`);
         await push(userTransactionsRef, newTransaction);
 
         Alert.alert('Success', 'Transaction added successfully.');
-        navigation.goBack(); // Navigate back after saving
+        navigation.goBack();
       } catch (error) {
         console.error('Error saving transaction:', error);
         Alert.alert('Error', 'Failed to save transaction. Please try again.');
@@ -91,8 +96,18 @@ const AddTransaction = () => {
     <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer} {...panResponder.panHandlers}>
       <Text style={styles.pageHeader}>Add Transaction</Text>
       <View style={styles.headerContainer}>
-        <Text style={[styles.header, type === 'Income' ? styles.activeTab : styles.inactiveTab]} onPress={() => setType('Income')}>New Income</Text>
-        <Text style={[styles.header, type === 'Expense' ? styles.activeTab : styles.inactiveTab]} onPress={() => setType('Expense')}>New Expense</Text>
+        <Text
+          style={[styles.header, type === 'Income' ? styles.activeTab : styles.inactiveTab]}
+          onPress={() => setType('Income')}
+        >
+          New Income
+        </Text>
+        <Text
+          style={[styles.header, type === 'Expense' ? styles.activeTab : styles.inactiveTab]}
+          onPress={() => setType('Expense')}
+        >
+          New Expense
+        </Text>
       </View>
 
       {/* Amount Input */}
@@ -124,7 +139,7 @@ const AddTransaction = () => {
       {/* Category Selection */}
       <Text style={styles.sectionTitle}>Select Category</Text>
       <View style={styles.categoryContainer}>
-        {categories.map((cat, index) => (
+        {getFilteredCategories().map((cat, index) => (
           <TouchableOpacity
             key={cat.id}
             onPress={() => handleCategorySelect(cat)}
@@ -176,7 +191,7 @@ const AddTransaction = () => {
 
 const CATEGORY_COLORS = [
   '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50',
-  '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#607d8b'
+  '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#607d8b',
 ];
 
 const styles = StyleSheet.create({
@@ -272,15 +287,11 @@ const styles = StyleSheet.create({
   categoryIcon: {
     marginBottom: 5,
   },
-  selectedCategoryIcon: {
-    backgroundColor: '#6246EA',
-  },
   categoryText: {
     fontSize: 14,
     color: '#6246EA',
   },
   selectedCategoryText: {
-    color: '#6246EA',
     fontWeight: 'bold',
   },
   accountContainer: {
