@@ -4,7 +4,6 @@ import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { ref, onValue, remove } from 'firebase/database';
 import moment from 'moment';
 import { PieChart } from 'react-native-svg-charts';
-import { Text as SvgText } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const BudgetPage = ({ navigation }) => {
@@ -72,73 +71,70 @@ const BudgetPage = ({ navigation }) => {
     );
   };
 
-  // Separate "Monthly Total Budget"
-  const totalBudget = categories.find((cat) => cat.name === 'Monthly Total Budget');
-  const otherCategories = categories.filter((cat) => cat.name !== 'Monthly Total Budget');
+  const DonutChart = ({ spent, total }) => {
+    const remaining = Math.max(0, total - spent);
+    const data = [
+      { key: 1, value: spent, svg: { fill: '#FF6347' } }, // Spent in red
+      { key: 2, value: remaining, svg: { fill: '#4CAF50' } }, // Remaining in green
+    ];
+
+    return (
+      <PieChart
+        style={styles.donutChart}
+        valueAccessor={({ item }) => item.value}
+        data={data}
+        innerRadius="70%"
+        outerRadius="100%"
+      />
+    );
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity style={[styles.tab, styles.activeTab]}>
-          <Text style={styles.tabText}>Personal</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tab}>
-          <Text style={styles.tabText}>Household</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Date and Add Budget */}
       <View style={styles.dateAddContainer}>
-        <View style={styles.dateInfoContainer}>
+        <View>
           <Text style={styles.dateText}>Tháng {moment().format('MMMM YYYY')}</Text>
           <Text style={styles.daysLeftText}>Còn {daysLeft} ngày nữa hết tháng</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('AddBudget')}>
-          <Text style={styles.addBudgetText}>+ Thêm ngân sách</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('AddBudget')} style={styles.addButton}>
+          <Icon name="plus" size={20} color="#fff" />
+          <Text style={styles.addButtonText}>Add Budget</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Total Budget */}
-      {totalBudget && (
-        <View style={styles.totalBudgetContainer}>
-          <View style={styles.categoryItem}>
-            <View style={styles.categoryInfoContainer}>
-              <Icon name={totalBudget.icon || 'wallet'} size={30} color="gray" style={styles.categoryIcon} />
-              <Text style={styles.categoryName}>{totalBudget.name}</Text>
-            </View>
-            <Text>Amount: {(totalBudget.amount || 0).toLocaleString()} VND</Text>
-          </View>
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity onPress={() => handleEdit(totalBudget.id)}>
-              <Text style={styles.editText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleDelete(totalBudget.id)}>
-              <Text style={styles.deleteText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      {/* Budgets */}
+      <Text style={styles.sectionTitle}>Budgets</Text>
+      <View style={styles.categoryList}>
+        {categories.map((cat) => {
+          const spent = cat.expense || 0;
+          const total = cat.amount || 0;
 
-      {/* Other Categories */}
-      <View style={styles.categoryListContainer}>
-        {otherCategories.map((cat) => (
-          <View key={cat.id} style={styles.categoryItem}>
-            <View style={styles.categoryInfoContainer}>
-              <Icon name={cat.icon || 'wallet'} size={30} color="gray" style={styles.categoryIcon} />
-              <Text>{cat.name}</Text>
+          return (
+            <View key={cat.id} style={styles.budgetCard}>
+              <View style={styles.budgetHeader}>
+                <View style={styles.donutWrapper}>
+                  <DonutChart spent={spent} total={total} />
+                  <Icon name={cat.icon || 'wallet'} size={24} color="#fff" style={styles.budgetIcon} />
+                </View>
+                <View style={styles.budgetInfo}>
+                  <Text style={styles.budgetName}>{cat.name}</Text>
+                  <Text style={styles.budgetDetails}>
+                    Chi {spent.toLocaleString()}đ / {total.toLocaleString()}đ
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.budgetActions}>
+                <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(cat.id)}>
+                  <Text style={styles.editText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(cat.id)}>
+                  <Text style={styles.deleteText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text>Amount: {(cat.amount || 0).toLocaleString()} VND</Text>
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity onPress={() => handleEdit(cat.id)}>
-                <Text style={styles.editText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(cat.id)}>
-                <Text style={styles.deleteText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </ScrollView>
   );
@@ -147,36 +143,13 @@ const BudgetPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    paddingBottom: 100,
-    backgroundColor: '#ffffff',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#6200ee',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    backgroundColor: '#f8f8f8',
   },
   dateAddContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  dateInfoContainer: {
-    flexDirection: 'column',
+    padding: 20,
   },
   dateText: {
     fontSize: 16,
@@ -187,50 +160,87 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'gray',
   },
-  addBudgetText: {
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6200ee',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: '#fff',
     fontSize: 16,
-    color: '#6200ee',
+    marginLeft: 5,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginLeft: 20,
+    color: '#333',
+  },
+  categoryList: {
+    padding: 20,
+  },
+  budgetCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  budgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  donutWrapper: {
+    position: 'relative',
+    width: 50,
+    height: 50,
+  },
+  donutChart: {
+    width: 50,
+    height: 50,
+    position: 'absolute',
+  },
+  budgetIcon: {
+    position: 'absolute',
+    top: 13,
+    left: 13,
+  },
+  budgetInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  budgetName: {
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  totalBudgetContainer: {
-    marginVertical: 10,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    backgroundColor: '#f9f9f9',
+  budgetDetails: {
+    fontSize: 14,
+    color: '#999',
   },
-  categoryListContainer: {
-    marginVertical: 20,
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: '#f1f1f1',
-  },
-  categoryInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  categoryIcon: {
-    marginRight: 10,
-  },
-  actionsContainer: {
+  budgetActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
   },
+  editButton: {
+    paddingHorizontal: 10,
+  },
+  deleteButton: {
+    paddingHorizontal: 10,
+  },
   editText: {
     color: '#6200ee',
-    fontSize: 14,
-    marginRight: 10,
   },
   deleteText: {
     color: '#ff4d4d',
-    fontSize: 14,
   },
 });
 
