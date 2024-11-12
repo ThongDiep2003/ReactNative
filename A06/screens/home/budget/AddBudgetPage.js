@@ -5,37 +5,50 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig'; // Ensure correct Firebase config is imported
+import { ref, push } from 'firebase/database';
 
 const AddBudgetPage = ({ navigation }) => {
   const [categoryName, setCategoryName] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('tshirt-crew-outline'); // Default icon
-  const [selectedParentCategory, setSelectedParentCategory] = useState(null);
+  const [selectedIcon, setSelectedIcon] = useState({ name: 'tshirt-crew-outline', color: '#f39cc3' }); // Default icon and color
 
-  const parentCategories = ['Giao lưu', 'Tiết kiệm', 'Du lịch', 'Trả nợ', 'Khám bệnh'];
-
+  // Navigate to IconSelectionPage
   const handleIconChange = () => {
-    navigation.navigate('CategorySelection', {
-      onIconSelected: (icon) => setSelectedIcon(icon),
+    navigation.navigate('IconSelection', {
+      onIconSelected: (icon) => setSelectedIcon(icon), // Set both name and color of the icon
     });
   };
 
-  const handleSubmit = () => {
-    if (!categoryName || !selectedParentCategory) {
+  const handleSubmit = async () => {
+    if (!categoryName || !selectedIcon.name) {
       alert('Vui lòng điền đầy đủ thông tin');
       return;
     }
 
-    // Handle submission logic here
-    console.log('Category Submitted:', {
-      name: categoryName,
-      icon: selectedIcon,
-      parentCategory: selectedParentCategory,
-    });
+    const currentUser = FIREBASE_AUTH.currentUser;
+    if (!currentUser) {
+      alert('User not authenticated.');
+      return;
+    }
 
-    navigation.goBack();
+    try {
+      const userBudgetsRef = ref(FIREBASE_DB, `users/${currentUser.uid}/budgets`);
+      const newBudgetRef = await push(userBudgetsRef, {
+        name: categoryName,
+        icon: selectedIcon.name,
+        color: selectedIcon.color,
+        amount: 0, // Set budget limit to 0 initially
+        expense: 0, // Default expense value to 0
+      });
+
+      alert('Budget added successfully!');
+      navigation.navigate('EditBudget', { budgetId: newBudgetRef.key }); // Pass the new budget ID to EditBudgetPage
+    } catch (error) {
+      console.error('Error adding budget:', error);
+      alert('Failed to add budget. Please try again.');
+    }
   };
 
   return (
@@ -43,30 +56,31 @@ const AddBudgetPage = ({ navigation }) => {
       {/* Icon Section */}
       <View style={styles.iconContainer}>
         <TouchableOpacity onPress={handleIconChange}>
-          <View style={styles.iconCircle}>
-            <Icon name={selectedIcon} size={50} color="#fff" />
+          <View style={[styles.iconCircle, { backgroundColor: selectedIcon.color }]}>
+            <Icon name={selectedIcon.name} size={50} color="#fff" />
           </View>
         </TouchableOpacity>
         <Text style={styles.changeIconText}>Đổi biểu tượng</Text>
       </View>
 
       {/* Input Fields */}
-      <Text style={styles.label}>Tên danh mục (0/30) *</Text>
+      <Text style={styles.label}>Tên danh mục *</Text>
       <TextInput
         style={styles.input}
-        placeholder="Nhập tên"
+        placeholder="Nhập tên danh mục"
         maxLength={30}
         value={categoryName}
         onChangeText={(text) => setCategoryName(text)}
       />
+
       {/* Confirm Button */}
       <TouchableOpacity
         style={[
           styles.confirmButton,
-          (!categoryName || !selectedParentCategory) && styles.disabledButton,
+          (!categoryName) && styles.disabledButton,
         ]}
         onPress={handleSubmit}
-        disabled={!categoryName || !selectedParentCategory}
+        disabled={!categoryName}
       >
         <Text style={styles.confirmButtonText}>Xác nhận</Text>
       </TouchableOpacity>
@@ -80,22 +94,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
     padding: 20,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f7d4e4',
-    padding: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  backButton: {
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
   iconContainer: {
     alignItems: 'center',
     marginVertical: 20,
@@ -104,7 +102,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f39cc3',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -129,41 +126,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     fontSize: 16,
     marginBottom: 20,
-  },
-  dropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: '#fff',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  suggestionChip: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-    marginRight: 10,
-  },
-  selectedChip: {
-    backgroundColor: '#f39cc3',
-    borderColor: '#f39cc3',
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  selectedChipText: {
-    color: '#fff',
   },
   confirmButton: {
     backgroundColor: '#f39cc3',

@@ -30,7 +30,8 @@ import DefaultCategory from './screens/home/transaction/category/default/Default
 
 import BudgetPage from "./screens/home/budget/BudgetPage";
 import AddBudgetPage from "./screens/home/budget/AddBudgetPage";
-
+import IconSelectionPage from "./screens/home/budget/IconSelectionPage"
+import EditBudgetPage from "./screens/home/budget/EditBudgetPage";
 
 import SettingsPage from './screens/setting/SettingsPage';
 import Language from './screens/setting/LanguagePage';
@@ -178,6 +179,16 @@ const App = () => {
       name="AddBudget"
       component={AddBudgetPage}
       options={{ headerTitle: "Add Budget" }}
+    />
+    <Stack.Screen
+      name="IconSelection"
+      component={IconSelectionPage}
+      options={{ headerTitle: "Select Icon" }}
+    />
+    <Stack.Screen
+      name="EditBudget"
+      component={EditBudgetPage}
+      options={{ headerTitle: "Edit Budget" }}
     />
       </Stack.Navigator>
     </NavigationContainer>
