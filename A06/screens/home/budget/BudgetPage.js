@@ -1,10 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  StatusBar,
+} from 'react-native';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
-import { ref, onValue, remove } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 import moment from 'moment';
 import { PieChart } from 'react-native-svg-charts';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Define category icon colors
+const categoryColors = {
+  car: '#f44336',
+  food: '#e91e63',
+  home: '#673ab7',
+  'medical-bag': '#2196f3',
+  'truck-fast': '#03a9f4',
+  'shopping-outline': '#4caf50',
+  airplane: '#ff5722',
+  basketball: '#795548',
+  bed: '#607d8b',
+  bike: '#8bc34a',
+  camera: '#9e9e9e',
+  cat: '#ff5722',
+  coffee: '#795548',
+  dog: '#ff9800',
+  dumbbell: '#9c27b0',
+  factory: '#00bcd4',
+  flower: '#e91e63',
+  'fridge-outline': '#3f51b5',
+  'guitar-electric': '#673ab7',
+  headphones: '#607d8b',
+  'hospital-building': '#ff4081',
+  'human-male-female': '#03a9f4',
+  'key-variant': '#795548',
+  gift: '#9c27b0',
+  wallet: '#3f51b5',
+  bank: '#009688',
+  cash: '#ff9800',
+  'chart-line': '#ff4081',
+  'file-document': '#8bc34a',
+  'emoticon-happy-outline': '#2196f3',
+  laptop: '#ff9800',
+  leaf: '#4caf50',
+};
 
 const BudgetPage = ({ navigation }) => {
   const [categories, setCategories] = useState([]);
@@ -37,46 +81,11 @@ const BudgetPage = ({ navigation }) => {
     setDaysLeft(endOfMonth.diff(moment(), 'days'));
   }, []);
 
-  const handleEdit = (categoryId) => {
-    navigation.navigate('EditBudget', { budgetId: categoryId });
-  };
-
-  const handleDelete = async (categoryId) => {
-    const currentUser = FIREBASE_AUTH.currentUser;
-    if (!currentUser) {
-      alert('User not authenticated.');
-      return;
-    }
-
-    const budgetRef = ref(FIREBASE_DB, `users/${currentUser.uid}/budgets/${categoryId}`);
-    Alert.alert(
-      'Delete Budget',
-      'Are you sure you want to delete this budget?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await remove(budgetRef);
-              alert('Budget deleted successfully.');
-            } catch (error) {
-              console.error('Error deleting budget:', error);
-              alert('Failed to delete budget.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const DonutChart = ({ spent, total }) => {
-    const remaining = Math.max(0, total - spent);
+  const DonutChart = ({ spent, remaining }) => {
     const data = [
-      { key: 1, value: spent, svg: { fill: '#FF6347' } }, // Spent in red
-      { key: 2, value: remaining, svg: { fill: '#4CAF50' } }, // Remaining in green
-    ];
+      { key: 1, value: spent, svg: { fill: '#FF6347' } },
+      { key: 2, value: remaining, svg: { fill: '#4CAF50' } },
+    ].filter((item) => item.value > 0);
 
     return (
       <PieChart
@@ -84,66 +93,77 @@ const BudgetPage = ({ navigation }) => {
         valueAccessor={({ item }) => item.value}
         data={data}
         innerRadius="70%"
-        outerRadius="100%"
+        outerRadius="90%"
       />
     );
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* Date and Add Budget */}
-      <View style={styles.dateAddContainer}>
-        <View>
-          <Text style={styles.dateText}>Tháng {moment().format('MMMM YYYY')}</Text>
-          <Text style={styles.daysLeftText}>Còn {daysLeft} ngày nữa hết tháng</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        keyboardShouldPersistTaps="handled"
+        contentInsetAdjustmentBehavior="automatic">
+        {/* Date and Add Budget */}
+        <View style={styles.dateAddContainer}>
+          <View>
+            <Text style={styles.dateText}>Tháng {moment().format('MMMM YYYY')}</Text>
+            <Text style={styles.daysLeftText}>Còn {daysLeft} ngày nữa hết tháng</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AddBudget')}
+            style={styles.addButton}>
+            <Icon name="plus" size={20} color="#fff" />
+            <Text style={styles.addButtonText}>Add Budget</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('AddBudget')} style={styles.addButton}>
-          <Icon name="plus" size={20} color="#fff" />
-          <Text style={styles.addButtonText}>Add Budget</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Budgets */}
-      <Text style={styles.sectionTitle}>Budgets</Text>
-      <View style={styles.categoryList}>
-        {categories.map((cat) => {
-          const spent = cat.expense || 0;
-          const total = cat.amount || 0;
+        {/* Budgets */}
+        <Text style={styles.sectionTitle}>Budgets</Text>
+        <View style={styles.categoryList}>
+          {categories.map((cat) => {
+            const spent = cat.expense || 0;
+            const remaining = (cat.amount || 0) - spent;
 
-          return (
-            <View key={cat.id} style={styles.budgetCard}>
-              <View style={styles.budgetHeader}>
-                <View style={styles.donutWrapper}>
-                  <DonutChart spent={spent} total={total} />
-                  <Icon name={cat.icon || 'wallet'} size={24} color="#fff" style={styles.budgetIcon} />
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                style={styles.budgetCard}
+                onPress={() => navigation.navigate('EditBudget', { budgetId: cat.id })}>
+                <View style={styles.budgetHeader}>
+                  <Icon
+                    name={cat.icon || 'wallet'}
+                    size={30}
+                    color={categoryColors[cat.icon] || '#4CAF50'} // Default color
+                  />
+                  <Text style={styles.budgetTitle}>{cat.name}</Text>
                 </View>
-                <View style={styles.budgetInfo}>
-                  <Text style={styles.budgetName}>{cat.name}</Text>
-                  <Text style={styles.budgetDetails}>
-                    Chi {spent.toLocaleString()}đ / {total.toLocaleString()}đ
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.budgetActions}>
-                <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(cat.id)}>
-                  <Text style={styles.editText}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(cat.id)}>
-                  <Text style={styles.deleteText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    </ScrollView>
+                <DonutChart spent={spent} remaining={remaining} />
+                <Text style={styles.budgetAmount}>
+                  Còn lại {(remaining || 0).toLocaleString()} VND
+                </Text>
+                <Text style={styles.budgetSpent}>
+                  Chi {(spent || 0).toLocaleString()} / {(cat.amount || 0).toLocaleString()} VND
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#ffffff',
+  },
+  scrollView: {
+    flex: 1,
+    paddingTop: 16, // Adjust for safe area
   },
   dateAddContainer: {
     flexDirection: 'row',
@@ -197,50 +217,28 @@ const styles = StyleSheet.create({
   budgetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 10,
   },
-  donutWrapper: {
-    position: 'relative',
-    width: 50,
-    height: 50,
-  },
-  donutChart: {
-    width: 50,
-    height: 50,
-    position: 'absolute',
-  },
-  budgetIcon: {
-    position: 'absolute',
-    top: 13,
-    left: 13,
-  },
-  budgetInfo: {
-    flex: 1,
+  budgetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     marginLeft: 10,
   },
-  budgetName: {
+  budgetAmount: {
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  budgetDetails: {
-    fontSize: 14,
-    color: '#999',
-  },
-  budgetActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    color: '#4CAF50',
     marginTop: 10,
   },
-  editButton: {
-    paddingHorizontal: 10,
+  budgetSpent: {
+    fontSize: 14,
+    color: 'gray',
+    marginTop: 5,
   },
-  deleteButton: {
-    paddingHorizontal: 10,
-  },
-  editText: {
-    color: '#6200ee',
-  },
-  deleteText: {
-    color: '#ff4d4d',
+  donutChart: {
+    height: 100,
+    alignSelf: 'center',
+    marginTop: 10,
   },
 });
 

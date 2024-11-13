@@ -161,7 +161,7 @@ const StatisticPage = ({ navigation }) => {
   };
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar backgroundColor="#f5f5f5" barStyle="dark-content" />
+        <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
         {/* Header */}
 
   
@@ -173,7 +173,7 @@ const StatisticPage = ({ navigation }) => {
           <CalendarPicker
             onDateChange={onDateChange}
             selectedDayColor="#4caf50"
-            todayBackgroundColor="#ffccbc"
+            todayBackgroundColor="#ffffff"
             textStyle={{
               color: '#000',
             }}
@@ -292,7 +292,7 @@ const StatisticPage = ({ navigation }) => {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#f5f5f5',
+      backgroundColor: '#ffffff',
     },
     header: {
       flexDirection: 'row',

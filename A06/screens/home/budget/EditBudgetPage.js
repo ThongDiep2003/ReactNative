@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../../auths/FirebaseConfig"; // Ensure correct Firebase config is imported
 import { ref, update, onValue } from "firebase/database";
+import { BarChart, XAxis, Grid } from "react-native-svg-charts";
+import * as scale from "d3-scale";
 
 const EditBudgetPage = ({ navigation, route }) => {
   const { budgetId } = route.params || {}; // Safely extract budgetId
   const [budgetName, setBudgetName] = useState("");
   const [budgetAmount, setBudgetAmount] = useState("");
+  const [spendingTrend, setSpendingTrend] = useState([]); // For spending trends
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,6 +27,7 @@ const EditBudgetPage = ({ navigation, route }) => {
     }
 
     const budgetRef = ref(FIREBASE_DB, `users/${currentUser.uid}/budgets/${budgetId}`);
+    const spendingTrendRef = ref(FIREBASE_DB, `users/${currentUser.uid}/spendingTrends/${budgetId}`);
 
     // Fetch budget data
     onValue(budgetRef, (snapshot) => {
@@ -35,6 +39,18 @@ const EditBudgetPage = ({ navigation, route }) => {
       } else {
         Alert.alert("Error", "Budget not found.");
         navigation.goBack();
+      }
+    });
+
+    // Fetch spending trend data
+    onValue(spendingTrendRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const trendData = Object.keys(data).map((key) => ({
+          month: key,
+          value: data[key],
+        }));
+        setSpendingTrend(trendData);
       }
     });
   }, [budgetId, navigation]);
@@ -53,7 +69,7 @@ const EditBudgetPage = ({ navigation, route }) => {
         amount: parseFloat(budgetAmount),
       });
       Alert.alert("Success", "Budget updated successfully.");
-      navigation.pop(2); // Go back to the previous page (BudgetPage)
+      navigation.pop(2); // Go back to the BudgetPage
     } catch (error) {
       Alert.alert("Error", "Failed to update budget.");
       console.error(error);
@@ -68,8 +84,12 @@ const EditBudgetPage = ({ navigation, route }) => {
     );
   }
 
+  // Data for BarChart
+  const spendingData = spendingTrend.map((item) => item.value);
+  const spendingMonths = spendingTrend.map((item) => item.month);
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Edit Budget</Text>
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Budget Name</Text>
@@ -90,10 +110,35 @@ const EditBudgetPage = ({ navigation, route }) => {
           keyboardType="numeric"
         />
       </View>
+
+      {/* Spending Trends */}
+      <Text style={styles.trendTitle}>Spending Trend</Text>
+      <View style={styles.chartContainer}>
+        <BarChart
+          style={{ height: 200 }}
+          data={spendingData}
+          svg={{ fill: "#6200ee" }}
+          contentInset={{ top: 10, bottom: 10 }}
+          spacingInner={0.4}
+          spacingOuter={0.2}
+        >
+          <Grid />
+        </BarChart>
+        <XAxis
+          style={{ marginHorizontal: -10, marginTop: 10 }}
+          data={spendingData}
+          formatLabel={(value, index) => spendingMonths[index]}
+          contentInset={{ left: 20, right: 20 }}
+          svg={{ fontSize: 10, fill: "gray" }}
+          scale={scale.scaleBand}
+        />
+      </View>
+
+      {/* Save Button */}
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Save</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -121,6 +166,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     fontSize: 16,
+  },
+  trendTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  chartContainer: {
+    height: 250,
+    padding: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    backgroundColor: "#f9f9f9",
   },
   saveButton: {
     backgroundColor: "#6200ee",
