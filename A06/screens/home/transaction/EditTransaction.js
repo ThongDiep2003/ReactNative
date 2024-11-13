@@ -1,38 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Button, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { ref, update, onValue } from 'firebase/database';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
 import { useNavigation } from '@react-navigation/native';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
+import { ref, onValue, update } from 'firebase/database';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const EditTransaction = ({ route }) => {
   const navigation = useNavigation();
-  const { transaction } = route.params; // Nhận tham số từ Transaction
+  const { transaction } = route.params;
 
   const [amount, setAmount] = useState(transaction.amount.toString());
   const [date, setDate] = useState(new Date(transaction.date));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [account, setAccount] = useState(transaction.account || 'VCB');
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(transaction.category);
+  const [category, setCategory] = useState(transaction.category);
   const [type, setType] = useState(transaction.type || 'Expense');
+  const [defaultCategories, setDefaultCategories] = useState([]);
+  const [userCategories, setUserCategories] = useState([]);
 
+  const userId = FIREBASE_AUTH.currentUser?.uid;
+
+  // Fetch default and user categories from Firebase
   useEffect(() => {
-    // Lấy danh sách danh mục từ Firebase
-    const categoriesRef = ref(FIREBASE_DB, 'categories');
-    onValue(categoriesRef, (snapshot) => {
+    // Fetch default categories
+    const defaultCategoriesRef = ref(FIREBASE_DB, 'categories/default');
+    onValue(defaultCategoriesRef, (snapshot) => {
       const data = snapshot.val();
-      if (data) {
-        const categoryList = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        }));
-        setCategories(categoryList);
-      }
+      const categories = data
+        ? Object.keys(data).map((key) => ({
+            id: key,
+            ...data[key],
+          }))
+        : [];
+      setDefaultCategories(categories);
     });
-  }, []);
+
+    // Fetch user categories
+    if (userId) {
+      const userCategoriesRef = ref(FIREBASE_DB, `categories/${userId}`);
+      onValue(userCategoriesRef, (snapshot) => {
+        const data = snapshot.val();
+        const categories = data
+          ? Object.keys(data).map((key) => ({
+              id: key,
+              ...data[key],
+            }))
+          : [];
+        setUserCategories(categories);
+      });
+    }
+  }, [userId]);
+
+  // Combine default and user categories
+  const getFilteredCategories = () => {
+    const filteredDefaultCategories = defaultCategories.filter((cat) => cat.type === type);
+    const filteredUserCategories = userCategories.filter((cat) => cat.type === type);
+    return [...filteredDefaultCategories, ...filteredUserCategories];
+  };
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -40,30 +67,23 @@ const EditTransaction = ({ route }) => {
     setDate(currentDate);
   };
 
-  const handleAccountSelect = (selectedAccount) => {
-    setAccount(selectedAccount);
-  };
-
-  const handleCategorySelect = (selectedCategory) => {
-    setSelectedCategory(selectedCategory);
-  };
-
-  const handleSaveChanges = async () => {
-    if (!amount || !selectedCategory) {
+  const handleSaveTransaction = async () => {
+    if (!amount || !category) {
       Alert.alert('Validation Error', 'Please enter an amount and select a category.');
       return;
     }
 
-    try {
-      const transactionRef = ref(FIREBASE_DB, 'transactions/' + transaction.id);
-      await update(transactionRef, {
-        amount,
-        date: date.toISOString(),
-        account,
-        category: { id: selectedCategory.id, icon: selectedCategory.icon },
-        type,
-      });
+    const updatedTransaction = {
+      amount,
+      date: date.toISOString(),
+      account,
+      category: { id: category.id, icon: category.icon, name: category.name },
+      type,
+    };
 
+    try {
+      const transactionRef = ref(FIREBASE_DB, `transactions/${transaction.id}`);
+      await update(transactionRef, updatedTransaction);
       Alert.alert('Success', 'Transaction updated successfully.');
       navigation.goBack();
     } catch (error) {
@@ -73,14 +93,27 @@ const EditTransaction = ({ route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Edit Transaction</Text>
+    <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <View style={styles.headerContainer}>
+        <Text
+          style={[styles.header, type === 'Income' ? styles.activeTab : styles.inactiveTab]}
+          onPress={() => setType('Income')}
+        >
+          Edit Income
+        </Text>
+        <Text
+          style={[styles.header, type === 'Expense' ? styles.activeTab : styles.inactiveTab]}
+          onPress={() => setType('Expense')}
+        >
+          Edit Expense
+        </Text>
+      </View>
 
       {/* Amount Input */}
       <View style={styles.amountContainer}>
         <TextInput
           style={styles.amountInput}
-          placeholder="0"
+          placeholder="Enter amount"
           keyboardType="numeric"
           value={amount}
           onChangeText={setAmount}
@@ -90,58 +123,46 @@ const EditTransaction = ({ route }) => {
 
       {/* Date Picker */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
+        <Icon name="calendar" size={24} color="#6246EA" />
         <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
       </TouchableOpacity>
       {showDatePicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-        />
+        <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} />
       )}
 
       {/* Category Selection */}
-      <Text style={styles.sectionTitle}>From category</Text>
+      <Text style={styles.sectionTitle}>Select Category</Text>
       <View style={styles.categoryContainer}>
-        {categories.map((cat) => (
-          <TouchableOpacity key={cat.id} onPress={() => handleCategorySelect(cat)}>
+        {getFilteredCategories().map((cat) => (
+          <TouchableOpacity
+            key={cat.id}
+            onPress={() => setCategory(cat)}
+            style={[styles.categoryButton, cat.id === category?.id && styles.selectedCategoryButton]}
+          >
             <Icon
-              name={cat.icon}  // Assuming each category has an 'icon' property
-              size={40}
-              color={cat.id === selectedCategory?.id ? '#6200ee' : 'gray'}
+              name={cat.icon}
+              size={30}
+              color={cat.id === category?.id ? '#fff' : cat.color || '#6246EA'}
               style={styles.categoryIcon}
             />
+            <Text style={[styles.categoryText, cat.id === category?.id && styles.selectedCategoryText]}>
+              {cat.name}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Type Selection */}
-      <Text style={styles.sectionTitle}>Transaction Type</Text>
-      <View style={styles.chipContainer}>
-        {['Expense', 'Income'].map((t) => (
-          <Chip
-            key={t}
-            mode="outlined"
-            selected={type === t}
-            onPress={() => setType(t)}
-            style={styles.chip}
-          >
-            {t}
-          </Chip>
-        ))}
-      </View>
-
       {/* Account Selection */}
-      <Text style={styles.sectionTitle}>From account</Text>
-      <View style={styles.chipContainer}>
-        {['VCB', 'BIDV', 'Cash'].map((acc) => (
+      <Text style={styles.sectionTitle}>Select Account</Text>
+      <View style={styles.accountContainer}>
+        {['VCB', 'BIDV', 'Momo', 'Cash'].map((acc) => (
           <Chip
             key={acc}
             mode="outlined"
             selected={account === acc}
-            onPress={() => handleAccountSelect(acc)}
-            style={styles.chip}
+            onPress={() => setAccount(acc)}
+            style={[styles.accountChip, account === acc && styles.selectedAccountChip]}
+            textStyle={account === acc ? styles.selectedAccountText : null}
           >
             {acc}
           </Chip>
@@ -149,78 +170,37 @@ const EditTransaction = ({ route }) => {
       </View>
 
       {/* Save Button */}
-      <Button mode="contained" onPress={handleSaveChanges}>
+      <Button mode="contained" onPress={handleSaveTransaction} buttonColor="#6246EA" style={styles.saveButton}>
         Save Changes
       </Button>
-    </View>
+    </KeyboardAwareScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    marginTop: 20,
-    textAlign: 'center',
-  },
-  amountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  amountInput: {
-    fontSize: 36,
-    borderBottomWidth: 1,
-    borderColor: 'gray',
-    width: '70%',
-    textAlign: 'center',
-  },
-  currency: {
-    fontSize: 18,
-    marginLeft: 5,
-  },
-  datePicker: {
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: 'gray',
-    marginVertical: 10,
-  },
-  dateText: {
-    fontSize: 18,
-    color: '#333',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 15,
-    marginBottom: 5,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  chip: {
-    marginRight: 5,
-    backgroundColor: '#f1f1f1',
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginVertical: 20,
-  },
-  categoryIcon: {
-    marginHorizontal: 10,
-  },
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  contentContainer: { padding: 20, paddingBottom: 100 },
+  headerContainer: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
+  header: { fontSize: 18, fontWeight: 'bold', paddingVertical: 10, borderBottomWidth: 2 },
+  activeTab: { color: '#6246EA', borderBottomColor: '#6246EA' },
+  inactiveTab: { color: 'gray', borderBottomColor: 'transparent' },
+  amountContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 30 },
+  amountInput: { fontSize: 24, borderBottomWidth: 2, borderColor: '#6246EA', width: '70%', textAlign: 'center', marginRight: 10 },
+  currency: { fontSize: 18, color: '#6246EA' },
+  datePicker: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 10, backgroundColor: '#e0f7fa', marginBottom: 20 },
+  dateText: { fontSize: 18, marginLeft: 10, color: '#6246EA' },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', marginTop: 20, marginBottom: 10, color: '#333' },
+  categoryContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', marginBottom: 20 },
+  categoryButton: { alignItems: 'center', marginBottom: 15, padding: 10, borderRadius: 10, backgroundColor: '#fafafa', width: '23%' },
+  selectedCategoryButton: { backgroundColor: '#D1C8FF' },
+  categoryIcon: { marginBottom: 3 },
+  categoryText: { fontSize: 11, color: '#6246EA' },
+  selectedCategoryText: { fontWeight: 'bold', color: '#fff' },
+  accountContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
+  accountChip: { backgroundColor: '#e3f2fd', marginHorizontal: 5 },
+  selectedAccountChip: { backgroundColor: '#D1C8FF' },
+  selectedAccountText: { color: '#6246EA', fontWeight: 'bold' },
+  saveButton: { height: 50, backgroundColor: '#6246EA', borderRadius: 25, justifyContent: 'center', alignItems: 'center', width: '100%' },
 });
 
 export default EditTransaction;

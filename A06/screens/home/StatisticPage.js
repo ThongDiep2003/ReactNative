@@ -179,29 +179,30 @@ const StatisticPage = ({ navigation }) => {
             }}
           />
   
-          {/* Daily Summary */}
-          {selectedDate && filteredTransactions && (
-            <View style={styles.summaryContainer}>
-              <Text style={styles.summaryTitle}>
-                Tổng quan ngày {selectedDate.toISOString().split('T')[0]}
+        {/* Daily Summary */}
+        {selectedDate && filteredTransactions && (
+          <View style={styles.summaryContainer}>
+            <Text style={styles.summaryTitle}>
+              Tổng quan ngày {selectedDate.toISOString().split('T')[0]}
+            </Text>
+            <View style={styles.summaryRow}>
+              <Text style={styles.incomeText}>
+                Thu nhập: {filteredTransactions.incoming?.toLocaleString()} VND
               </Text>
-              <View style={styles.summaryRow}>
-                <Text style={styles.incomeText}>
-                  Thu nhập: {filteredTransactions.incoming?.toLocaleString()} VND
-                </Text>
-                <Text style={styles.expenseText}>
-                  Chi tiêu: {filteredTransactions.outgoing?.toLocaleString()} VND
-                </Text>
-                <Text style={styles.totalText}>
-                  Tổng: {(
-                    (filteredTransactions.incoming || 0) -
-                    (filteredTransactions.outgoing || 0)
-                  ).toLocaleString()}{' '}
-                  VND
-                </Text>
-              </View>
+              <Text style={styles.expenseText}>
+                Chi tiêu: {filteredTransactions.outgoing?.toLocaleString()} VND
+              </Text>
             </View>
-          )}
+            <Text style={styles.totalText}>
+              Tổng: {(
+                (filteredTransactions.incoming || 0) -
+                (filteredTransactions.outgoing || 0)
+              ).toLocaleString()}{' '}
+              VND
+            </Text>
+          </View>
+        )}
+
   
           {/* Income Chart */}
           {dailyTransactionData.length > 0 && (
@@ -334,6 +335,7 @@ const StatisticPage = ({ navigation }) => {
       borderRadius: 10,
       padding: 16,
       marginBottom: 16,
+      alignItems: 'center', // Center align content like 'Tổng'
     },
     summaryTitle: {
       fontSize: 18,
@@ -344,24 +346,27 @@ const StatisticPage = ({ navigation }) => {
     },
     summaryRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: 8,
+      justifyContent: 'space-between', // Align Thu nhập and Chi tiêu to opposite sides
+      width: '100%', // Ensure the row spans the container's width
+      marginBottom: 8,
     },
     incomeText: {
       color: '#4caf50',
-      fontSize: 16,
+      fontSize: 13,
       fontWeight: 'bold',
     },
     expenseText: {
       color: '#f44336',
-      fontSize: 16,
+      fontSize: 13,
       fontWeight: 'bold',
+      textAlign: 'right', // Align text to the right
     },
     totalText: {
       color: '#333',
-      fontSize: 16,
+      fontSize: 13,
       fontWeight: 'bold',
-    },
+      textAlign: 'center', // Center align 'Tổng'
+    },  
   });
   
   export default StatisticPage;
