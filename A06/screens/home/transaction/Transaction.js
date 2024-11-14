@@ -1,25 +1,35 @@
 import React from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { ref, remove } from 'firebase/database';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig'; // Import FIREBASE_AUTH
 import { Chip, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Transaction = ({ route, navigation }) => {
   const { transaction } = route.params;
 
-  const handleDeleteTransaction = () => {
+  const handleDeleteTransaction = async () => {
     Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this transaction?",
+      'Confirm Delete',
+      'Are you sure you want to delete this transaction?',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
+          text: 'Delete',
           onPress: async () => {
             try {
-              const transactionRef = ref(FIREBASE_DB, 'transactions/' + transaction.id);
+              const currentUser = FIREBASE_AUTH.currentUser?.uid; // Ensure the user is authenticated
+              if (!currentUser) {
+                Alert.alert('Error', 'User not authenticated.');
+                return;
+              }
+
+              const transactionRef = ref(
+                FIREBASE_DB,
+                `users/${currentUser}/transactions/${transaction.id}`
+              );
               await remove(transactionRef);
+
               Alert.alert('Deleted', 'Transaction has been deleted successfully.');
               navigation.goBack();
             } catch (error) {
@@ -41,17 +51,29 @@ const Transaction = ({ route, navigation }) => {
     <View style={styles.container}>
       {/* Header Tabs */}
       <View style={styles.headerContainer}>
-        <Text style={[styles.header, transaction.type === 'Income' ? styles.activeTab : styles.inactiveTab]}>
+        <Text
+          style={[
+            styles.header,
+            transaction.type === 'Income' ? styles.activeTab : styles.inactiveTab,
+          ]}
+        >
           Income
         </Text>
-        <Text style={[styles.header, transaction.type === 'Expense' ? styles.activeTab : styles.inactiveTab]}>
+        <Text
+          style={[
+            styles.header,
+            transaction.type === 'Expense' ? styles.activeTab : styles.inactiveTab,
+          ]}
+        >
           Expense
         </Text>
       </View>
 
       {/* Amount Display */}
       <View style={styles.amountContainer}>
-        <Text style={styles.amountText}>{transaction.amount.toLocaleString()} VND</Text>
+        <Text style={styles.amountText}>
+          {transaction.amount.toLocaleString()} VND
+        </Text>
       </View>
 
       {/* Date Display */}
@@ -65,7 +87,12 @@ const Transaction = ({ route, navigation }) => {
         <View style={styles.detailContainer}>
           <Text style={styles.sectionTitle}>Category</Text>
           <View style={styles.categoryContainer}>
-            <Icon name={transaction.category.icon} size={30} color="#6246EA" style={styles.categoryIcon} />
+            <Icon
+              name={transaction.category.icon}
+              size={30}
+              color="#6246EA"
+              style={styles.categoryIcon}
+            />
             <Text style={styles.categoryText}>{transaction.category.name}</Text>
           </View>
         </View>
