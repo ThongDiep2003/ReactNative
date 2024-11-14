@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { ref, remove } from 'firebase/database';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { Chip, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Transaction = ({ route, navigation }) => {
   const { transaction } = route.params;
+  const userId = FIREBASE_AUTH.currentUser?.uid;
 
   const handleDeleteTransaction = () => {
     Alert.alert(
@@ -18,7 +19,7 @@ const Transaction = ({ route, navigation }) => {
           text: "Delete",
           onPress: async () => {
             try {
-              const transactionRef = ref(FIREBASE_DB, 'transactions/' + transaction.id);
+              const transactionRef = ref(FIREBASE_DB, `users/${userId}/transactions` + transaction.id);
               await remove(transactionRef);
               Alert.alert('Deleted', 'Transaction has been deleted successfully.');
               navigation.goBack();

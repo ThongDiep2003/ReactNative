@@ -233,8 +233,8 @@ const StatisticPage = ({ navigation }) => {
                     borderRadius: 16,
                   },
                   propsForDots: {
-                    r: '6',
-                    strokeWidth: '2',
+                    r: '3',
+                    strokeWidth: '1',
                     stroke: '#ffa726',
                   },
                 }}
