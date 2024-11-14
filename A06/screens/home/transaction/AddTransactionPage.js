@@ -22,7 +22,7 @@ const AddTransaction = () => {
 
   // Fetch default categories and user categories from Firebase
   useEffect(() => {
-    // Fetch default categories
+    // Fetch default categories 
     const defaultCategoriesRef = ref(FIREBASE_DB, 'categories/default');
     onValue(defaultCategoriesRef, (snapshot) => {
       const data = snapshot.val();
@@ -40,7 +40,7 @@ const AddTransaction = () => {
       const userCategoriesRef = ref(FIREBASE_DB, `categories/${userId}`);
       onValue(userCategoriesRef, (snapshot) => {
         const data = snapshot.val();
-        const categories = data
+        const categories = data 
           ? Object.keys(data).map((key) => ({
               id: key,
               ...data[key],
@@ -74,33 +74,50 @@ const AddTransaction = () => {
 
   const handleSaveTransaction = async () => {
     if (!amount || !category) {
-      Alert.alert('Validation Error', 'Please enter an amount and select a category.');
+      Alert.alert('Error', 'Please enter an amount and select a category.');
       return;
     }
-
+  
     if (userId) {
       const newTransaction = {
-        amount,
+        amount: parseFloat(amount),
         date: date.toISOString(),
         account,
         category: { id: category.id, icon: category.icon, name: category.name },
         type,
       };
-
+  
       try {
         const userTransactionsRef = ref(FIREBASE_DB, `users/${userId}/transactions`);
         await push(userTransactionsRef, newTransaction);
+  
+        // Update related budget
+        const budgetsRef = ref(FIREBASE_DB, `users/${userId}/budgets`);
+        onValue(budgetsRef, (snapshot) => {
+          const budgets = snapshot.val();
+          if (budgets) {
+            Object.entries(budgets).forEach(([budgetId, budget]) => {
+              if (budget.categoryId === category.id) {
+                const updatedExpense = (budget.expense || 0) + parseFloat(amount);
+                const updatedRemaining = budget.amount - updatedExpense;
+  
+                const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${budgetId}`);
+                update(budgetRef, { expense: updatedExpense, remaining: updatedRemaining });
+              }
+            });
+          }
+        });
+  
         Alert.alert('Success', 'Transaction added successfully.');
         navigation.goBack();
       } catch (error) {
         console.error('Error saving transaction:', error);
-        Alert.alert('Error', 'Failed to save transaction. Please try again.');
+        Alert.alert('Error', 'Failed to save transaction.');
       }
     } else {
       Alert.alert('Error', 'User not authenticated.');
     }
   };
-
   return (
     <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.headerContainer}>
