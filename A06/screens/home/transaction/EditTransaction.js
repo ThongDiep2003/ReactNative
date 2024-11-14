@@ -5,7 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
-import { ref, update, onValue } from 'firebase/database';
+import { ref, update, get } from 'firebase/database';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const EditTransaction = () => {
@@ -31,72 +31,62 @@ const EditTransaction = () => {
     setAccount(selectedAccount);
   };
 
-  const handleCategorySelect = (selectedCategory) => {
-    setCategory(selectedCategory);
-  };
-
   const handleSaveTransaction = async () => {
     if (!amount || !category) {
       Alert.alert('Error', 'Please enter an amount and select a category.');
       return;
     }
 
-    if (userId) {
-      const transactionRef = ref(FIREBASE_DB, `users/${userId}/transactions/${transaction.id}`);
-      const budgetsRef = ref(FIREBASE_DB, `users/${userId}/budgets`);
-
-      try {
-        // Xóa tác động của giao dịch cũ lên ngân sách
-        onValue(budgetsRef, (snapshot) => {
-          const budgets = snapshot.val();
-          if (budgets) {
-            Object.entries(budgets).forEach(([budgetId, budget]) => {
-              if (budget.categoryId === transaction.category.id) {
-                const updatedExpense = (budget.expense || 0) - parseFloat(transaction.amount);
-                const updatedRemaining = budget.amount - updatedExpense;
-
-                const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${budgetId}`);
-                update(budgetRef, { expense: updatedExpense, remaining: updatedRemaining });
-              }
-            });
-          }
-        });
-
-        // Lưu giao dịch mới
-        const updatedTransaction = {
-          amount: parseFloat(amount),
-          date: date.toISOString(),
-          account,
-          category: { id: category.id, icon: category.icon, name: category.name },
-          type,
-        };
-
-        await update(transactionRef, updatedTransaction);
-
-        // Cập nhật ngân sách với giao dịch mới
-        onValue(budgetsRef, (snapshot) => {
-          const budgets = snapshot.val();
-          if (budgets) {
-            Object.entries(budgets).forEach(([budgetId, budget]) => {
-              if (budget.categoryId === category.id) {
-                const updatedExpense = (budget.expense || 0) + parseFloat(amount);
-                const updatedRemaining = budget.amount - updatedExpense;
-
-                const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${budgetId}`);
-                update(budgetRef, { expense: updatedExpense, remaining: updatedRemaining });
-              }
-            });
-          }
-        });
-
-        Alert.alert('Success', 'Transaction updated successfully.');
-        navigation.goBack();
-      } catch (error) {
-        console.error('Error updating transaction:', error);
-        Alert.alert('Error', 'Failed to update transaction.');
-      }
-    } else {
+    if (!userId) {
       Alert.alert('Error', 'User not authenticated.');
+      return;
+    }
+
+    const transactionRef = ref(FIREBASE_DB, `users/${userId}/transactions/${transaction.id}`);
+    const budgetsRef = ref(FIREBASE_DB, `users/${userId}/budgets`);
+
+    try {
+      // Lấy ngân sách hiện tại để xử lý cập nhật
+      const budgetsSnapshot = await get(budgetsRef);
+      const budgets = budgetsSnapshot.val();
+
+      const updatedTransaction = {
+        amount: parseFloat(amount),
+        date: date.toISOString(),
+        account,
+        category: { id: category.id, icon: category.icon, name: category.name },
+        type,
+      };
+
+      // Batch cập nhật ngân sách
+      const updates = {};
+      if (budgets) {
+        Object.entries(budgets).forEach(([budgetId, budget]) => {
+          // Xử lý ngân sách cũ
+          if (budget.categoryId === transaction.category.id) {
+            const revertedExpense = (budget.expense || 0) - parseFloat(transaction.amount);
+            updates[`users/${userId}/budgets/${budgetId}/expense`] = revertedExpense;
+            updates[`users/${userId}/budgets/${budgetId}/remaining`] = budget.amount - revertedExpense;
+          }
+          // Cập nhật ngân sách mới
+          if (budget.categoryId === category.id) {
+            const newExpense = (budget.expense || 0) + parseFloat(amount);
+            updates[`users/${userId}/budgets/${budgetId}/expense`] = newExpense;
+            updates[`users/${userId}/budgets/${budgetId}/remaining`] = budget.amount - newExpense;
+          }
+        });
+      }
+
+      // Cập nhật giao dịch và ngân sách trong một lần
+      updates[`users/${userId}/transactions/${transaction.id}`] = updatedTransaction;
+      await update(ref(FIREBASE_DB), updates);
+
+      Alert.alert('Success', 'Transaction updated successfully.');
+      navigation.goBack();
+      
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      Alert.alert('Error', 'Failed to update transaction.');
     }
   };
 
@@ -136,11 +126,6 @@ const EditTransaction = () => {
         <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} />
       )}
 
-      <Text style={styles.sectionTitle}>Edit Category</Text>
-      <View style={styles.categoryContainer}>
-        {/* Categories can be fetched similarly to AddTransaction */}
-      </View>
-
       <Text style={styles.sectionTitle}>Edit Account</Text>
       <View style={styles.accountContainer}>
         {['VCB', 'BIDV', 'Momo', 'Cash'].map((acc) => (
@@ -176,7 +161,6 @@ const styles = StyleSheet.create({
   currency: { fontSize: 18, color: '#6246EA' },
   datePicker: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 10, backgroundColor: '#e0f7fa', marginBottom: 20 },
   dateText: { fontSize: 18, marginLeft: 10, color: '#6246EA' },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', marginTop: 20, marginBottom: 10, color: '#333' },
   accountContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
   accountChip: { backgroundColor: '#e3f2fd', marginHorizontal: 5 },
   selectedAccountChip: { backgroundColor: '#D1C8FF' },
