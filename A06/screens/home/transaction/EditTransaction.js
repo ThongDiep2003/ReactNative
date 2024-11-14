@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import React, { useState } from 'react';
-=======
-import React, { useState, useEffect } from 'react';
->>>>>>> 0d5c218564e7c259b7e071c37922f00e8242d782
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Button, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -25,44 +21,6 @@ const EditTransaction = () => {
   const [type, setType] = useState(transaction.type);
   const userId = FIREBASE_AUTH.currentUser?.uid;
 
-<<<<<<< HEAD
-=======
-  // Fetch default and user categories from Firebase
-  useEffect(() => {
-    const defaultCategoriesRef = ref(FIREBASE_DB, 'categories/default');
-    onValue(defaultCategoriesRef, (snapshot) => {
-      const data = snapshot.val();
-      const categories = data
-        ? Object.keys(data).map((key) => ({
-            id: key,
-            ...data[key],
-          }))
-        : [];
-      setDefaultCategories(categories);
-    });
-
-    if (userId) {
-      const userCategoriesRef = ref(FIREBASE_DB, `categories/${userId}`);
-      onValue(userCategoriesRef, (snapshot) => {
-        const data = snapshot.val();
-        const categories = data
-          ? Object.keys(data).map((key) => ({
-              id: key,
-              ...data[key],
-            }))
-          : [];
-        setUserCategories(categories);
-      });
-    }
-  }, [userId]);
-
-  const getFilteredCategories = () => {
-    const filteredDefaultCategories = defaultCategories.filter((cat) => cat.type === type);
-    const filteredUserCategories = userCategories.filter((cat) => cat.type === type);
-    return [...filteredDefaultCategories, ...filteredUserCategories];
-  };
-
->>>>>>> 0d5c218564e7c259b7e071c37922f00e8242d782
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShowDatePicker(false);
@@ -83,7 +41,6 @@ const EditTransaction = () => {
       return;
     }
 
-<<<<<<< HEAD
     if (userId) {
       const transactionRef = ref(FIREBASE_DB, `users/${userId}/transactions/${transaction.id}`);
       const budgetsRef = ref(FIREBASE_DB, `users/${userId}/budgets`);
@@ -140,36 +97,11 @@ const EditTransaction = () => {
       }
     } else {
       Alert.alert('Error', 'User not authenticated.');
-=======
-    if (!userId || !transaction.id) {
-      Alert.alert('Error', 'Invalid transaction or user data.');
-      return;
-    }
-
-    const updatedTransaction = {
-      amount,
-      date: date.toISOString(),
-      account,
-      category: { id: category.id, icon: category.icon, name: category.name },
-      type,
-    };
-
-    try {
-      // Update the specific transaction in Firebase
-      const transactionRef = ref(FIREBASE_DB, `users/${userId}/transactions/${transaction.id}`);
-      await update(transactionRef, updatedTransaction);
-      Alert.alert('Success', 'Transaction updated successfully.');
-      navigation.goBack();
-    } catch (error) {
-      console.error('Error updating transaction:', error);
-      Alert.alert('Error', 'Failed to update transaction. Please try again.');
->>>>>>> 0d5c218564e7c259b7e071c37922f00e8242d782
     }
   };
 
   return (
     <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-<<<<<<< HEAD
       <View style={styles.headerContainer}>
         <Text
           style={[styles.header, type === 'Income' ? styles.activeTab : styles.inactiveTab]}
@@ -185,9 +117,6 @@ const EditTransaction = () => {
         </Text>
       </View>
 
-=======
-      {/* Amount Input */}
->>>>>>> 0d5c218564e7c259b7e071c37922f00e8242d782
       <View style={styles.amountContainer}>
         <TextInput
           style={styles.amountInput}
@@ -203,7 +132,9 @@ const EditTransaction = () => {
         <Icon name="calendar" size={24} color="#6246EA" />
         <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
       </TouchableOpacity>
-      {showDatePicker && <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} />}
+      {showDatePicker && (
+        <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} />
+      )}
 
       <Text style={styles.sectionTitle}>Edit Category</Text>
       <View style={styles.categoryContainer}>
@@ -236,6 +167,10 @@ const EditTransaction = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
   contentContainer: { padding: 20, paddingBottom: 100 },
+  headerContainer: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
+  header: { fontSize: 18, fontWeight: 'bold', paddingVertical: 10, borderBottomWidth: 2 },
+  activeTab: { color: '#6246EA', borderBottomColor: '#6246EA' },
+  inactiveTab: { color: 'gray', borderBottomColor: 'transparent' },
   amountContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 30 },
   amountInput: { fontSize: 24, borderBottomWidth: 2, borderColor: '#6246EA', width: '70%', textAlign: 'center', marginRight: 10 },
   currency: { fontSize: 18, color: '#6246EA' },
