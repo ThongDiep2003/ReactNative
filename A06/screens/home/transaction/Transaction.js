@@ -1,12 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { ref, remove } from 'firebase/database';
+<<<<<<< HEAD
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig'; // Import FIREBASE_AUTH
+=======
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
+>>>>>>> 0d5c218564e7c259b7e071c37922f00e8242d782
 import { Chip, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Transaction = ({ route, navigation }) => {
   const { transaction } = route.params;
+  const userId = FIREBASE_AUTH.currentUser?.uid;
 
   const handleDeleteTransaction = async () => {
     Alert.alert(
@@ -18,6 +23,7 @@ const Transaction = ({ route, navigation }) => {
           text: 'Delete',
           onPress: async () => {
             try {
+<<<<<<< HEAD
               const currentUser = FIREBASE_AUTH.currentUser?.uid; // Ensure the user is authenticated
               if (!currentUser) {
                 Alert.alert('Error', 'User not authenticated.');
@@ -28,6 +34,9 @@ const Transaction = ({ route, navigation }) => {
                 FIREBASE_DB,
                 `users/${currentUser}/transactions/${transaction.id}`
               );
+=======
+              const transactionRef = ref(FIREBASE_DB, `users/${userId}/transactions` + transaction.id);
+>>>>>>> 0d5c218564e7c259b7e071c37922f00e8242d782
               await remove(transactionRef);
 
               Alert.alert('Deleted', 'Transaction has been deleted successfully.');
