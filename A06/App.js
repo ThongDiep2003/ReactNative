@@ -26,6 +26,7 @@ import Transaction from './screens/home/transaction/Transaction';
 import AllTransaction from './screens/home/transaction/AllTransaction';
 import EditTransaction from './screens/home/transaction/EditTransaction';
 import CategoryPage from './screens/home/transaction/category/user/CategoryPage';
+import CategoryManagementPage from './screens/home/transaction/category/CategoryManagementPage';
 import DefaultCategory from './screens/home/transaction/category/default/DefaultCategory';
 
 import BudgetPage from "./screens/home/budget/BudgetPage";
@@ -105,6 +106,7 @@ const App = () => {
             <Stack.Screen name="EditTransaction" component={EditTransaction} options={{ headerTitle: "Edit Transaction" }} />
             <Stack.Screen name="Logout" component={LogoutPage} />
             <Stack.Screen name="Category" component={CategoryPage} />
+            <Stack.Screen name="CategoryManagement" component={CategoryManagementPage} />
             <Stack.Screen name="Default" component={DefaultCategory} />
           </>
       

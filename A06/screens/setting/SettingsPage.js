@@ -57,6 +57,12 @@ const SettingsPage = ({ navigation }) => {
       >
         <Text style={styles.itemText}>Admin</Text>
       </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => navigation.navigate('CategoryManagement')} // Navigate to LogoutPage
+      >
+        <Text style={styles.itemText}>Manage Category</Text>
+      </TouchableOpacity>
       <Text style={styles.footerText}>Choose what data you share with us</Text>
     </View>
   );
