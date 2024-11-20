@@ -5,6 +5,13 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  // Ghi log lỗi nhưng không hiển thị trên giao diện
+  if (__DEV__) {
+    console.log('Error:', error);
+  }
+});
+
 // Import các trang
 import SplashScreen from "./screens/splash/SplashScreen";
 import SplashScreen1 from "./screens/splash/SplashScreen1";  
