@@ -8,7 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 ErrorUtils.setGlobalHandler((error, isFatal) => {
   // Ghi log lỗi nhưng không hiển thị trên giao diện
   if (__DEV__) {
-    console.log('Error:', error);
+    console.log = () => {}; // Disable console.log
+    console.warn = () => {}; // Disable console.warn
+    console.error = () => {}; // Disable console.error
   }
 });
 

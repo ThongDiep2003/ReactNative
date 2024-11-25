@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Button } from 'react-native-paper';
+import { PieChart } from 'react-native-svg-charts'; // For Donut Chart
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { ref, onValue, update, remove } from 'firebase/database';
 import { useNavigation } from '@react-navigation/native';
 
 const BudgetPage = () => {
   const [budgets, setBudgets] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const userId = FIREBASE_AUTH.currentUser?.uid;
   const navigation = useNavigation();
 
   useEffect(() => {
     if (userId) {
+      // Fetch budgets
       const budgetsRef = ref(FIREBASE_DB, `users/${userId}/budgets`);
-
-      // Lắng nghe toàn bộ dữ liệu budgets
       onValue(budgetsRef, (snapshot) => {
         const budgetData = snapshot.val();
         if (budgetData) {
@@ -27,73 +29,95 @@ const BudgetPage = () => {
           setBudgets([]);
         }
       });
+
+      // Fetch transactions
+      const transactionsRef = ref(FIREBASE_DB, `users/${userId}/transactions`);
+      onValue(transactionsRef, (snapshot) => {
+        const transactionData = snapshot.val();
+        if (transactionData) {
+          const transactionsList = Object.entries(transactionData).map(([id, data]) => ({
+            id,
+            ...data,
+          }));
+          setTransactions(transactionsList);
+        } else {
+          setTransactions([]);
+        }
+      });
     }
   }, [userId]);
 
-  const handleUpdateBudget = (budgetId, updatedExpense) => {
-    const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${budgetId}`);
-    const updatedRemaining = budgets.find((budget) => budget.id === budgetId)?.amount - updatedExpense;
+  // Calculate the expense for each budget
+  const getUpdatedBudgets = () => {
+    return budgets.map((budget) => {
+      const relatedTransactions = transactions.filter(
+        (transaction) => transaction.category?.id === budget.categoryId
+      );
+      const totalExpense = relatedTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const remaining = budget.amount - totalExpense;
 
-    update(budgetRef, {
-      expense: updatedExpense,
-      remaining: updatedRemaining,
-    })
-      .then(() => {
-        Alert.alert('Success', 'Budget updated successfully.');
-      })
-      .catch((error) => {
-        console.error('Error updating budget:', error);
-        Alert.alert('Error', 'Failed to update budget.');
-      });
+      return {
+        ...budget,
+        expense: totalExpense,
+        remaining,
+      };
+    });
   };
 
-  const handleDeleteBudget = (budgetId) => {
-    Alert.alert('Confirm Delete', 'Are you sure you want to delete this budget?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${budgetId}`);
-          remove(budgetRef)
-            .then(() => Alert.alert('Success', 'Budget deleted successfully.'))
-            .catch((error) => {
-              console.error('Error deleting budget:', error);
-              Alert.alert('Error', 'Failed to delete budget.');
-            });
-        },
-      },
-    ]);
-  };
+  const updatedBudgets = getUpdatedBudgets();
 
-  const renderBudgetItem = ({ item }) => (
-    <View style={styles.budgetCard}>
-      <Text style={styles.budgetName}>{item.name}</Text>
-      <Text>Total: {item.amount} VND</Text>
-      <Text>Expense: {item.expense || 0} VND</Text>
-      <Text>Remaining: {item.remaining || 0} VND</Text>
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteBudget(item.id)}
-        >
-          <Text style={styles.buttonText}>Delete</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+  const renderBudgetItem = ({ item }) => {
+    const data = [
+      { key: 1, value: item.remaining || 0, svg: { fill: '#4caf50' } }, // Remaining
+      { key: 2, value: item.expense || 0, svg: { fill: '#ccc' } }, // Expense
+    ];
+
+    return (
+      <View style={styles.budgetCard}>
+        <View style={styles.budgetHeader}>
+          <Icon
+            name={item.categoryIcon}
+            size={40}
+            color={'#6246EA'}
+            style={styles.categoryIcon}
+          />
+          <Text style={styles.budgetName}>{item.name}</Text>
+        </View>
+        <View style={styles.budgetContent}>
+          <View>
+            <Text>Total: {item.amount} VND</Text>
+            <Text style={{ color: 'red' }}>Expense: {item.expense || 0} VND</Text>
+            <Text style={{ color: 'green' }}>Remaining: {item.remaining || 0} VND</Text>
+          </View>
+          <PieChart
+            style={styles.donutChart}
+            data={data}
+            innerRadius="50%" // Create the donut effect
+            outerRadius="80%"
+          />
+        </View>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeleteBudget(item.id)}
+          >
+            <Text style={styles.buttonText}>Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
           style={styles.updateButton}
-          onPress={() => handleUpdateBudget(item.id, (item.expense || 0) + 1000)} // Example: Add 1000 to expense
-        >
+          onPress={() => navigation.navigate('EditBudget', { budgetId: item.id, budgetData: item })}>
           <Text style={styles.buttonText}>Update</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Budgets</Text>
       <FlatList
-        data={budgets}
+        data={updatedBudgets}
         keyExtractor={(item) => item.id}
         renderItem={renderBudgetItem}
         ListEmptyComponent={<Text style={styles.emptyText}>No budgets found. Create one below!</Text>}
@@ -121,7 +145,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     elevation: 3,
   },
-  budgetName: { fontSize: 18, fontWeight: 'bold', marginBottom: 5 },
+  budgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  categoryIcon: {
+    marginRight: 10,
+  },
+  budgetName: { fontSize: 18, fontWeight: 'bold' },
+  budgetContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  donutChart: {
+    width: 100,
+    height: 100,
+  },
   actionButtons: { flexDirection: 'row', marginTop: 10 },
   deleteButton: {
     backgroundColor: '#f44336',

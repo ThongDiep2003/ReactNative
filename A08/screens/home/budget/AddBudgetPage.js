@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { Button } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { ref, set, onValue } from 'firebase/database';
 
@@ -17,7 +18,6 @@ const AddBudgetPage = () => {
 
   const userId = FIREBASE_AUTH.currentUser?.uid;
 
-  // Lấy danh sách categories từ Firebase
   useEffect(() => {
     if (userId) {
       const categoryRef = ref(FIREBASE_DB, `categories/${userId}`);
@@ -52,6 +52,7 @@ const AddBudgetPage = () => {
       categoryId: selectedCategory.id,
       categoryName: selectedCategory.name,
       categoryIcon: selectedCategory.icon,
+      categoryColor: selectedCategory.color,
       endDate: endDate.toISOString(),
       expense: 0,
       remaining: parseFloat(totalAmount),
@@ -71,7 +72,7 @@ const AddBudgetPage = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Add New Budget</Text>
+      
       <TextInput
         style={styles.input}
         placeholder="Enter Budget Name"
@@ -102,7 +103,11 @@ const AddBudgetPage = () => {
               cat.id === selectedCategory?.id && styles.selectedCategoryButton,
             ]}
           >
-            <Text style={styles.categoryText}>{cat.name}</Text>
+            <Icon
+              name={cat.icon}
+              size={40}
+              color={cat.color || '#000'}
+            />
           </TouchableOpacity>
         ))}
       </View>
@@ -114,23 +119,42 @@ const AddBudgetPage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 20, borderRadius: 5 },
-  datePicker: { padding: 10, backgroundColor: '#f0f0f0', borderRadius: 5, marginBottom: 20 },
-  dateText: { fontSize: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  categoryContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-  categoryButton: {
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    margin: 5,
-    borderRadius: 5,
+  container: { flex: 1, padding: 20, backgroundColor: '#F4F4FA' },
+  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#6246EA' },
+  input: {
     borderWidth: 1,
     borderColor: '#ccc',
+    padding: 15,
+    marginBottom: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    elevation: 2,
   },
-  selectedCategoryButton: { backgroundColor: '#ddd' },
-  saveButton: { marginTop: 20 },
+  datePicker: {
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginBottom: 20,
+    elevation: 2,
+  },
+  dateText: { fontSize: 16, color: '#333' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#6246EA' },
+  categoryContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'left', marginBottom: 10, },
+  categoryButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: 10,
+    
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    elevation: 2,
+  },
+  selectedCategoryButton: { borderColor: '#6246EA', borderWidth: 2 },
+  saveButton: { height: 50, backgroundColor: '#6246EA', borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginLeft: 25, marginRight: 25, }
 });
 
 export default AddBudgetPage;
