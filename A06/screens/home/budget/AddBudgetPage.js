@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
   },
   selectedCategoryButton: { backgroundColor: '#ddd' },
-  saveButton: { marginTop: 20 },
+  saveButton: { marginTop: 20, backgroundColor: '#6246EA' },
 });
 
 export default AddBudgetPage;
