@@ -20,10 +20,12 @@ const EnterOTP2 = ({ route, navigation }) => {
         const auth = FIREBASE_AUTH;
         const response = await createUserWithEmailAndPassword(auth, email, password);
         const userId = response.user.uid;
+        const timestamp = Date.now();
 
         // Store user information in Realtime Database
         await set(ref(FIREBASE_DB, 'users/' + userId), {
           email: email,
+          timestamp: timestamp,
         });
 
         setTimeout(() => {
