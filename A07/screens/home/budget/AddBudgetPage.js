@@ -1,107 +1,136 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
-import { ref, push } from 'firebase/database';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import moment from 'moment';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Button } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation } from '@react-navigation/native';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
+import { ref, set, onValue } from 'firebase/database';
 
-const AddBudgetPage = ({ navigation }) => {
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
+const AddBudgetPage = () => {
+  const navigation = useNavigation();
+  const [budgetName, setBudgetName] = useState('');
+  const [totalAmount, setTotalAmount] = useState('');
+  const [endDate, setEndDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
-  const handleAddBudget = () => {
-    if (amount && category) {
-      const categoryRef = ref(FIREBASE_DB, 'categories');
-      push(categoryRef, {
-        name: category,
-        amount: parseFloat(amount),
-        date: moment().format('MMMM Do YYYY'),
+  const userId = FIREBASE_AUTH.currentUser?.uid;
+
+  // Lấy danh sách categories từ Firebase
+  useEffect(() => {
+    if (userId) {
+      const categoryRef = ref(FIREBASE_DB, `categories/${userId}`);
+      onValue(categoryRef, (snapshot) => {
+        const data = snapshot.val();
+        const categoryList = data
+          ? Object.keys(data).map((key) => ({
+              id: key,
+              ...data[key],
+            }))
+          : [];
+        setCategories(categoryList);
       });
-
-      const budgetRef = ref(FIREBASE_DB, 'budget');
-      push(budgetRef, {
-        category: category,
-        amount: parseFloat(amount),
-        date: moment().format('MMMM Do YYYY'),
-      }).then(() => {
-        setAmount('');
-        setCategory('');
-        navigation.goBack();
-      });
-    } else {
-      alert('Please enter all fields');
     }
+  }, [userId]);
+
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || endDate;
+    setShowDatePicker(false);
+    setEndDate(currentDate);
+  };
+
+  const handleSaveBudget = () => {
+    if (!budgetName || !totalAmount || !selectedCategory) {
+      Alert.alert('Error', 'Please fill all fields and select a category.');
+      return;
+    }
+
+    const newBudget = {
+      name: budgetName,
+      amount: parseFloat(totalAmount),
+      categoryId: selectedCategory.id,
+      categoryName: selectedCategory.name,
+      categoryIcon: selectedCategory.icon,
+      endDate: endDate.toISOString(),
+      expense: 0,
+      remaining: parseFloat(totalAmount),
+    };
+
+    const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${Date.now()}`);
+    set(budgetRef, newBudget)
+      .then(() => {
+        Alert.alert('Success', 'Budget created successfully.');
+        navigation.goBack();
+      })
+      .catch((error) => {
+        console.error('Error saving budget:', error);
+        Alert.alert('Error', 'Failed to save budget.');
+      });
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Add New Budget</Text>
-      
-      <View style={styles.inputContainer}>
-        <Icon name="cash" size={25} color="gray" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Amount (VND)"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={(text) => setAmount(text)}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Icon name="format-list-bulleted" size={25} color="gray" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Category"
-          value={category}
-          onChangeText={(text) => setCategory(text)}
-        />
-      </View>
-
-      <TouchableOpacity style={styles.addButton} onPress={handleAddBudget}>
-        <Text style={styles.addButtonText}>Add Budget</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Budget Name"
+        value={budgetName}
+        onChangeText={setBudgetName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Total Amount"
+        keyboardType="numeric"
+        value={totalAmount}
+        onChangeText={setTotalAmount}
+      />
+      <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
+        <Text style={styles.dateText}>{endDate.toLocaleDateString()}</Text>
       </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker value={endDate} mode="date" display="default" onChange={onDateChange} />
+      )}
+      <Text style={styles.sectionTitle}>Select Category</Text>
+      <View style={styles.categoryContainer}>
+        {categories.map((cat) => (
+          <TouchableOpacity
+            key={cat.id}
+            onPress={() => setSelectedCategory(cat)}
+            style={[
+              styles.categoryButton,
+              cat.id === selectedCategory?.id && styles.selectedCategoryButton,
+            ]}
+          >
+            <Text style={styles.categoryText}>{cat.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Button mode="contained" onPress={handleSaveBudget} style={styles.saveButton}>
+        Save Budget
+      </Button>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#ffffff',
+  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 20, borderRadius: 5 },
+  datePicker: { padding: 10, backgroundColor: '#f0f0f0', borderRadius: 5, marginBottom: 20 },
+  dateText: { fontSize: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  categoryContainer: { flexDirection: 'row', flexWrap: 'wrap' },
+  categoryButton: {
+    padding: 10,
+    backgroundColor: '#f9f9f9',
+    margin: 5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 30,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderColor: 'gray',
-    marginBottom: 20,
-  },
-  icon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 18,
-  },
-  addButton: {
-    backgroundColor: '#6200ee',
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  selectedCategoryButton: { backgroundColor: '#ddd' },
+  saveButton: { marginTop: 20 },
 });
 
 export default AddBudgetPage;

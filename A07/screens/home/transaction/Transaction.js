@@ -1,25 +1,35 @@
 import React from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { ref, remove } from 'firebase/database';
-import { FIREBASE_DB } from '../../../auths/FirebaseConfig';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig'; // Import FIREBASE_AUTH
 import { Chip, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Transaction = ({ route, navigation }) => {
   const { transaction } = route.params;
 
-  const handleDeleteTransaction = () => {
+  const handleDeleteTransaction = async () => {
     Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this transaction?",
+      'Confirm Delete',
+      'Are you sure you want to delete this transaction?',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
+          text: 'Delete',
           onPress: async () => {
             try {
-              const transactionRef = ref(FIREBASE_DB, 'transactions/' + transaction.id);
+              const currentUser = FIREBASE_AUTH.currentUser?.uid; // Ensure the user is authenticated
+              if (!currentUser) {
+                Alert.alert('Error', 'User not authenticated.');
+                return;
+              }
+
+              const transactionRef = ref(
+                FIREBASE_DB,
+                `users/${currentUser}/transactions/${transaction.id}`
+              );
               await remove(transactionRef);
+
               Alert.alert('Deleted', 'Transaction has been deleted successfully.');
               navigation.goBack();
             } catch (error) {
@@ -39,17 +49,31 @@ const Transaction = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* <Text style={styles.pageHeader}>Transaction Details</Text> */}
-
-      {/* Type Selection */}
+      {/* Header Tabs */}
       <View style={styles.headerContainer}>
-        <Text style={[styles.header, transaction.type === 'Income' ? styles.activeTab : styles.inactiveTab]}>Income</Text>
-        <Text style={[styles.header, transaction.type === 'Expense' ? styles.activeTab : styles.inactiveTab]}>Expense</Text>
+        <Text
+          style={[
+            styles.header,
+            transaction.type === 'Income' ? styles.activeTab : styles.inactiveTab,
+          ]}
+        >
+          Income
+        </Text>
+        <Text
+          style={[
+            styles.header,
+            transaction.type === 'Expense' ? styles.activeTab : styles.inactiveTab,
+          ]}
+        >
+          Expense
+        </Text>
       </View>
 
       {/* Amount Display */}
       <View style={styles.amountContainer}>
-        <Text style={styles.amountText}>{transaction.amount} VND</Text>
+        <Text style={styles.amountText}>
+          {transaction.amount.toLocaleString()} VND
+        </Text>
       </View>
 
       {/* Date Display */}
@@ -63,33 +87,40 @@ const Transaction = ({ route, navigation }) => {
         <View style={styles.detailContainer}>
           <Text style={styles.sectionTitle}>Category</Text>
           <View style={styles.categoryContainer}>
-            <Icon name={transaction.category.icon} size={30} color="#6246EA" style={styles.categoryIcon} />
+            <Icon
+              name={transaction.category.icon}
+              size={30}
+              color="#6246EA"
+              style={styles.categoryIcon}
+            />
             <Text style={styles.categoryText}>{transaction.category.name}</Text>
           </View>
         </View>
       )}
 
       {/* Account Display */}
-      <Text style={styles.sectionTitle}>Account</Text>
-      <Chip mode="outlined" style={styles.accountChip}>{transaction.account}</Chip>
+      <View style={styles.detailContainer}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        <Chip mode="outlined" style={styles.accountChip}>
+          {transaction.account}
+        </Chip>
+      </View>
 
       {/* Buttons for Edit and Delete */}
       <View style={styles.buttonContainer}>
         <Button
           mode="contained"
-          
           onPress={handleEditTransaction}
-          style={styles.button}
+          style={styles.editButton}
         >
-          Edit Transaction
+          Edit
         </Button>
         <Button
           mode="contained"
-         
           onPress={handleDeleteTransaction}
-          style={styles.button}
+          style={styles.deleteButton}
         >
-          Delete Transaction
+          Delete
         </Button>
       </View>
     </View>
@@ -102,23 +133,18 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#ffffff',
   },
-  pageHeader: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-    marginTop: 20,
-  },
   headerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
+    justifyContent: 'center',
+    marginBottom: 30,
   },
   header: {
     fontSize: 18,
     fontWeight: 'bold',
     paddingVertical: 10,
+    paddingHorizontal: 20,
     borderBottomWidth: 2,
+    textAlign: 'center',
   },
   activeTab: {
     color: '#6246EA',
@@ -130,19 +156,20 @@ const styles = StyleSheet.create({
   },
   amountContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   amountText: {
-    fontSize: 24,
+    fontSize: 32,
     color: '#FF5722',
     fontWeight: 'bold',
   },
   datePicker: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 15,
     borderRadius: 10,
-    backgroundColor: '#e0f7fa',
+    backgroundColor: '#f3f3f3',
     marginBottom: 20,
   },
   dateText: {
@@ -151,7 +178,7 @@ const styles = StyleSheet.create({
     color: '#6246EA',
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 10,
@@ -160,38 +187,42 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 15,
     borderRadius: 10,
-    backgroundColor: '#f1f1f1',
+    backgroundColor: '#f9f9f9',
     marginBottom: 20,
   },
   categoryIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   categoryText: {
     fontSize: 18,
     color: '#6246EA',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   accountChip: {
-    
-    backgroundColor: '#e3f2fd',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    backgroundColor: '#E0F7FA',
     alignSelf: 'center',
-    marginBottom: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    fontSize: 16,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 30,
+    marginTop: 40,
   },
-  button: {
-   
-    borderRadius: 25,
-    marginHorizontal: 5,
+  editButton: {
+    flex: 1,
+    marginRight: 10,
+    borderRadius: 30,
     backgroundColor: '#6246EA',
-    
+  },
+  deleteButton: {
+    flex: 1,
+    marginLeft: 10,
+    borderRadius: 30,
+    backgroundColor: '#FF5722',
   },
 });
 

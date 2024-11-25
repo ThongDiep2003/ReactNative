@@ -202,6 +202,7 @@ const HomePage = () => {
         />
       </View>
 
+
       {/* Recent Transactions */}
       <View style={[tw`mt-5 p-6 flex-1`]}>
         <View style={tw`flex-row justify-between mb-3`}>
@@ -213,7 +214,7 @@ const HomePage = () => {
         <FlatList
           data={transactions.filter((transaction) => transaction.type === displayType)}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => handleTransactionPress(item)} style={tw`flex-row justify-between bg-gray-100 p-3 rounded-lg mb-2`}>
+            <View style={tw`flex-row justify-between bg-gray-100 p-3 rounded-lg mb-2`}>
               <View style={tw`flex-row items-center`}>
                 <Icon name={item.category.icon} size={24} color={iconList.find(icon => icon.name === item.category.icon)?.color || '#000'} />
                 <Text style={tw`ml-2`}>{item.category.name}</Text>
@@ -221,7 +222,7 @@ const HomePage = () => {
               <Text style={tw`${item.type === 'Expense' ? 'text-red-600' : 'text-green-600'} font-bold`}>
                 {item.type === 'Expense' ? '-' : '+'} {item.amount.toLocaleString()} VND
               </Text>
-            </TouchableOpacity>
+            </View>
           )}
           keyExtractor={(item, index) => index.toString()}
         />

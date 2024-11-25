@@ -5,6 +5,13 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  // Ghi log lỗi nhưng không hiển thị trên giao diện
+  if (__DEV__) {
+    console.log('Error:', error);
+  }
+});
+
 // Import các trang
 import SplashScreen from "./screens/splash/SplashScreen";
 import SplashScreen1 from "./screens/splash/SplashScreen1";  
@@ -25,11 +32,14 @@ import LogoutPage from "./screens/account/LogoutPage";
 import Transaction from './screens/home/transaction/Transaction';
 import AllTransaction from './screens/home/transaction/AllTransaction';
 import EditTransaction from './screens/home/transaction/EditTransaction';
-import CategoryPage from './screens/home/transaction/CategoryPage';
+import CategoryPage from './screens/home/transaction/category/user/CategoryPage';
+import CategoryManagementPage from './screens/home/transaction/category/CategoryManagementPage';
+import DefaultCategory from './screens/home/transaction/category/default/DefaultCategory';
 
 import BudgetPage from "./screens/home/budget/BudgetPage";
 import AddBudgetPage from "./screens/home/budget/AddBudgetPage";
-
+import IconSelectionPage from "./screens/home/budget/IconSelectionPage"
+import EditBudgetPage from "./screens/home/budget/EditBudgetPage";
 
 import SettingsPage from './screens/setting/SettingsPage';
 import Language from './screens/setting/LanguagePage';
@@ -103,6 +113,8 @@ const App = () => {
             <Stack.Screen name="EditTransaction" component={EditTransaction} options={{ headerTitle: "Edit Transaction" }} />
             <Stack.Screen name="Logout" component={LogoutPage} />
             <Stack.Screen name="Category" component={CategoryPage} />
+            <Stack.Screen name="CategoryManagement" component={CategoryManagementPage} />
+            <Stack.Screen name="Default" component={DefaultCategory} />
           </>
       
           <>
@@ -176,6 +188,16 @@ const App = () => {
       name="AddBudget"
       component={AddBudgetPage}
       options={{ headerTitle: "Add Budget" }}
+    />
+    <Stack.Screen
+      name="IconSelection"
+      component={IconSelectionPage}
+      options={{ headerTitle: "Select Icon" }}
+    />
+    <Stack.Screen
+      name="EditBudget"
+      component={EditBudgetPage}
+      options={{ headerTitle: "Edit Budget" }}
     />
       </Stack.Navigator>
     </NavigationContainer>

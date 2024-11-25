@@ -5,7 +5,6 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 const SettingsPage = ({ navigation }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
       
       <Text style={styles.sectionHeader}>General</Text>
       <TouchableOpacity 
@@ -52,7 +51,18 @@ const SettingsPage = ({ navigation }) => {
       >
         <Text style={styles.itemText}>Logout</Text>
       </TouchableOpacity>
-
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => navigation.navigate('Default')} // Navigate to LogoutPage
+      >
+        <Text style={styles.itemText}>Admin</Text>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => navigation.navigate('CategoryManagement')} // Navigate to LogoutPage
+      >
+        <Text style={styles.itemText}>Manage Category</Text>
+      </TouchableOpacity>
       <Text style={styles.footerText}>Choose what data you share with us</Text>
     </View>
   );
