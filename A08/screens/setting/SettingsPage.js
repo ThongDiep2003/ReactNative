@@ -21,14 +21,25 @@ const SettingsPage = ({ navigation }) => {
       >
         <Text style={styles.itemText}>My Profile</Text>
       </TouchableOpacity>
-
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => navigation.navigate('CategoryManagement')} // Navigate to LogoutPage
+      >
+        <Text style={styles.itemText}>Manage Category</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => navigation.navigate('Forum')} // Navigate to LogoutPage
+      >
+        <Text style={styles.itemText}>Q & A</Text>
+      </TouchableOpacity>
       <TouchableOpacity 
         style={styles.item}
         onPress={() => navigation.navigate('ContactUs')} // Navigate to ContactUs
       >
         <Text style={styles.itemText}>Contact Us</Text>
       </TouchableOpacity>
-
 
       <Text style={styles.sectionHeader}>Security</Text>
       {/* <TouchableOpacity 
@@ -51,18 +62,7 @@ const SettingsPage = ({ navigation }) => {
       >
         <Text style={styles.itemText}>Logout</Text>
       </TouchableOpacity>
-      <TouchableOpacity 
-        style={styles.item}
-        onPress={() => navigation.navigate('Default')} // Navigate to LogoutPage
-      >
-        <Text style={styles.itemText}>Admin</Text>
-      </TouchableOpacity>
-      <TouchableOpacity 
-        style={styles.item}
-        onPress={() => navigation.navigate('CategoryManagement')} // Navigate to LogoutPage
-      >
-        <Text style={styles.itemText}>Manage Category</Text>
-      </TouchableOpacity>
+      
       <Text style={styles.footerText}>Choose what data you share with us</Text>
     </View>
   );
