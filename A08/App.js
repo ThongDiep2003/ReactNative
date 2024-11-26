@@ -36,7 +36,7 @@ import AllTransaction from './screens/home/transaction/AllTransaction';
 import EditTransaction from './screens/home/transaction/EditTransaction';
 import CategoryPage from './screens/home/transaction/category/user/CategoryPage';
 import CategoryManagementPage from './screens/home/transaction/category/CategoryManagementPage';
-import DefaultCategory from './screens/home/transaction/category/default/DefaultCategory';
+
 
 import BudgetPage from "./screens/home/budget/BudgetPage";
 import AddBudgetPage from "./screens/home/budget/AddBudgetPage";
@@ -49,11 +49,13 @@ import ContactUs from './screens/setting/ContactUsPage';
 import ChangePassword from './screens/setting/ChangePasswordPage';
 import PrivacyPolicy from './screens/setting/PrivacyPolicyPage';
 
+
 import Move2 from './screens/move/Move2';
 import Move3 from './screens/move/Move3';
 
 // Import TabNavigator cho Bottom Tabs
 import TabNavigator from "./navigation/TabNavigator"; 
+import ForumScreen from "./screens/setting/ForumScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -116,7 +118,7 @@ const App = () => {
             <Stack.Screen name="Logout" component={LogoutPage} />
             <Stack.Screen name="Category" component={CategoryPage} />
             <Stack.Screen name="CategoryManagement" component={CategoryManagementPage} />
-            <Stack.Screen name="Default" component={DefaultCategory} />
+           
           </>
       
           <>
@@ -178,6 +180,11 @@ const App = () => {
           name="LogoutPage"
           component={LogoutPage}
           options={{ headerTitle: "Logout" }}
+        />
+        <Stack.Screen
+          name="Forum"
+          component={ForumScreen}
+          options={{ headerTitle: "Forum" }}
         />
 
     {/* Settings Screens */}
