@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from 'react-native';
 import { Button } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
@@ -9,12 +9,12 @@ import { ref, set, onValue } from 'firebase/database';
 
 const AddBudgetPage = () => {
   const navigation = useNavigation();
-  const [budgetName, setBudgetName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [endDate, setEndDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [budgetName, setBudgetName] = useState('');
 
   const userId = FIREBASE_AUTH.currentUser?.uid;
 
@@ -38,6 +38,11 @@ const AddBudgetPage = () => {
     const currentDate = selectedDate || endDate;
     setShowDatePicker(false);
     setEndDate(currentDate);
+  };
+
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    setBudgetName(category.name); // Set budgetName automatically based on selected category
   };
 
   const handleSaveBudget = () => {
@@ -72,13 +77,7 @@ const AddBudgetPage = () => {
 
   return (
     <View style={styles.container}>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Budget Name"
-        value={budgetName}
-        onChangeText={setBudgetName}
-      />
+      <Text style={styles.sectionTitle}>Total Amount</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter Total Amount"
@@ -97,17 +96,13 @@ const AddBudgetPage = () => {
         {categories.map((cat) => (
           <TouchableOpacity
             key={cat.id}
-            onPress={() => setSelectedCategory(cat)}
+            onPress={() => handleCategorySelect(cat)}
             style={[
               styles.categoryButton,
               cat.id === selectedCategory?.id && styles.selectedCategoryButton,
             ]}
           >
-            <Icon
-              name={cat.icon}
-              size={40}
-              color={cat.color || '#000'}
-            />
+            <Icon name={cat.icon} size={40} color={cat.color || '#000'} />
           </TouchableOpacity>
         ))}
       </View>
@@ -139,12 +134,16 @@ const styles = StyleSheet.create({
   },
   dateText: { fontSize: 16, color: '#333' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#6246EA' },
-  categoryContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'left', marginBottom: 10, },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    marginBottom: 10,
+  },
   categoryButton: {
     alignItems: 'center',
     justifyContent: 'center',
     margin: 10,
-    
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -154,7 +153,16 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   selectedCategoryButton: { borderColor: '#6246EA', borderWidth: 2 },
-  saveButton: { height: 50, backgroundColor: '#6246EA', borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginLeft: 25, marginRight: 25, }
+  saveButton: {
+    height: 50,
+    backgroundColor: '#6246EA',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 25,
+    marginRight: 25,
+    marginBottom: 10,
+  },
 });
 
 export default AddBudgetPage;

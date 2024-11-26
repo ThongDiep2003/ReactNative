@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Button } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
-import { ref, update, onValue } from 'firebase/database';
+import { ref, update, onValue, remove } from 'firebase/database';
 
 const EditBudgetPage = () => {
   const navigation = useNavigation();
@@ -43,6 +43,12 @@ const EditBudgetPage = () => {
     setEndDate(currentDate);
   };
 
+  const handleCategorySelect = (categoryId) => {
+    setSelectedCategory(categoryId);
+    const selectedCategoryName = categories.find((cat) => cat.id === categoryId)?.name || '';
+    setBudgetName(selectedCategoryName);
+  };
+
   const handleUpdateBudget = () => {
     if (!budgetName || !totalAmount || !selectedCategory) {
       Alert.alert('Error', 'Please fill all fields and select a category.');
@@ -71,9 +77,49 @@ const EditBudgetPage = () => {
       });
   };
 
+  const handleDeleteBudget = () => {
+    Alert.alert(
+      'Delete Budget',
+      'Are you sure you want to delete this budget?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${budgetId}`);
+            remove(budgetRef)
+              .then(() => {
+                Alert.alert('Success', 'Budget deleted successfully.');
+                navigation.goBack();
+              })
+              .catch((error) => {
+                console.error('Error deleting budget:', error);
+                Alert.alert('Error', 'Failed to delete budget.');
+              });
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Add the trash icon to the header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={handleDeleteBudget} style={styles.headerRightIcon}>
+          <Icon name="trash-can-outline" size={25} color="#f44336" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, handleDeleteBudget]);
+
   return (
     <View style={styles.container}>
-     
       <TextInput
         style={styles.input}
         placeholder="Enter Budget Name"
@@ -98,17 +144,13 @@ const EditBudgetPage = () => {
         {categories.map((cat) => (
           <TouchableOpacity
             key={cat.id}
-            onPress={() => setSelectedCategory(cat.id)}
+            onPress={() => handleCategorySelect(cat.id)}
             style={[
               styles.categoryButton,
               cat.id === selectedCategory && styles.selectedCategoryButton,
             ]}
           >
-            <Icon
-              name={cat.icon}
-              size={40}
-              color={cat.color || '#000'}
-            />
+            <Icon name={cat.icon} size={40} color={cat.color || '#000'} />
           </TouchableOpacity>
         ))}
       </View>
@@ -121,7 +163,9 @@ const EditBudgetPage = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#F4F4FA' },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#6246EA' },
+  headerRightIcon: {
+    paddingRight: 20,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -140,12 +184,16 @@ const styles = StyleSheet.create({
   },
   dateText: { fontSize: 16, color: '#333' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#6246EA' },
-  categoryContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'left', marginBottom: 10, },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    marginBottom: 10,
+  },
   categoryButton: {
     alignItems: 'center',
     justifyContent: 'center',
     margin: 10,
-    
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -155,7 +203,16 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   selectedCategoryButton: { borderColor: '#6246EA', borderWidth: 2 },
-  saveButton: { height: 50, backgroundColor: '#6246EA', borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginLeft: 25, marginRight: 25, }
+  saveButton: {
+    height: 50,
+    backgroundColor: '#6246EA',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 25,
+    marginRight: 25,
+    marginBottom: 10,
+  },
 });
 
 export default EditBudgetPage;

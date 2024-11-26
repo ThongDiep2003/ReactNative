@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, FlatList } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Cập nhật import
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from '../../auths/FirebaseConfig';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { ref, onValue } from 'firebase/database';
 import tw from 'tailwind-react-native-classnames';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { PieChart } from 'react-native-svg-charts';
-import { Text as SVGText } from 'react-native-svg';
+import { PieChart } from 'react-native-gifted-charts'; // Import PieChart
 
 const iconList = [
   { name: 'car', color: '#f44336' },
@@ -60,8 +59,8 @@ const HomePage = () => {
   const [expenseCategories, setExpenseCategories] = useState([]);
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [displayType, setDisplayType] = useState('Expense');
+  const [focusedSection, setFocusedSection] = useState(null); // Lưu trạng thái phần được chọn
 
-  // Hàm fetch dữ liệu
   const fetchUserData = async () => {
     try {
       const currentUser = FIREBASE_AUTH.currentUser;
@@ -137,18 +136,20 @@ const HomePage = () => {
     }
   };
 
-  // Sử dụng useFocusEffect để fetch lại dữ liệu khi trang được mở lại
   useFocusEffect(
     React.useCallback(() => {
       fetchUserData();
     }, [])
   );
 
-  const handleExpensePress = () => setDisplayType('Expense');
-  const handleIncomePress = () => setDisplayType('Income');
+  const handleExpensePress = () => {
+    setDisplayType('Expense');
+    setFocusedSection(null); // Reset focus khi chuyển đổi loại
+  };
 
-  const handleTransactionPress = (transaction) => {
-    navigation.navigate('Transaction', { transaction });
+  const handleIncomePress = () => {
+    setDisplayType('Income');
+    setFocusedSection(null); // Reset focus khi chuyển đổi loại
   };
 
   if (loading) {
@@ -158,6 +159,15 @@ const HomePage = () => {
       </View>
     );
   }
+
+  const pieData = (displayType === 'Expense' ? expenseCategories : incomeCategories).map((item, index) => ({
+    value: Math.abs(item.amount),
+    color: item.color,
+    gradientCenterColor: item.color,
+    text: `${Math.round((item.amount / (displayType === 'Expense' ? totalExpense : totalIncome)) * 100)}%`,
+    focused: focusedSection === index,
+    onPress: () => setFocusedSection(index), // Cập nhật phần được chọn
+  }));
 
   return (
     <View style={[tw`flex-1 bg-white`, { marginTop: 0 }]}>
@@ -174,36 +184,45 @@ const HomePage = () => {
         </View>
       </View>
 
-      {/* Expense and Income Summary */}
       <View style={tw`flex-row justify-around mt-5`}>
         <TouchableOpacity onPress={handleExpensePress} style={[tw`p-5 rounded-lg`, { backgroundColor: displayType === 'Expense' ? '#ffebee' : '#f5f5f5', width: 175 }]}>
           <Text style={tw`text-sm text-black`}>Expense</Text>
-          <Text style={tw`text-base  font-bold text-red-600`}>- {totalExpense.toLocaleString()} VND</Text>
+          <Text style={tw`text-base font-bold text-red-600`}>- {totalExpense.toLocaleString()} VND</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleIncomePress} style={[tw`p-5 rounded-lg`, { backgroundColor: displayType === 'Income' ? '#e8f5e9' : '#f5f5f5', width: 175 }]}>
           <Text style={tw`text-sm text-black`}>Income</Text>
-          <Text style={tw`text-base  font-bold text-green-600`}>+ {totalIncome.toLocaleString()} VND</Text>
+          <Text style={tw`text-base font-bold text-green-600`}>+ {totalIncome.toLocaleString()} VND</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Donut Chart for Expense or Income Categories */}
-      <View style={[tw`mt-5 mb-5 p-5 rounded-lg`, { marginBottom: 0 }]}>
+      <View style={[tw`mt-5 mb-5 p-5 rounded-lg justify-center items-center`, { marginBottom: 0 }]}>
         <Text style={tw`text-lg font-bold text-center mb-3`}>{displayType} Distribution</Text>
         <PieChart
-          style={{ height: 175 }}
-          data={(displayType === 'Expense' ? expenseCategories : incomeCategories).map((item) => ({
-            value: Math.abs(item.amount),
-            svg: { fill: item.color },
-            key: item.name,
-          }))}
-          innerRadius="60%"
-          outerRadius="100%"
-          padAngle={0.02}
+          data={pieData}
+          donut
+          showGradient
+          sectionAutoFocus
+          focusOnPress={true} // Cho phép nhấn vào phần khác
+          radius={100}
+          innerRadius={70}
+          innerCircleColor="#ffffff"
+          centerLabelComponent={() => {
+            if (focusedSection !== null) {
+              const focusedData = (displayType === 'Expense' ? expenseCategories : incomeCategories)[focusedSection];
+              return (
+                <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 22, color: 'black', fontWeight: 'bold' }}>
+                    {Math.round((focusedData.amount / (displayType === 'Expense' ? totalExpense : totalIncome)) * 100)}%
+                  </Text>
+                  <Text style={{ fontSize: 14, color: 'black' }}>{focusedData.name}</Text>
+                </View>
+              );
+            }
+            return null; // Không hiển thị gì nếu chưa có phần nào được chọn
+          }}
         />
       </View>
 
-
-      {/* Recent Transactions */}
       <View style={[tw`mt-5 p-6 flex-1`]}>
         <View style={tw`flex-row justify-between mb-3`}>
           <Text style={tw`text-lg font-bold`}>Recent Transactions</Text>

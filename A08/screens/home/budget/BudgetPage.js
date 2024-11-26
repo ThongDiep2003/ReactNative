@@ -1,17 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Button } from 'react-native-paper';
-import { PieChart } from 'react-native-svg-charts'; // For Donut Chart
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  StatusBar,
+} from 'react-native';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
-import { ref, onValue, update, remove } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
+import moment from 'moment';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ProgressBar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+
+const iconList = [
+  { name: 'car', color: '#f44336' },
+  { name: 'food', color: '#e91e63' },
+  { name: 'gift', color: '#9c27b0' },
+  // ...
+];
 
 const BudgetPage = () => {
   const [budgets, setBudgets] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [daysLeft, setDaysLeft] = useState(0);
   const userId = FIREBASE_AUTH.currentUser?.uid;
   const navigation = useNavigation();
+
+  // Tính số ngày còn lại của tháng
+  useEffect(() => {
+    const endOfMonth = moment().endOf('month');
+    setDaysLeft(endOfMonth.diff(moment(), 'days'));
+  }, []);
 
   useEffect(() => {
     if (userId) {
@@ -66,123 +88,194 @@ const BudgetPage = () => {
 
   const updatedBudgets = getUpdatedBudgets();
 
-  const renderBudgetItem = ({ item }) => {
-    const data = [
-      { key: 1, value: item.remaining || 0, svg: { fill: '#4caf50' } }, // Remaining
-      { key: 2, value: item.expense || 0, svg: { fill: '#ccc' } }, // Expense
-    ];
-
+  const BudgetBar = ({ spent, total }) => {
+    const remainingPercentage = total > 0 ? (total - spent) / total : 0;
     return (
-      <View style={styles.budgetCard}>
-        <View style={styles.budgetHeader}>
-          <Icon
-            name={item.categoryIcon}
-            size={40}
-            color={'#6246EA'}
-            style={styles.categoryIcon}
-          />
-          <Text style={styles.budgetName}>{item.name}</Text>
-        </View>
-        <View style={styles.budgetContent}>
-          <View>
-            <Text>Total: {item.amount} VND</Text>
-            <Text style={{ color: 'red' }}>Expense: {item.expense || 0} VND</Text>
-            <Text style={{ color: 'green' }}>Remaining: {item.remaining || 0} VND</Text>
-          </View>
-          <PieChart
-            style={styles.donutChart}
-            data={data}
-            innerRadius="50%" // Create the donut effect
-            outerRadius="80%"
-          />
-        </View>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeleteBudget(item.id)}
-          >
-            <Text style={styles.buttonText}>Delete</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-          style={styles.updateButton}
-          onPress={() => navigation.navigate('EditBudget', { budgetId: item.id, budgetData: item })}>
-          <Text style={styles.buttonText}>Update</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.progressBarContainer}>
+        {/* Phần ngân sách còn lại */}
+        <View style={[styles.progressBar, { flex: remainingPercentage, backgroundColor: '#13afae' }]} />
+        {/* Phần ngân sách đã sử dụng */}
+        <View style={[styles.progressBar, { flex: 1 - remainingPercentage, backgroundColor: '#f5f4f9' }]} />
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Budgets</Text>
-      <FlatList
-        data={updatedBudgets}
-        keyExtractor={(item) => item.id}
-        renderItem={renderBudgetItem}
-        ListEmptyComponent={<Text style={styles.emptyText}>No budgets found. Create one below!</Text>}
-        ListFooterComponent={
-          <Button
-            mode="contained"
-            style={styles.createButton}
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        keyboardShouldPersistTaps="handled"
+        contentInsetAdjustmentBehavior="automatic">
+        {/* Date and Add Budget */}
+        <View style={styles.dateAddContainer}>
+          <View>
+            <Text style={styles.dateText}>Tháng {moment().format('MMMM YYYY')}</Text>
+            <Text style={styles.daysLeftText}>Còn {daysLeft} ngày nữa hết tháng</Text>
+          </View>
+          <TouchableOpacity
             onPress={() => navigation.navigate('AddBudget')}
-          >
-            Add New Budget
-          </Button>
-        }
-      />
-    </View>
+            style={styles.addButton}>
+            <Icon name="plus" size={20} color="#fff" />
+            <Text style={styles.addButtonText}>Add Budget</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Check if budgets are available */}
+        {updatedBudgets.length === 0 ? (
+          <View style={styles.noBudgetsContainer}>
+            <Text style={styles.noBudgetsText}>You have no budgets yet.</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('AddBudget')}
+              style={styles.addBudgetButton}>
+              <Text style={styles.addBudgetButtonText}>Create a Budget</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* Budgets */}
+            <Text style={styles.sectionTitle}>Budgets</Text>
+            <View style={styles.categoryList}>
+              {updatedBudgets.map((budget) => (
+                <TouchableOpacity
+                  key={budget.id}
+                  style={styles.budgetCard}
+                  onPress={() => navigation.navigate('EditBudget', { budgetId: budget.id, budgetData: budget })}>
+                  <View style={styles.budgetHeader}>
+                    <Icon
+                      name={budget.icon || 'wallet'}
+                      size={30}
+                      color={iconList.find(icon => icon.name === budget.icon)?.color || '#4CAF50'} // Default color
+                    />
+                    <Text style={styles.budgetTitle}>{budget.name}</Text>
+                  </View>
+                  <BudgetBar spent={budget.expense || 0} total={budget.amount || 0} />
+                  <Text style={styles.budgetAmount}>
+                    Còn lại {(budget.remaining || 0).toLocaleString()} VND
+                  </Text>
+                  <Text style={styles.budgetSpent}>
+                    Chi {(budget.expense || 0).toLocaleString()} / {(budget.amount || 0).toLocaleString()} VND
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff', padding: 20 },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  scrollView: {
+    flex: 1,
+    paddingTop: 16,
+  },
+  dateAddContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  daysLeftText: {
+    fontSize: 14,
+    color: 'gray',
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6200ee',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 5,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginLeft: 20,
+    color: '#333',
+  },
+  categoryList: {
+    padding: 20,
+  },
   budgetCard: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fff',
+    borderRadius: 8,
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    elevation: 3,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
   },
   budgetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
   },
-  categoryIcon: {
-    marginRight: 10,
+  budgetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
-  budgetName: { fontSize: 18, fontWeight: 'bold' },
-  budgetContent: {
+  budgetAmount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginTop: 10,
+  },
+  budgetSpent: {
+    fontSize: 14,
+    color: 'gray',
+    marginTop: 5,
+  },
+  progressBarContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    height: 10,
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  progressBar: {
+    height: 10,
+  },
+  noBudgetsContainer: {
     alignItems: 'center',
+    marginTop: 50,
   },
-  donutChart: {
-    width: 100,
-    height: 100,
+  noBudgetsText: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 20,
   },
-  actionButtons: { flexDirection: 'row', marginTop: 10 },
-  deleteButton: {
-    backgroundColor: '#f44336',
-    padding: 10,
-    borderRadius: 5,
-    marginRight: 10,
+  addBudgetButton: {
+    backgroundColor: '#6200ee',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 8,
   },
-  updateButton: {
-    backgroundColor: '#4caf50',
-    padding: 10,
-    borderRadius: 5,
+  addBudgetButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  buttonText: { color: '#ffffff', fontWeight: 'bold' },
-  createButton: {
-    marginVertical: 20,
-    backgroundColor: '#6246EA',
-    alignSelf: 'center',
-    width: '80%',
-  },
-  emptyText: { textAlign: 'center', marginTop: 20, color: '#999' },
 });
 
 export default BudgetPage;
