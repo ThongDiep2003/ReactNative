@@ -23,14 +23,21 @@ const SettingsPage = ({ navigation }) => {
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('CategoryManagement')} // Navigate to LogoutPage
+        onPress={() => navigation.navigate('CategoryManagement')} 
       >
         <Text style={styles.itemText}>Manage Category</Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('Forum')} // Navigate to LogoutPage
+        onPress={() => navigation.navigate('ManageCards')} 
+      >
+        <Text style={styles.itemText}>Manage Card</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.item}
+        onPress={() => navigation.navigate('Forum')} 
       >
         <Text style={styles.itemText}>Q & A</Text>
       </TouchableOpacity>
@@ -62,8 +69,6 @@ const SettingsPage = ({ navigation }) => {
       >
         <Text style={styles.itemText}>Logout</Text>
       </TouchableOpacity>
-      
-      <Text style={styles.footerText}>Choose what data you share with us</Text>
     </View>
   );
 };

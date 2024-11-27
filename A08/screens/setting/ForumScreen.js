@@ -96,27 +96,84 @@ const ForumScreen = () => {
   };
 
   // Xóa câu hỏi
-  const handleDeleteQuestion = (id) => {
-    const questionRef = ref(FIREBASE_DB, `forum/${id}`);
-    remove(questionRef)
-      .then(() => {
-        Alert.alert('Success', 'Question deleted.');
-      })
-      .catch((error) => {
-        Alert.alert('Error', 'Failed to delete question: ' + error.message);
-      });
+  const handleDeleteQuestion = (id, email) => {
+    if (email !== currentUser) {
+      Alert.alert('Error', 'You can only delete your own questions.');
+      return;
+    }
+
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this question?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: () => {
+            const questionRef = ref(FIREBASE_DB, `forum/${id}`);
+            remove(questionRef)
+              .then(() => {
+                Alert.alert('Success', 'Question deleted.');
+                reloadPage();
+              })
+              .catch((error) => {
+                Alert.alert('Error', 'Failed to delete question: ' + error.message);
+              });
+          },
+        },
+      ]
+    );
   };
 
   // Xóa câu trả lời
-  const handleDeleteReply = (questionId, replyId) => {
-    const replyRef = ref(FIREBASE_DB, `forum/${questionId}/replies/${replyId}`);
-    remove(replyRef)
-      .then(() => {
-        Alert.alert('Success', 'Reply deleted.');
-      })
-      .catch((error) => {
-        Alert.alert('Error', 'Failed to delete reply: ' + error.message);
-      });
+  const handleDeleteReply = (questionId, replyId, email) => {
+    if (email !== currentUser) {
+      Alert.alert('Error', 'You can only delete your own replies.');
+      return;
+    }
+
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this reply?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: () => {
+            const replyRef = ref(FIREBASE_DB, `forum/${questionId}/replies/${replyId}`);
+            remove(replyRef)
+              .then(() => {
+                Alert.alert('Success', 'Reply deleted.');
+                reloadPage();
+              })
+              .catch((error) => {
+                Alert.alert('Error', 'Failed to delete reply: ' + error.message);
+              });
+          },
+        },
+      ]
+    );
+  };
+
+  // Tải lại trang
+  const reloadPage = () => {
+    const forumRef = ref(FIREBASE_DB, 'forum');
+    onValue(forumRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const formattedData = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setForumData(formattedData);
+      }
+    });
   };
 
   // Hiển thị từng câu hỏi
@@ -137,7 +194,7 @@ const ForumScreen = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.deleteButton}
-          onPress={() => handleDeleteQuestion(item.id)}
+          onPress={() => handleDeleteQuestion(item.id, item.email)}
         >
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
@@ -152,7 +209,7 @@ const ForumScreen = () => {
               </Text>
               <TouchableOpacity
                 style={styles.deleteReplyButton}
-                onPress={() => handleDeleteReply(item.id, replyId)}
+                onPress={() => handleDeleteReply(item.id, replyId, item.replies[replyId].email)}
               >
                 <Text style={styles.deleteReplyButtonText}>Delete Reply</Text>
               </TouchableOpacity>
@@ -164,7 +221,6 @@ const ForumScreen = () => {
 
   return (
     <View style={styles.container}>
-      
       <FlatList
         data={forumData}
         renderItem={renderQuestion}

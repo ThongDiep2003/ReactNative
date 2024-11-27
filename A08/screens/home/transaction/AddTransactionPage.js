@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Button, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -13,16 +13,17 @@ const AddTransaction = () => {
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [account, setAccount] = useState('VCB'); // Default account
+  const [account, setAccount] = useState('Cash'); // Default account
+  const [accountList, setAccountList] = useState([]); // List of accounts
   const [userCategories, setUserCategories] = useState([]);
   const [defaultCategories, setDefaultCategories] = useState([]);
   const [category, setCategory] = useState(null);
   const [type, setType] = useState('Expense'); // Default to Expense
   const userId = FIREBASE_AUTH.currentUser?.uid;
 
-  // Fetch default categories and user categories from Firebase
+  // Fetch categories and accounts
   useEffect(() => {
-    // Fetch default categories 
+    // Fetch default categories
     const defaultCategoriesRef = ref(FIREBASE_DB, 'categories/default');
     onValue(defaultCategoriesRef, (snapshot) => {
       const data = snapshot.val();
@@ -40,18 +41,31 @@ const AddTransaction = () => {
       const userCategoriesRef = ref(FIREBASE_DB, `categories/${userId}`);
       onValue(userCategoriesRef, (snapshot) => {
         const data = snapshot.val();
-        const categories = data 
+        const categories = data
           ? Object.keys(data).map((key) => ({
               id: key,
               ...data[key],
             }))
           : [];
         setUserCategories(categories);
+
+        // Fetch user's cards
+        const cardsRef = ref(FIREBASE_DB, `users/${userId}/cards`);
+        onValue(cardsRef, (snapshot) => {
+          const data = snapshot.val();
+          const cardList = data
+            ? Object.keys(data).map((key) => ({
+                id: key,
+                name: data[key].bankName || 'Unnamed Card',
+                color: data[key].color || '#D3D3D3', // Default color if not specified
+              }))
+            : [];
+          setAccountList([{ id: 'Cash', name: 'Cash', color: '#57b35a' }, ...cardList]); // Add "Cash" with default color
+        });
       });
     }
   }, [userId]);
 
-  // Combine default and user categories
   const getFilteredCategories = () => {
     const filteredDefaultCategories = defaultCategories.filter((cat) => cat.type === type);
     const filteredUserCategories = userCategories.filter((cat) => cat.type === type);
@@ -77,7 +91,7 @@ const AddTransaction = () => {
       Alert.alert('Error', 'Please enter an amount and select a category.');
       return;
     }
-  
+
     if (userId) {
       const newTransaction = {
         amount: parseFloat(amount),
@@ -86,30 +100,11 @@ const AddTransaction = () => {
         category: { id: category.id, icon: category.icon, name: category.name },
         type,
       };
-  
+
       try {
         const userTransactionsRef = ref(FIREBASE_DB, `users/${userId}/transactions`);
         await push(userTransactionsRef, newTransaction);
-  
-        // Update related budget
-       
-        const budgetsRef = ref(FIREBASE_DB, `users/${userId}/budgets`);
-        onValue(budgetsRef, (snapshot) => {
-          const budgets = snapshot.val();
-          if (budgets) {
-            Object.entries(budgets).forEach(([budgetId, budget]) => {
-              if (budget.categoryId === category.id) {
-                const updatedExpense = (budget.expense || 0) + parseFloat(amount);
-                const updatedRemaining = budget.amount - updatedExpense;
-        
-                const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${budgetId}`);
-                update(budgetRef, { expense: updatedExpense, remaining: updatedRemaining });
-              }
-            });
-          }
-        });
-     
-  
+
         Alert.alert('Success', 'Transaction added successfully.');
         navigation.goBack();
       } catch (error) {
@@ -120,6 +115,7 @@ const AddTransaction = () => {
       Alert.alert('Error', 'User not authenticated.');
     }
   };
+
   return (
     <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.headerContainer}>
@@ -180,27 +176,31 @@ const AddTransaction = () => {
         ))}
       </View>
 
-      {/* Add New Category Button */}
+      {/* Navigate to CategoryPage */}
       <TouchableOpacity
-        style={styles.addCategoryButton}
+        style={styles.navigateCategory}
         onPress={() => navigation.navigate('Category')}
       >
-        <Text style={styles.addCategoryText}>Add New Category</Text>
+        <Text style={styles.navigateCategoryText}>Select more categories</Text>
       </TouchableOpacity>
 
       {/* Account Selection */}
       <Text style={styles.sectionTitle}>Select Account</Text>
       <View style={styles.accountContainer}>
-        {['VCB', 'BIDV', 'Momo', 'Cash'].map((acc) => (
+        {accountList.map((acc) => (
           <Chip
-            key={acc}
+            key={acc.id}
             mode="outlined"
-            selected={account === acc}
-            onPress={() => handleAccountSelect(acc)}
-            style={[styles.accountChip, account === acc && styles.selectedAccountChip]}
-            textStyle={account === acc ? styles.selectedAccountText : null}
+            selected={account === acc.name}
+            onPress={() => handleAccountSelect(acc.name)}
+            style={[
+              styles.accountChip,
+              { backgroundColor: acc.color || '#D3D3D3' },
+              account === acc.name && styles.selectedAccountChip,
+            ]}
+            textStyle={account === acc.name ? styles.selectedAccountText : null}
           >
-            {acc}
+            {acc.name}
           </Chip>
         ))}
       </View>
@@ -232,13 +232,13 @@ const styles = StyleSheet.create({
   categoryIcon: { marginBottom: 3 },
   categoryText: { fontSize: 11, color: '#6246EA' },
   selectedCategoryText: { fontWeight: 'bold' },
-  accountContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
-  accountChip: { backgroundColor: '#e3f2fd', marginHorizontal: 5 },
-  selectedAccountChip: { backgroundColor: '#D1C8FF' },
-  selectedAccountText: { color: '#6246EA', fontWeight: 'bold' },
-  addCategoryButton: { alignItems: 'center', marginBottom: 20 },
-  addCategoryText: { color: '#6246EA', fontSize: 16, fontWeight: 'bold' },
-  saveButton: { height: 50, backgroundColor: '#6246EA', borderRadius: 25, justifyContent: 'center', alignItems: 'center', width: '100%' },
+  navigateCategory: { marginTop: 10, alignItems: 'center' },
+  navigateCategoryText: { color: '#6246EA', borderBottomColor: '#6246EA', fontWeight: 'bold', fontSize: 16 },
+  accountContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', marginBottom: 30 },
+  accountChip: { margin: 5, borderWidth: 1, borderColor: '#ccc' },
+  selectedAccountChip: { borderWidth: 2, borderColor: '#6246EA' },
+  selectedAccountText: { fontWeight: 'bold', color: '#ffffff' },
+  saveButton: { marginTop: 20, padding: 10, borderRadius: 5 },
 });
 
 export default AddTransaction;

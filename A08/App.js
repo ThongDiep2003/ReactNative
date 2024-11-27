@@ -31,6 +31,7 @@ import EnterOTP from "./screens/otp/EnterOTP";
 import EnterOTP2 from "./screens/otp/EnterOTP2";
 import EnterOTP3 from "./screens/otp/EnterOTP3";
 import LogoutPage from "./screens/account/LogoutPage";
+import AddTransaction from "./screens/home/transaction/AddTransactionPage";
 import Transaction from './screens/home/transaction/Transaction';
 import AllTransaction from './screens/home/transaction/AllTransaction';
 import EditTransaction from './screens/home/transaction/EditTransaction';
@@ -42,12 +43,22 @@ import BudgetPage from "./screens/home/budget/BudgetPage";
 import AddBudgetPage from "./screens/home/budget/AddBudgetPage";
 import IconSelectionPage from "./screens/home/budget/IconSelectionPage"
 import EditBudgetPage from "./screens/home/budget/EditBudgetPage";
+import AddGoalPage from "./screens/home/budget/AddGoalPage";
+import EditGoalPage from "./screens/home/budget/EditGoalPage";
+import AddAmountPage from "./screens/home/budget/AddAmountPage";
 
 import SettingsPage from './screens/setting/SettingsPage';
 import Language from './screens/setting/LanguagePage';
 import ContactUs from './screens/setting/ContactUsPage';
 import ChangePassword from './screens/setting/ChangePasswordPage';
 import PrivacyPolicy from './screens/setting/PrivacyPolicyPage';
+import ForumScreen from "./screens/setting/ForumScreen";
+
+
+import ManageCardsPage from "./screens/card/ManageCardPage";
+import AddCardPage from "./screens/card/AddCardPage";
+import DemoViewCardPage from "./screens/card/DemoViewCardPage";
+import EditCardPage from "./screens/card/EditCardPage";
 
 
 import Move2 from './screens/move/Move2';
@@ -55,7 +66,7 @@ import Move3 from './screens/move/Move3';
 
 // Import TabNavigator cho Bottom Tabs
 import TabNavigator from "./navigation/TabNavigator"; 
-import ForumScreen from "./screens/setting/ForumScreen";
+
 
 const Stack = createNativeStackNavigator();
 
@@ -83,7 +94,7 @@ const App = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator 
+      <Stack.Navigator  
         initialRouteName={isLoggedIn ? "Main" : "SplashScreen"}
         screenOptions={({ navigation }) => ({
           backgroundColor: "white",
@@ -115,6 +126,8 @@ const App = () => {
             <Stack.Screen name="Transaction" component={Transaction} options={{ headerTitle: "Transaction Details" }} />
             <Stack.Screen name="AllTransaction" component={AllTransaction} options={{ headerTitle: "All Transaction" }} />
             <Stack.Screen name="EditTransaction" component={EditTransaction} options={{ headerTitle: "Edit Transaction" }} />
+            <Stack.Screen name="AddTransaction" component={AddTransaction} options={{ headerTitle: "Add Transaction" }} />
+
             <Stack.Screen name="Logout" component={LogoutPage} />
             <Stack.Screen name="Category" component={CategoryPage} />
             <Stack.Screen name="CategoryManagement" component={CategoryManagementPage} />
@@ -124,21 +137,21 @@ const App = () => {
           <>
             {/* Stack Screens cho người dùng chưa đăng nhập */}
             
-            <Stack.Screen name="Login" component={LoginPage} />
-            <Stack.Screen name="Introduction" component={IntroductionPage} />
-            <Stack.Screen name="Register" component={RegisterPage} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+            <Stack.Screen name="Login" component={LoginPage} options={{ headerShown: false }} />
+            <Stack.Screen name="Introduction" component={IntroductionPage} options={{ headerShown: false }} />
+            <Stack.Screen name="Register" component={RegisterPage}  options={{ headerShown: false }}/>
+            <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ headerShown: false }} />
             
-            <Stack.Screen name="ResetPassword" component={ResetPassword} />
+            <Stack.Screen name="ResetPassword" component={ResetPassword} options={{ headerShown: false }}/>
             
             {/* Move */}
-            <Stack.Screen name="Move2" component={Move2} />
-            <Stack.Screen name="Move3" component={Move3} />
+            <Stack.Screen name="Move2" component={Move2} options={{ headerShown: false }} />
+            <Stack.Screen name="Move3" component={Move3} options={{ headerShown: false }} />
 
             {/* OTP */}
-            <Stack.Screen name="EnterOTP" component={EnterOTP} />
-            <Stack.Screen name="EnterOTP2" component={EnterOTP2} />
-            <Stack.Screen name="EnterOTP3" component={EnterOTP3} />
+            <Stack.Screen name="EnterOTP" component={EnterOTP} options={{ headerShown: false }} />
+            <Stack.Screen name="EnterOTP2" component={EnterOTP2}  options={{ headerShown: false }}/>
+            <Stack.Screen name="EnterOTP3" component={EnterOTP3}  options={{ headerShown: false }}/>
             
           </>
 
@@ -186,8 +199,31 @@ const App = () => {
           component={ForumScreen}
           options={{ headerTitle: "Forum" }}
         />
-
+        <Stack.Screen
+          name="ManageCards"
+          component={ManageCardsPage}
+          options={{ headerTitle: "Manage Cards" }}
+        />
     {/* Settings Screens */}
+
+    {/* Card Screens */}
+    <Stack.Screen
+      name="AddCard"
+      component={AddCardPage}
+      options={{ headerTitle: "Add Card" }}
+    />
+    <Stack.Screen
+      name="DemoViewCard"
+      component={DemoViewCardPage}
+      options={{ headerTitle: "Preview Card" }} 
+    />
+    <Stack.Screen
+      name="EditCard"
+      component={EditCardPage}
+      options={{ headerTitle: "Edit Card" }}
+    />
+    {/* Card Screens */}
+    
     <Stack.Screen
       name="BudgetPage"
       component={BudgetPage}
@@ -207,6 +243,21 @@ const App = () => {
       name="EditBudget"
       component={EditBudgetPage}
       options={{ headerTitle: "Edit Budget" }}
+    />
+    <Stack.Screen
+      name="AddGoal"
+      component={AddGoalPage}
+      options={{ headerTitle: "Add Goal" }}
+    />
+    <Stack.Screen
+      name="EditGoal"
+      component={EditGoalPage}
+      options={{ headerTitle: "Edit Goal" }}
+    />
+    <Stack.Screen
+      name="AddAmount"
+      component={AddAmountPage}
+      options={{ headerTitle: "Add Amount" }}
     />
       </Stack.Navigator>
     </NavigationContainer>

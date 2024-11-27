@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  TextInput,
+} from 'react-native';
 import { Button } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
@@ -7,14 +14,14 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { ref, set, onValue } from 'firebase/database';
 
-const AddBudgetPage = () => {
+const AddGoalPage = () => {
   const navigation = useNavigation();
-  const [totalAmount, setTotalAmount] = useState('');
+  const [goalName, setGoalName] = useState('');
+  const [targetAmount, setTargetAmount] = useState('');
   const [endDate, setEndDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [budgetName, setBudgetName] = useState('');
 
   const userId = FIREBASE_AUTH.currentUser?.uid;
 
@@ -42,55 +49,77 @@ const AddBudgetPage = () => {
 
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
-    setBudgetName(category.name); // Set budgetName automatically based on selected category
+    setGoalName(category.name); // Tự động đặt tên mục tiêu theo danh mục
   };
 
-  const handleSaveBudget = () => {
-    if (!budgetName || !totalAmount || !selectedCategory) {
-      Alert.alert('Error', 'Please fill all fields and select a category.');
+  const handleSaveGoal = () => {
+    if (!goalName || !targetAmount || !selectedCategory) {
+      Alert.alert('Error', 'Please fill in all fields and select a category.');
       return;
     }
 
-    const newBudget = {
-      name: budgetName,
-      amount: parseFloat(totalAmount),
-      categoryId: selectedCategory.id,
-      categoryName: selectedCategory.name,
-      categoryIcon: selectedCategory.icon,
-      categoryColor: selectedCategory.color,
-      endDate: endDate.toISOString(),
-      expense: 0,
-      remaining: parseFloat(totalAmount),
-    };
+    if (isNaN(targetAmount)) {
+      Alert.alert('Error', 'Target Amount must be a valid number.');
+      return;
+    }
 
-    const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${Date.now()}`);
-    set(budgetRef, newBudget)
-      .then(() => {
-        Alert.alert('Success', 'Budget created successfully.');
-        navigation.goBack();
-      })
-      .catch((error) => {
-        console.error('Error saving budget:', error);
-        Alert.alert('Error', 'Failed to save budget.');
-      });
+    if (userId) {
+      const newGoal = {
+        name: goalName,
+        targetAmount: parseFloat(targetAmount),
+        endDate: endDate.toISOString(),
+        progress: 0,
+        categoryId: selectedCategory.id,
+        categoryName: selectedCategory.name,
+        categoryIcon: selectedCategory.icon,
+        categoryColor: selectedCategory.color,
+        createdAt: new Date().toISOString(),
+      };
+
+      const goalRef = ref(FIREBASE_DB, `users/${userId}/goals/${Date.now()}`);
+      set(goalRef, newGoal)
+        .then(() => {
+          Alert.alert('Success', 'Goal added successfully.');
+          navigation.goBack();
+        })
+        .catch((error) => {
+          console.error('Error saving goal:', error);
+          Alert.alert('Error', 'Failed to save goal.');
+        });
+    } else {
+      Alert.alert('Error', 'User is not authenticated.');
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Total Amount</Text>
+      <Text style={styles.header}>Add New Goal</Text>
+
+      <Text style={styles.sectionTitle}>Goal Name</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter Total Amount"
-        keyboardType="numeric"
-        value={totalAmount}
-        onChangeText={setTotalAmount}
+        placeholder="Enter Goal Name"
+        value={goalName}
+        onChangeText={setGoalName}
       />
+
+      <Text style={styles.sectionTitle}>Target Amount</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Target Amount"
+        keyboardType="numeric"
+        value={targetAmount}
+        onChangeText={setTargetAmount}
+      />
+
+      <Text style={styles.sectionTitle}>End Date</Text>
       <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
         <Text style={styles.dateText}>{endDate.toLocaleDateString()}</Text>
       </TouchableOpacity>
       {showDatePicker && (
         <DateTimePicker value={endDate} mode="date" display="default" onChange={onDateChange} />
       )}
+
       <Text style={styles.sectionTitle}>Select Category</Text>
       <View style={styles.categoryContainer}>
         {categories.map((cat) => (
@@ -106,8 +135,9 @@ const AddBudgetPage = () => {
           </TouchableOpacity>
         ))}
       </View>
-      <Button mode="contained" onPress={handleSaveBudget} style={styles.saveButton}>
-        Save Budget
+
+      <Button mode="contained" onPress={handleSaveGoal} style={styles.saveButton}>
+        Save Goal
       </Button>
     </View>
   );
@@ -115,7 +145,13 @@ const AddBudgetPage = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#ffffff' },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#6246EA' },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#6246EA',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -133,7 +169,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   dateText: { fontSize: 16, color: '#333' },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#6246EA' },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#6246EA',
+  },
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -165,4 +206,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AddBudgetPage;
+export default AddGoalPage;

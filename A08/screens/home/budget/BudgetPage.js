@@ -12,20 +12,14 @@ import { ref, onValue } from 'firebase/database';
 import moment from 'moment';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ProgressBar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-
-const iconList = [
-  { name: 'car', color: '#f44336' },
-  { name: 'food', color: '#e91e63' },
-  { name: 'gift', color: '#9c27b0' },
-  // ...
-];
+import GoalPage from './GoalPage'; // Import GoalPage từ file khác
 
 const BudgetPage = () => {
   const [budgets, setBudgets] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [daysLeft, setDaysLeft] = useState(0);
+  const [activeTab, setActiveTab] = useState('Budget'); // State cho tab
   const userId = FIREBASE_AUTH.currentUser?.uid;
   const navigation = useNavigation();
 
@@ -35,6 +29,7 @@ const BudgetPage = () => {
     setDaysLeft(endOfMonth.diff(moment(), 'days'));
   }, []);
 
+  // Fetch data từ Firebase
   useEffect(() => {
     if (userId) {
       // Fetch budgets
@@ -69,7 +64,7 @@ const BudgetPage = () => {
     }
   }, [userId]);
 
-  // Calculate the expense for each budget
+  // Tính toán chi tiêu cho mỗi ngân sách
   const getUpdatedBudgets = () => {
     return budgets.map((budget) => {
       const relatedTransactions = transactions.filter(
@@ -89,13 +84,22 @@ const BudgetPage = () => {
   const updatedBudgets = getUpdatedBudgets();
 
   const BudgetBar = ({ spent, total }) => {
-    const remainingPercentage = total > 0 ? (total - spent) / total : 0;
+    const percentageSpent = total > 0 ? (total - spent) / total : 0;
+
     return (
       <View style={styles.progressBarContainer}>
-        {/* Phần ngân sách còn lại */}
-        <View style={[styles.progressBar, { flex: remainingPercentage, backgroundColor: '#13afae' }]} />
-        {/* Phần ngân sách đã sử dụng */}
-        <View style={[styles.progressBar, { flex: 1 - remainingPercentage, backgroundColor: '#f5f4f9' }]} />
+        <View
+          style={[
+            styles.progressBar,
+            { flex: percentageSpent, backgroundColor: '#4CAF50' },
+          ]}
+        />
+        <View
+          style={[
+            styles.progressBar,
+            { flex: 1 - percentageSpent, backgroundColor: '#f5f5f5' },
+          ]}
+        />
       </View>
     );
   };
@@ -103,66 +107,94 @@ const BudgetPage = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        keyboardShouldPersistTaps="handled"
-        contentInsetAdjustmentBehavior="automatic">
-        {/* Date and Add Budget */}
-        <View style={styles.dateAddContainer}>
-          <View>
-            <Text style={styles.dateText}>Tháng {moment().format('MMMM YYYY')}</Text>
-            <Text style={styles.daysLeftText}>Còn {daysLeft} ngày nữa hết tháng</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('AddBudget')}
-            style={styles.addButton}>
-            <Icon name="plus" size={20} color="#fff" />
-            <Text style={styles.addButtonText}>Add Budget</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Tab Header */}
+      <View style={styles.tabHeader}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'Budget' && styles.activeTabButton]}
+          onPress={() => setActiveTab('Budget')}>
+          <Text style={[styles.tabText, activeTab === 'Budget' && styles.activeTabText]}>
+            Budget
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'Goal' && styles.activeTabButton]}
+          onPress={() => setActiveTab('Goal')}>
+          <Text style={[styles.tabText, activeTab === 'Goal' && styles.activeTabText]}>
+            Goal
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Check if budgets are available */}
-        {updatedBudgets.length === 0 ? (
-          <View style={styles.noBudgetsContainer}>
-            <Text style={styles.noBudgetsText}>You have no budgets yet.</Text>
+      {/* Nội dung tab */}
+      {activeTab === 'Budget' ? (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          keyboardShouldPersistTaps="handled"
+          contentInsetAdjustmentBehavior="automatic">
+          {/* Ngày tháng và nút Add */}
+          <View style={styles.dateAddContainer}>
+            <View>
+              <Text style={styles.dateText}>Tháng {moment().format('MMMM YYYY')}</Text>
+              <Text style={styles.daysLeftText}>Còn {daysLeft} ngày nữa hết tháng</Text>
+            </View>
             <TouchableOpacity
               onPress={() => navigation.navigate('AddBudget')}
-              style={styles.addBudgetButton}>
-              <Text style={styles.addBudgetButtonText}>Create a Budget</Text>
+              style={styles.addButton}>
+              <Icon name="plus" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Add Budget</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <>
-            {/* Budgets */}
-            <Text style={styles.sectionTitle}>Budgets</Text>
-            <View style={styles.categoryList}>
-              {updatedBudgets.map((budget) => (
-                <TouchableOpacity
-                  key={budget.id}
-                  style={styles.budgetCard}
-                  onPress={() => navigation.navigate('EditBudget', { budgetId: budget.id, budgetData: budget })}>
-                  <View style={styles.budgetHeader}>
-                    <Icon
-                      name={budget.icon || 'wallet'}
-                      size={30}
-                      color={iconList.find(icon => icon.name === budget.icon)?.color || '#4CAF50'} // Default color
-                    />
-                    <Text style={styles.budgetTitle}>{budget.name}</Text>
-                  </View>
-                  <BudgetBar spent={budget.expense || 0} total={budget.amount || 0} />
-                  <Text style={styles.budgetAmount}>
-                    Còn lại {(budget.remaining || 0).toLocaleString()} VND
-                  </Text>
-                  <Text style={styles.budgetSpent}>
-                    Chi {(budget.expense || 0).toLocaleString()} / {(budget.amount || 0).toLocaleString()} VND
-                  </Text>
-                </TouchableOpacity>
-              ))}
+
+          {/* Danh sách ngân sách */}
+          {updatedBudgets.length === 0 ? (
+            <View style={styles.noBudgetsContainer}>
+              <Text style={styles.noBudgetsText}>You have no budgets yet.</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('AddBudget')}
+                style={styles.addBudgetButton}>
+                <Text style={styles.addBudgetButtonText}>Create a Budget</Text>
+              </TouchableOpacity>
             </View>
-          </>
-        )}
-      </ScrollView>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>Budgets</Text>
+              <View style={styles.categoryList}>
+                {updatedBudgets.map((budget) => (
+                  <TouchableOpacity
+                    key={budget.id}
+                    style={styles.budgetCard}
+                    onPress={() =>
+                      navigation.navigate('EditBudget', {
+                        budgetId: budget.id,
+                        budgetData: budget,
+                      })
+                    }>
+                    <View style={styles.budgetHeader}>
+                      <Icon
+                        name={budget.categoryIcon || 'wallet'}
+                        size={30}
+                        color={budget.categoryColor || '#4CAF50'}
+                      />
+                      <Text style={styles.budgetTitle}>{budget.name}</Text>
+                    </View>
+                    <BudgetBar spent={budget.expense || 0} total={budget.amount || 0} />
+                    <Text style={styles.budgetAmount}>
+                      Còn lại {(budget.remaining || 0).toLocaleString()} VND
+                    </Text>
+                    <Text style={styles.budgetSpent}>
+                      Chi {(budget.expense || 0).toLocaleString()} /{' '}
+                      {(budget.amount || 0).toLocaleString()} VND
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+        </ScrollView>
+      ) : (
+        <GoalPage />
+      )}
     </SafeAreaView>
   );
 };
@@ -172,9 +204,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+  tabHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 15,
+  },
+  activeTabButton: {
+    borderBottomWidth: 3,
+    borderBottomColor: '#6200ee',
+  },
+  tabText: {
+    fontSize: 16,
+    color: 'gray',
+  },
+  activeTabText: {
+    color: '#6200ee',
+    fontWeight: 'bold',
+  },
   scrollView: {
     flex: 1,
     paddingTop: 16,
+  },
+  placeholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    fontSize: 20,
+    color: 'gray',
   },
   dateAddContainer: {
     flexDirection: 'row',

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Button, Chip } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
-import { ref, update, get } from 'firebase/database';
+import { ref, update, get, onValue } from 'firebase/database';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const EditTransaction = () => {
@@ -17,9 +17,28 @@ const EditTransaction = () => {
   const [date, setDate] = useState(new Date(transaction.date));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [account, setAccount] = useState(transaction.account);
+  const [accountList, setAccountList] = useState([]);
   const [category, setCategory] = useState(transaction.category);
   const [type, setType] = useState(transaction.type);
   const userId = FIREBASE_AUTH.currentUser?.uid;
+
+  // Fetch user's accounts (cards and "Cash")
+  useEffect(() => {
+    if (userId) {
+      const cardsRef = ref(FIREBASE_DB, `users/${userId}/cards`);
+      onValue(cardsRef, (snapshot) => {
+        const data = snapshot.val();
+        const cardList = data
+          ? Object.keys(data).map((key) => ({
+              id: key,
+              name: data[key].bankName || 'Unnamed Card',
+              color: data[key].color || '#1A1F71', // Default card color
+            }))
+          : [];
+        setAccountList([{ id: 'Cash', name: 'Cash', color: '#2ECC71' }, ...cardList]); // Add "Cash" with green color
+      });
+    }
+  }, [userId]);
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -46,7 +65,6 @@ const EditTransaction = () => {
     const budgetsRef = ref(FIREBASE_DB, `users/${userId}/budgets`);
 
     try {
-      // Lấy ngân sách hiện tại để xử lý cập nhật
       const budgetsSnapshot = await get(budgetsRef);
       const budgets = budgetsSnapshot.val();
 
@@ -58,17 +76,14 @@ const EditTransaction = () => {
         type,
       };
 
-      // Batch cập nhật ngân sách
       const updates = {};
       if (budgets) {
         Object.entries(budgets).forEach(([budgetId, budget]) => {
-          // Xử lý ngân sách cũ
           if (budget.categoryId === transaction.category.id) {
             const revertedExpense = (budget.expense || 0) - parseFloat(transaction.amount);
             updates[`users/${userId}/budgets/${budgetId}/expense`] = revertedExpense;
             updates[`users/${userId}/budgets/${budgetId}/remaining`] = budget.amount - revertedExpense;
           }
-          // Cập nhật ngân sách mới
           if (budget.categoryId === category.id) {
             const newExpense = (budget.expense || 0) + parseFloat(amount);
             updates[`users/${userId}/budgets/${budgetId}/expense`] = newExpense;
@@ -77,12 +92,11 @@ const EditTransaction = () => {
         });
       }
 
-      // Cập nhật giao dịch và ngân sách trong một lần
       updates[`users/${userId}/transactions/${transaction.id}`] = updatedTransaction;
       await update(ref(FIREBASE_DB), updates);
 
       Alert.alert('Success', 'Transaction updated successfully.');
-      navigation.goBack();
+      navigation.pop(2);
       
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -92,7 +106,7 @@ const EditTransaction = () => {
 
   return (
     <KeyboardAwareScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.headerContainer}>
+      {/* <View style={styles.headerContainer}>
         <Text
           style={[styles.header, type === 'Income' ? styles.activeTab : styles.inactiveTab]}
           onPress={() => setType('Income')}
@@ -105,7 +119,7 @@ const EditTransaction = () => {
         >
           Edit Expense
         </Text>
-      </View>
+      </View> */}
 
       <View style={styles.amountContainer}>
         <TextInput
@@ -128,16 +142,20 @@ const EditTransaction = () => {
 
       <Text style={styles.sectionTitle}>Edit Account</Text>
       <View style={styles.accountContainer}>
-        {['VCB', 'BIDV', 'Momo', 'Cash'].map((acc) => (
+        {accountList.map((acc) => (
           <Chip
-            key={acc}
+            key={acc.id}
             mode="outlined"
-            selected={account === acc}
-            onPress={() => handleAccountSelect(acc)}
-            style={[styles.accountChip, account === acc && styles.selectedAccountChip]}
-            textStyle={account === acc ? styles.selectedAccountText : null}
+            selected={account === acc.name}
+            onPress={() => handleAccountSelect(acc.name)}
+            style={[
+              styles.accountChip,
+              { backgroundColor: account === acc.name ? acc.color : '#e3f2fd' },
+              account === acc.name && styles.selectedAccountChip,
+            ]}
+            textStyle={[{ color: account === acc.name ? '#fff' : acc.color }]}
           >
-            {acc}
+            {acc.name}
           </Chip>
         ))}
       </View>
@@ -161,10 +179,9 @@ const styles = StyleSheet.create({
   currency: { fontSize: 18, color: '#6246EA' },
   datePicker: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 10, backgroundColor: '#e0f7fa', marginBottom: 20 },
   dateText: { fontSize: 18, marginLeft: 10, color: '#6246EA' },
-  accountContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
-  accountChip: { backgroundColor: '#e3f2fd', marginHorizontal: 5 },
-  selectedAccountChip: { backgroundColor: '#D1C8FF' },
-  selectedAccountText: { color: '#6246EA', fontWeight: 'bold' },
+  accountContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', marginBottom: 30 },
+  accountChip: { margin: 5 },
+  selectedAccountChip: { borderWidth: 2, borderColor: '#6246EA' },
   saveButton: { marginTop: 20, height: 50, backgroundColor: '#6246EA', borderRadius: 25, justifyContent: 'center' },
 });
 

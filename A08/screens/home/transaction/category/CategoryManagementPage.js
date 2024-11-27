@@ -3,10 +3,12 @@ import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet } from 'react
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../../auths/FirebaseConfig';
 import { ref, onValue, remove } from 'firebase/database';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const CategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);
   const userId = FIREBASE_AUTH.currentUser?.uid;
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (!userId) {
@@ -33,6 +35,18 @@ const CategoryManagementPage = () => {
 
     fetchUserCategories();
   }, [userId]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity onPress={() => navigation.navigate('Category')}>
+            <Icon name="plus" size={28} color="#1E1E2D" />
+          </TouchableOpacity>
+        ),
+      });
+    }, [navigation])
+  );
 
   // Hàm xóa danh mục
   const handleDeleteCategory = async (categoryId) => {
@@ -68,7 +82,6 @@ const CategoryManagementPage = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Your Categories</Text>
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id}

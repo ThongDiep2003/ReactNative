@@ -49,7 +49,7 @@ const Transaction = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header Tabs */}
+      {/* Header Tabs
       <View style={styles.headerContainer}>
         <Text
           style={[
@@ -67,7 +67,7 @@ const Transaction = ({ route, navigation }) => {
         >
           Expense
         </Text>
-      </View>
+      </View> */}
 
       {/* Amount Display */}
       <View style={styles.amountContainer}>

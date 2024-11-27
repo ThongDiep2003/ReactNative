@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, Image, TouchableOpacity, FlatList, SafeAreaView } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from '../../auths/FirebaseConfig';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 import { ref, onValue } from 'firebase/database';
 import tw from 'tailwind-react-native-classnames';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { PieChart } from 'react-native-gifted-charts'; // Import PieChart
+import { PieChart } from 'react-native-gifted-charts';
 
 const iconList = [
   { name: 'car', color: '#f44336' },
@@ -48,6 +48,7 @@ const iconList = [
   { name: 'leaf', color: '#4caf50' },
 ];
 
+
 const HomePage = () => {
   const navigation = useNavigation();
   const [userName, setUserName] = useState('');
@@ -59,7 +60,7 @@ const HomePage = () => {
   const [expenseCategories, setExpenseCategories] = useState([]);
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [displayType, setDisplayType] = useState('Expense');
-  const [focusedSection, setFocusedSection] = useState(null); // Lưu trạng thái phần được chọn
+  const [focusedSection, setFocusedSection] = useState(null);
 
   const fetchUserData = async () => {
     try {
@@ -83,7 +84,7 @@ const HomePage = () => {
           const data = snapshot.val();
           if (data) {
             const fetchedTransactions = Object.values(data).reverse();
-            setTransactions(fetchedTransactions.slice(0, 10));
+            setTransactions(fetchedTransactions.slice(0, 20));
 
             let income = 0;
             let expense = 0;
@@ -93,7 +94,6 @@ const HomePage = () => {
             fetchedTransactions.forEach((transaction) => {
               if (transaction.type === 'Income') {
                 income += parseFloat(transaction.amount);
-
                 if (incomeData[transaction.category.id]) {
                   incomeData[transaction.category.id].amount += parseFloat(transaction.amount);
                 } else {
@@ -107,7 +107,6 @@ const HomePage = () => {
                 }
               } else if (transaction.type === 'Expense') {
                 expense += parseFloat(transaction.amount);
-
                 if (expenseData[transaction.category.id]) {
                   expenseData[transaction.category.id].amount += parseFloat(transaction.amount);
                 } else {
@@ -136,6 +135,17 @@ const HomePage = () => {
     }
   };
 
+  useEffect(() => {
+    const categories = displayType === 'Expense' ? expenseCategories : incomeCategories;
+    if (categories.length > 0) {
+      const maxIndex = categories.reduce(
+        (maxIdx, item, idx) => (item.amount > categories[maxIdx].amount ? idx : maxIdx),
+        0
+      );
+      setFocusedSection(maxIndex); // Focus vào phần có giá trị lớn nhất
+    }
+  }, [expenseCategories, incomeCategories, displayType]);
+
   useFocusEffect(
     React.useCallback(() => {
       fetchUserData();
@@ -144,12 +154,12 @@ const HomePage = () => {
 
   const handleExpensePress = () => {
     setDisplayType('Expense');
-    setFocusedSection(null); // Reset focus khi chuyển đổi loại
+    setFocusedSection(null);
   };
 
   const handleIncomePress = () => {
     setDisplayType('Income');
-    setFocusedSection(null); // Reset focus khi chuyển đổi loại
+    setFocusedSection(null);
   };
 
   if (loading) {
@@ -166,12 +176,12 @@ const HomePage = () => {
     gradientCenterColor: item.color,
     text: `${Math.round((item.amount / (displayType === 'Expense' ? totalExpense : totalIncome)) * 100)}%`,
     focused: focusedSection === index,
-    onPress: () => setFocusedSection(index), // Cập nhật phần được chọn
+    onPress: () => setFocusedSection(index),
   }));
 
   return (
-    <View style={[tw`flex-1 bg-white`, { marginTop: 0 }]}>
-      <View style={[tw`p-5 flex-row justify-between items-center rounded-b-lg`, { marginTop: 20 }]}>
+    <SafeAreaView style={tw`flex-1 bg-white`}>
+      <View style={[tw`p-5 flex-row justify-between items-center rounded-b-lg`]}>
         <View style={tw`flex-row items-center`}>
           <Image
             source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')}
@@ -195,14 +205,14 @@ const HomePage = () => {
         </TouchableOpacity>
       </View>
 
-      <View style={[tw`mt-5 mb-5 p-5 rounded-lg justify-center items-center`, { marginBottom: 0 }]}>
+      <View style={[tw`mt-0 mb-0 p-3 rounded-lg justify-center items-center`]}>
         <Text style={tw`text-lg font-bold text-center mb-3`}>{displayType} Distribution</Text>
         <PieChart
           data={pieData}
           donut
           showGradient
           sectionAutoFocus
-          focusOnPress={true} // Cho phép nhấn vào phần khác
+          focusOnPress={true}
           radius={100}
           innerRadius={70}
           innerCircleColor="#ffffff"
@@ -218,12 +228,12 @@ const HomePage = () => {
                 </View>
               );
             }
-            return null; // Không hiển thị gì nếu chưa có phần nào được chọn
+            return null;
           }}
         />
       </View>
 
-      <View style={[tw`mt-5 p-6 flex-1`]}>
+      <View style={tw`flex-1 p-6`}>
         <View style={tw`flex-row justify-between mb-3`}>
           <Text style={tw`text-lg font-bold`}>Recent Transactions</Text>
           <TouchableOpacity onPress={() => navigation.navigate('AllTransaction')}>
@@ -233,7 +243,10 @@ const HomePage = () => {
         <FlatList
           data={transactions.filter((transaction) => transaction.type === displayType)}
           renderItem={({ item }) => (
-            <View style={tw`flex-row justify-between bg-gray-100 p-3 rounded-lg mb-2`}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Transaction', { transaction: item })}
+              style={tw`flex-row justify-between bg-gray-100 p-3 rounded-lg mb-2`}
+            >
               <View style={tw`flex-row items-center`}>
                 <Icon name={item.category.icon} size={24} color={iconList.find(icon => icon.name === item.category.icon)?.color || '#000'} />
                 <Text style={tw`ml-2`}>{item.category.name}</Text>
@@ -241,12 +254,12 @@ const HomePage = () => {
               <Text style={tw`${item.type === 'Expense' ? 'text-red-600' : 'text-green-600'} font-bold`}>
                 {item.type === 'Expense' ? '-' : '+'} {item.amount.toLocaleString()} VND
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
           keyExtractor={(item, index) => index.toString()}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
