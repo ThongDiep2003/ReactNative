@@ -53,8 +53,6 @@ const AddBudgetPage = () => {
       categoryName: selectedCategory.name,
       categoryIcon: selectedCategory.icon,
       endDate: endDate.toISOString(),
-      expense: 0,
-      remaining: parseFloat(totalAmount),
     };
 
     const budgetRef = ref(FIREBASE_DB, `users/${userId}/budgets/${Date.now()}`);
