@@ -68,7 +68,7 @@ const HomePage = () => {
       if (currentUser) {
         const userId = currentUser.uid;
         const userProfile = await getUserProfile(userId);
-
+  
         setUserName(userProfile.name);
         if (userProfile.avatarUrl) {
           const storage = getStorage();
@@ -78,20 +78,35 @@ const HomePage = () => {
         } else {
           setUserAvatar('https://via.placeholder.com/60');
         }
-
+  
         const transactionsRef = ref(FIREBASE_DB, `users/${userId}/transactions`);
         onValue(transactionsRef, (snapshot) => {
           const data = snapshot.val();
           if (data) {
             const fetchedTransactions = Object.values(data).reverse();
-            setTransactions(fetchedTransactions.slice(0, 20));
-
+  
+            // Lấy tháng và năm hiện tại
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth(); // 0 - 11 (January - December)
+            const currentYear = currentDate.getFullYear();
+  
+            // Lọc các giao dịch trong tháng và năm hiện tại
+            const filteredTransactions = fetchedTransactions.filter((transaction) => {
+              const transactionDate = new Date(transaction.date); // Assuming transaction has a 'date' field
+              return (
+                transactionDate.getMonth() === currentMonth &&
+                transactionDate.getFullYear() === currentYear
+              );
+            });
+  
+            setTransactions(filteredTransactions.slice(0, 20));
+  
             let income = 0;
             let expense = 0;
             const expenseData = {};
             const incomeData = {};
-
-            fetchedTransactions.forEach((transaction) => {
+  
+            filteredTransactions.forEach((transaction) => {
               if (transaction.type === 'Income') {
                 income += parseFloat(transaction.amount);
                 if (incomeData[transaction.category.id]) {
@@ -120,7 +135,8 @@ const HomePage = () => {
                 }
               }
             });
-
+  
+            // Chỉ tính tổng thu nhập và chi tiêu cho tháng hiện tại
             setTotalIncome(income);
             setTotalExpense(expense);
             setExpenseCategories(Object.values(expenseData));
