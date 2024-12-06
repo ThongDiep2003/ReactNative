@@ -75,16 +75,7 @@ const SettingsPage = ({ navigation }) => {
         <Text style={styles.itemText}>Manage Card</Text>
       </TouchableOpacity>
       
-      <TouchableOpacity 
-        style={styles.item}
-        onPress={() => navigation.navigate('Forum')}
-      >
-        <Text style={styles.itemText}>Forum</Text>
-        <View style={styles.rightContainer}>
-          <NotificationBadge count={unreadCount} />
-          <Text style={styles.itemRight}></Text>
-        </View>
-      </TouchableOpacity>
+      
 
       <TouchableOpacity 
         style={styles.item}
