@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,22 @@ import {
   StatusBar,
 } from 'react-native';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, update } from 'firebase/database';
 import moment from 'moment';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import GoalPage from './GoalPage'; // Import GoalPage từ file khác
+import * as Notifications from 'expo-notifications';
+import { Alert } from 'react-native';
+
+//Cấu hình  notifications
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const BudgetPage = () => {
   const [budgets, setBudgets] = useState([]);
@@ -22,6 +32,109 @@ const BudgetPage = () => {
   const [activeTab, setActiveTab] = useState('Budget'); // State cho tab
   const userId = FIREBASE_AUTH.currentUser?.uid;
   const navigation = useNavigation();
+  const [notifiedBudgets, setNotifiedBudgets] = useState(new Set()); // Khởi tạo là một Set rỗng
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      navigation.navigate('Budget');
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [navigation]);
+
+  // Tính toán chi tiêu cho mỗi ngân sách
+  const getUpdatedBudgets = () => {
+    const updated = budgets.map((budget) => {
+      const relatedTransactions = transactions.filter(
+        (transaction) => transaction.category?.id === budget.categoryId
+      );
+      const totalExpense = relatedTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const remaining = budget.amount - totalExpense;
+
+      return {
+        ...budget,
+        expense: totalExpense,
+        remaining,
+      };
+    });
+    return updated;
+  };
+
+  // Hàm gửi thông báo
+  const sendNotification = async (title, body) => {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: null,
+      });
+      console.log('Notification sent:', title, body);
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  };
+
+  // Kiểm tra và gửi thông báo khi transactions hoặc budgets thay đổi
+  useEffect(() => {
+    const checkBudgets = async () => {
+      const currentBudgets = getUpdatedBudgets();
+      
+      for (const budget of currentBudgets) {
+        const percentageRemaining = (budget.remaining / budget.amount) * 100;
+        
+        console.log(`Checking budget ${budget.name}:`, {
+          remaining: budget.remaining,
+          percentage: percentageRemaining,
+          notified: notifiedBudgets
+        });
+
+        // Kiểm tra ngân sách dưới 20%
+        if (percentageRemaining <= 20 && percentageRemaining > 0) {
+          const notificationKey = `${budget.id}-low`;
+          if (!notifiedBudgets.has(notificationKey)) {
+            await sendNotification(
+              'Cảnh báo ngân sách sắp hết',
+              `Ngân sách "${budget.name}" chỉ còn ${percentageRemaining.toFixed(1)}%`
+            );
+            setNotifiedBudgets(prev => new Set([...prev, notificationKey]));
+          }
+        }
+
+        // Kiểm tra vượt ngân sách
+        if (budget.remaining < 0) {
+          const notificationKey = `${budget.id}-over`;
+          if (!notifiedBudgets.has(notificationKey)) {
+            await sendNotification(
+              'Cảnh báo vượt ngân sách',
+              `Ngân sách "${budget.name}" đã bị vượt ${Math.abs(budget.remaining).toLocaleString()} VND`
+            );
+            setNotifiedBudgets(prev => new Set([...prev, notificationKey]));
+          }
+        }
+      }
+    };
+
+    checkBudgets();
+  }, [budgets, transactions]); // Thay đổi dependency thành budgets và transactions
+
+  // Reset notifiedBudgets khi sang tháng mới
+  useEffect(() => {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (today.getTime() === firstDayOfMonth.getTime()) {
+      setNotifiedBudgets(new Set());
+    }
+  }, []);
+
+
 
   // Tính số ngày còn lại của tháng
   useEffect(() => {
@@ -64,40 +177,32 @@ const BudgetPage = () => {
     }
   }, [userId]);
 
-  // Tính toán chi tiêu cho mỗi ngân sách
-  const getUpdatedBudgets = () => {
-    return budgets.map((budget) => {
-      const relatedTransactions = transactions.filter(
-        (transaction) => transaction.category?.id === budget.categoryId
-      );
-      const totalExpense = relatedTransactions.reduce((sum, t) => sum + t.amount, 0);
-      const remaining = budget.amount - totalExpense;
-
-      return {
-        ...budget,
-        expense: totalExpense,
-        remaining,
-      };
-    });
-  };
 
   const updatedBudgets = getUpdatedBudgets();
 
+  // Điều chỉnh component BudgetBar
   const BudgetBar = ({ spent, total }) => {
     const percentageSpent = total > 0 ? (total - spent) / total : 0;
+    const isOverBudget = spent > total;
 
     return (
       <View style={styles.progressBarContainer}>
         <View
           style={[
             styles.progressBar,
-            { flex: percentageSpent, backgroundColor: '#4CAF50' },
+            {
+              flex: isOverBudget ? 0 : percentageSpent,
+              backgroundColor: percentageSpent <= 0.2 ? '#ff6b6b' : '#4CAF50',
+            },
           ]}
         />
         <View
           style={[
             styles.progressBar,
-            { flex: 1 - percentageSpent, backgroundColor: '#f5f5f5' },
+            {
+              flex: isOverBudget ? 1 : 1 - percentageSpent,
+              backgroundColor: isOverBudget ? '#ff6b6b' : '#f5f5f5',
+            },
           ]}
         />
       </View>
@@ -161,32 +266,47 @@ const BudgetPage = () => {
               <Text style={styles.sectionTitle}>Budgets</Text>
               <View style={styles.categoryList}>
                 {updatedBudgets.map((budget) => (
-                  <TouchableOpacity
-                    key={budget.id}
-                    style={styles.budgetCard}
-                    onPress={() =>
-                      navigation.navigate('EditBudget', {
-                        budgetId: budget.id,
-                        budgetData: budget,
-                      })
-                    }>
-                    <View style={styles.budgetHeader}>
-                      <Icon
-                        name={budget.categoryIcon || 'wallet'}
-                        size={30}
-                        color={budget.categoryColor || '#4CAF50'}
-                      />
-                      <Text style={styles.budgetTitle}>{budget.name}</Text>
-                    </View>
-                    <BudgetBar spent={budget.expense || 0} total={budget.amount || 0} />
-                    <Text style={styles.budgetAmount}>
-                      Còn lại {(budget.remaining || 0).toLocaleString()} VND
-                    </Text>
-                    <Text style={styles.budgetSpent}>
-                      Chi {(budget.expense || 0).toLocaleString()} /{' '}
-                      {(budget.amount || 0).toLocaleString()} VND
-                    </Text>
-                  </TouchableOpacity>
+              // Trong phần render budget card, thay đổi phần hiển thị số tiền:
+              <TouchableOpacity
+                key={budget.id}
+                style={styles.budgetCard}
+                onPress={() =>
+                  navigation.navigate('EditBudget', {
+                    budgetId: budget.id,
+                    budgetData: budget,
+                  })
+                }>
+                <View style={styles.budgetHeader}>
+                  <Icon
+                    name={budget.categoryIcon || 'wallet'}
+                    size={30}
+                    color={budget.categoryColor || '#4CAF50'}
+                  />
+                  <Text style={styles.budgetTitle}>{budget.name}</Text>
+                </View>
+                <BudgetBar spent={budget.expense || 0} total={budget.amount || 0} />
+                <Text style={[
+                  styles.budgetAmount,
+                  budget.remaining < 0 && styles.overBudgetAmount
+                ]}>
+                  {budget.remaining < 0 
+                    ? `Vượt ${Math.abs(budget.remaining).toLocaleString()} VND`
+                    : `Còn lại ${budget.remaining.toLocaleString()} VND`
+                  }
+                </Text>
+                <Text style={[
+                  styles.budgetSpent,
+                  budget.expense > budget.amount && styles.overBudgetText
+                ]}>
+                  Chi {(budget.expense || 0).toLocaleString()} /{' '}
+                  {(budget.amount || 0).toLocaleString()} VND
+                </Text>
+                {budget.expense > budget.amount && (
+                  <Text style={styles.overBudgetWarning}>
+                    Đã vượt {((budget.expense / budget.amount - 1) * 100).toFixed(0)}% ngân sách
+                  </Text>
+                )}
+              </TouchableOpacity>
                 ))}
               </View>
             </>
@@ -339,6 +459,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+    overBudgetAmount: {
+      color: '#FF3B30', // Màu đỏ cho số tiền vượt ngân sách
+    },
+    
+    overBudgetText: {
+      color: '#FF3B30', // Màu đỏ cho text chi tiêu vượt ngân sách
+    },
+    
+    overBudgetWarning: {
+      color: '#FF3B30',
+      fontSize: 14,
+      fontStyle: 'italic',
+      marginTop: 5,
+    },
 });
 
 export default BudgetPage;

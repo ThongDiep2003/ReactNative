@@ -40,28 +40,42 @@ const icons = [
   { name: 'leaf', color: '#4caf50' },
 ];
 
+// Thêm ở đầu file, ngoài component
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 const AllTransaction = ({ navigation }) => {
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All'); // Options: 'All', 'Income', 'Expense'
 
- // Lắng nghe thông báo nhấn
- useEffect(() => {
-  const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-    const actionIdentifier = response.actionIdentifier;
-    if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
-      // Điều hướng đến AddTransaction khi người dùng nhấn vào thông báo
-      navigation.navigate('AddTransaction');
+// Cấu hình thông báo
+useEffect(() => {
+  const configurePushNotifications = async () => {
+    // Kiểm tra quyền thông báo
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
     }
-  });
 
-  return () => {
-    subscription.remove();
+    if (finalStatus !== 'granted') {
+      alert('Failed to get push token for push notification!');
+      return;
+    }
   };
-}, [navigation]);
 
-// Hàm kiểm tra giao dịch hôm nay
+  configurePushNotifications();
+}, []);
+
 const checkTransactionsForToday = (transactions) => {
   const today = new Date().toLocaleDateString();
   const hasTransactionsToday = transactions.some((transaction) => {
@@ -70,21 +84,90 @@ const checkTransactionsForToday = (transactions) => {
   });
 
   if (!hasTransactionsToday) {
-    sendReminderNotification();
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    if (currentHour >= 21) {
+      // Nếu đã quá 9 giờ tối, gửi thông báo ngay
+      sendImmediateNotification();
+    } else {
+      // Nếu chưa tới 9 giờ tối, lên lịch cho 9 giờ tối
+      scheduleReminder();
+    }
   }
 };
 
-// Hàm gửi thông báo nhắc nhở
-const sendReminderNotification = () => {
-  Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'No Transactions Today!',
-      body: 'You have not added any transactions today. Tap here to add one!',
-      sound: 'default',
-    },
-    trigger: null, // Gửi ngay lập tức
-  });
+// Hàm lên lịch thông báo
+const scheduleReminder = async () => {
+  try {
+    const now = new Date();
+    const ninePM = new Date(now);
+    ninePM.setHours(21, 0, 0, 0);
+
+    // Nếu đã quá 9 giờ tối, đặt cho ngày hôm sau
+    if (now > ninePM) {
+      ninePM.setDate(ninePM.getDate() + 1);
+    }
+
+    // Hủy các thông báo cũ
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    // Lên lịch thông báo mới sử dụng seconds
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Nhắc nhở giao dịch hàng ngày',
+        body: 'Bạn chưa ghi chép giao dịch nào hôm nay. Hãy cập nhật ngay!',
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      },
+      trigger: {
+        seconds: Math.floor((ninePM.getTime() - now.getTime()) / 1000), // Chuyển đổi thành seconds
+      },
+    });
+    console.log('Đã lên lịch thông báo cho:', ninePM.toLocaleString());
+  } catch (error) {
+    console.error('Lỗi lên lịch thông báo:', error);
+  }
 };
+
+// Xử lý khi người dùng nhấn vào thông báo
+useEffect(() => {
+  const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+    navigation.navigate('AddTransaction');
+  });
+
+  return () => {
+    subscription.remove();
+  };
+}, [navigation]);
+
+// Trong useEffect fetch data
+useEffect(() => {
+  const currentUser = FIREBASE_AUTH.currentUser;
+  if (currentUser) {
+    const transactionsRef = ref(FIREBASE_DB, `users/${currentUser.uid}/transactions`);
+    onValue(transactionsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const transactionList = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setTransactions(transactionList);
+        setFilteredTransactions(transactionList);
+        
+        // Kiểm tra và lên lịch thông báo
+        checkTransactionsForToday(transactionList);
+      } else {
+        setTransactions([]);
+        setFilteredTransactions([]);
+        // Nếu không có dữ liệu, lên lịch thông báo
+        scheduleReminder();
+      }
+    });
+  }
+}, []);
+
 
   // Fetch transactions from Firebase
   useEffect(() => {
