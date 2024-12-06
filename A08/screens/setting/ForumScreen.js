@@ -15,6 +15,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import ForumNotificationManager from '../../services/ForumNotifications';
 import moment from 'moment';
 import * as Notifications from 'expo-notifications'; // Thêm dòng này
+import NotificationHandler from '../../services/ForumNotifications';
 
 const ForumScreen = () => {
   const [question, setQuestion] = useState('');
@@ -166,7 +167,7 @@ const ForumScreen = () => {
       const questionData = forumData.find(q => q.id === selectedQuestionId);
       if (questionData && questionData.email !== currentUser) {
         // Gửi thông báo
-        await notificationHandler.sendNotification(
+        await NotificationHandler.sendNotification(
           questionData.question,
           newReply,
           {
