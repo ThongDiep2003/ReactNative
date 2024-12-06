@@ -91,21 +91,24 @@ const HomePage = () => {
 
   const NotificationBell = () => (
     <TouchableOpacity 
-      style={tw`ml-4`}
+      style={[tw`ml-4 flex-row items-center bg-gray-100 px-3 py-2 rounded-full`]} // Thêm background và padding
       onPress={() => navigation.navigate('Forum')}
     >
-      <View>
-        <Icon name="chat-outline" size={30} color="#000" />
-        {unreadCount > 0 && (
-          <View style={[
-            tw`absolute -right-3 -top-2 bg-red-500 rounded-full w-6 h-6 justify-center items-center`,
-            { minWidth: 24 }
-          ]}>
-            <Text style={tw`text-white text-xs font-bold`}>
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </Text>
-          </View>
-        )}
+      <View style={tw`flex-row items-center`}>
+        <View style={tw`relative`}>
+          <Icon name="chat-outline" size={30} color="#000" />
+          {unreadCount > 0 && (
+            <View style={[
+              tw`absolute -right-3 -top-2 bg-red-500 rounded-full w-6 h-6 justify-center items-center`,
+              { minWidth: 24 }
+            ]}>
+              <Text style={tw`text-white text-xs font-bold`}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text style={tw`ml-2 text-base font-semibold text-gray-800`}>Forum</Text>
       </View>
     </TouchableOpacity>
   );
