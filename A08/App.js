@@ -53,7 +53,7 @@ import Language from './screens/setting/LanguagePage';
 import ContactUs from './screens/setting/ContactUsPage';
 import ChangePassword from './screens/setting/ChangePasswordPage';
 import PrivacyPolicy from './screens/setting/PrivacyPolicyPage';
-import ForumScreen from "./screens/setting/ForumScreen";
+import ForumScreen from "./screens/home/ForumScreen";
 
 
 import ManageCardsPage from "./screens/card/ManageCardPage";

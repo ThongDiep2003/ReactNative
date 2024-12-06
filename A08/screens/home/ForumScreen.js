@@ -15,7 +15,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import ForumNotificationManager from '../../services/ForumNotifications';
 import moment from 'moment';
 import * as Notifications from 'expo-notifications'; // Thêm dòng này
-import NotificationHandler from '../../services/ForumNotifications';
 
 const ForumScreen = () => {
   const [question, setQuestion] = useState('');
@@ -124,7 +123,7 @@ const ForumScreen = () => {
   // Thêm câu hỏi
   const handleAddQuestion = () => {
     if (!question.trim()) {
-      Alert.alert('Error', 'Please enter a question');
+      Alert.alert('Lỗi', 'Vui lòng nhập câu hỏi');
       return;
     }
   
@@ -141,14 +140,14 @@ const ForumScreen = () => {
         setQuestion('');
       })
       .catch((error) => {
-        Alert.alert('Error', 'Cannot add question: ' + error.message);
+        Alert.alert('Lỗi', 'Không thể thêm câu hỏi: ' + error.message);
       });
   };
 
   // Thêm câu trả lời
   const handleAddReply = async () => {
     if (!reply.trim() || !selectedQuestionId) {
-      Alert.alert('Error', 'Please enter a reply');
+      Alert.alert('Lỗi', 'Vui lòng nhập câu trả lời');
       return;
     }
   
@@ -167,7 +166,7 @@ const ForumScreen = () => {
       const questionData = forumData.find(q => q.id === selectedQuestionId);
       if (questionData && questionData.email !== currentUser) {
         // Gửi thông báo
-        await NotificationHandler.sendNotification(
+        await notificationHandler.sendNotification(
           questionData.question,
           newReply,
           {
@@ -180,9 +179,10 @@ const ForumScreen = () => {
       setReply('');
       setSelectedQuestionId(null);
     } catch (error) {
+      Alert.alert('Lỗi', 'Không thể thêm câu trả lời: ' + error.message);
     }
   };
-
+  
   // Xóa câu hỏi
   const handleDeleteQuestion = (id, email) => {
     if (email !== currentUser) {
@@ -269,7 +269,7 @@ const ForumScreen = () => {
     <View style={styles.questionContainer}>
       <Text style={styles.questionText}>{item.question}</Text>
       <View style={styles.questionInfo}>
-        <Text style={styles.emailText}>Ask by: {item.email}</Text>
+        <Text style={styles.emailText}>Đăng bởi: {item.email}</Text>
         <Text style={styles.timeText}>
           {moment(item.timestamp).fromNow()}
         </Text>
@@ -281,7 +281,7 @@ const ForumScreen = () => {
           onPress={() => setSelectedQuestionId(selectedQuestionId === item.id ? null : item.id)}
         >
           <Text style={styles.replyButtonText}>
-            {selectedQuestionId === item.id ? 'Cancle' : 'Reply'}
+            {selectedQuestionId === item.id ? 'Hủy' : 'Trả lời'}
           </Text>
         </TouchableOpacity>
         {item.email === currentUser && (
@@ -289,7 +289,7 @@ const ForumScreen = () => {
             style={styles.deleteButton}
             onPress={() => handleDeleteQuestion(item.id, item.email)}
           >
-            <Text style={styles.deleteButtonText}>Delete</Text>
+            <Text style={styles.deleteButtonText}>Xóa</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -315,7 +315,7 @@ const ForumScreen = () => {
                   <Text style={styles.replyText}>- {replyData.reply}</Text>
                   <View style={styles.replyInfo}>
                     <Text style={styles.emailText}>
-                      Reply by: {replyData.email}
+                      Trả lời bởi: {replyData.email}
                     </Text>
                     <Text style={styles.timeText}>
                       {moment(replyData.timestamp).fromNow()}

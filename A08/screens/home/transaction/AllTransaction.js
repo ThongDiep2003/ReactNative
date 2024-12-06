@@ -160,7 +160,7 @@ const AllTransaction = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.headerText}>All Transactions</Text>
+        
         <View style={styles.headerIcons}>
           <TouchableOpacity onPress={() => setFilterType('All')}>
             <Text style={[styles.filterButton, filterType === 'All' && styles.activeFilter]}>All</Text>
@@ -227,6 +227,7 @@ const styles = StyleSheet.create({
     color: '#333',
     paddingHorizontal: 10,
     paddingVertical: 5,
+    marginLeft: 40,
   },
   activeFilter: {
     fontWeight: 'bold',

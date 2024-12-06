@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, FlatList, SafeAreaView, Platform } from 'react-native';
+import { View, Text, Image, TouchableOpacity, FlatList, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from '../../auths/FirebaseConfig';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
@@ -7,7 +7,6 @@ import { ref, onValue } from 'firebase/database';
 import tw from 'tailwind-react-native-classnames';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PieChart } from 'react-native-gifted-charts';
-import { StatusBar } from 'react-native';
 
 const iconList = [
   { name: 'car', color: '#f44336' },
@@ -48,7 +47,6 @@ const iconList = [
   { name: 'laptop', color: '#ff9800' },
   { name: 'leaf', color: '#4caf50' },
 ];
-
 
 const HomePage = () => {
   const navigation = useNavigation();
@@ -91,7 +89,7 @@ const HomePage = () => {
 
   const NotificationBell = () => (
     <TouchableOpacity 
-      style={[tw`ml-4 flex-row items-center bg-gray-100 px-3 py-2 rounded-full`]} // Thêm background và padding
+      style={[tw`ml-4 flex-row items-center bg-gray-100 px-3 py-2 rounded-full`]}
       onPress={() => navigation.navigate('Forum')}
     >
       <View style={tw`flex-row items-center`}>
@@ -108,7 +106,6 @@ const HomePage = () => {
             </View>
           )}
         </View>
-        <Text style={tw`ml-2 text-base font-semibold text-gray-800`}>Forum</Text>
       </View>
     </TouchableOpacity>
   );
@@ -138,12 +135,12 @@ const HomePage = () => {
   
             // Lấy tháng và năm hiện tại
             const currentDate = new Date();
-            const currentMonth = currentDate.getMonth(); // 0 - 11 (January - December)
+            const currentMonth = currentDate.getMonth(); 
             const currentYear = currentDate.getFullYear();
   
             // Lọc các giao dịch trong tháng và năm hiện tại
             const filteredTransactions = fetchedTransactions.filter((transaction) => {
-              const transactionDate = new Date(transaction.date); // Assuming transaction has a 'date' field
+              const transactionDate = new Date(transaction.date);
               return (
                 transactionDate.getMonth() === currentMonth &&
                 transactionDate.getFullYear() === currentYear
@@ -187,7 +184,6 @@ const HomePage = () => {
               }
             });
   
-            // Chỉ tính tổng thu nhập và chi tiêu cho tháng hiện tại
             setTotalIncome(income);
             setTotalExpense(expense);
             setExpenseCategories(Object.values(expenseData));
@@ -209,7 +205,7 @@ const HomePage = () => {
         (maxIdx, item, idx) => (item.amount > categories[maxIdx].amount ? idx : maxIdx),
         0
       );
-      setFocusedSection(maxIndex); // Focus vào phần có giá trị lớn nhất
+      setFocusedSection(maxIndex);
     }
   }, [expenseCategories, incomeCategories, displayType]);
 
@@ -237,14 +233,17 @@ const HomePage = () => {
     );
   }
 
-  const pieData = (displayType === 'Expense' ? expenseCategories : incomeCategories).map((item, index) => ({
-    value: Math.abs(item.amount),
-    color: item.color,
-    gradientCenterColor: item.color,
-    text: `${Math.round((item.amount / (displayType === 'Expense' ? totalExpense : totalIncome)) * 100)}%`,
-    focused: focusedSection === index,
-    onPress: () => setFocusedSection(index),
-  }));
+  const categories = displayType === 'Expense' ? expenseCategories : incomeCategories;
+  const pieData = categories && categories.length > 0
+    ? categories.map((item, index) => ({
+        value: Math.abs(item.amount),
+        color: item.color,
+        gradientCenterColor: item.color,
+        text: `${Math.round((item.amount / (displayType === 'Expense' ? totalExpense : totalIncome)) * 100)}%`,
+        focused: focusedSection === index,
+        onPress: () => setFocusedSection(index),
+      }))
+    : [];
 
   return (
     <SafeAreaView style={[tw`flex-1 bg-white`, { paddingTop: Platform.OS === 'ios' ? 35 : StatusBar.currentHeight - 50 }]}>
@@ -255,7 +254,7 @@ const HomePage = () => {
             style={tw`w-12 h-12 rounded-full`}
           />
           <View style={tw`ml-3`}>
-            <Text style={tw`text-base text-gray-500`}>Welcome back,</Text>
+            <Text style={tw`text-base text-gray-500`}>Welcome,</Text>
             <Text style={tw`text-lg font-bold`}>{userName}</Text>
           </View>
         </View>
@@ -275,30 +274,34 @@ const HomePage = () => {
 
       <View style={[tw`mt-0 mb-0 p-3 rounded-lg justify-center items-center`]}>
         <Text style={tw`text-lg font-bold text-center mb-3`}>{displayType} Distribution</Text>
-        <PieChart
-          data={pieData}
-          donut
-          showGradient
-          sectionAutoFocus
-          focusOnPress={true}
-          radius={100}
-          innerRadius={70}
-          innerCircleColor="#ffffff"
-          centerLabelComponent={() => {
-            if (focusedSection !== null) {
-              const focusedData = (displayType === 'Expense' ? expenseCategories : incomeCategories)[focusedSection];
-              return (
-                <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 22, color: 'black', fontWeight: 'bold' }}>
-                    {Math.round((focusedData.amount / (displayType === 'Expense' ? totalExpense : totalIncome)) * 100)}%
-                  </Text>
-                  <Text style={{ fontSize: 14, color: 'black' }}>{focusedData.name}</Text>
-                </View>
-              );
-            }
-            return null;
-          }}
-        />
+        {pieData.length > 0 ? (
+          <PieChart
+            data={pieData}
+            donut
+            showGradient
+            sectionAutoFocus
+            focusOnPress={true}
+            radius={100}
+            innerRadius={70}
+            innerCircleColor="#ffffff"
+            centerLabelComponent={() => {
+              if (focusedSection !== null && focusedSection < categories.length) {
+                const focusedData = categories[focusedSection];
+                return (
+                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 22, color: 'black', fontWeight: 'bold' }}>
+                      {Math.round((focusedData.amount / (displayType === 'Expense' ? totalExpense : totalIncome)) * 100)}%
+                    </Text>
+                    <Text style={{ fontSize: 14, color: 'black' }}>{focusedData.name}</Text>
+                  </View>
+                );
+              }
+              return null;
+            }}
+          />
+        ) : (
+          <Text>No data available</Text>
+        )}
       </View>
 
       <View style={tw`flex-1 p-6`}>

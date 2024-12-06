@@ -3,7 +3,7 @@ import { Alert, SafeAreaView, StyleSheet, TextInput, Text, View, TouchableOpacit
 import { verifyOTP } from '../../auths/FirebaseConfig'; // Import hàm xác thực OTP
 import { createUserWithEmailAndPassword, deleteUser, getAuth } from 'firebase/auth'; // Import hàm deleteUser để xóa tài khoản
 import { FIREBASE_DB } from '../../auths/FirebaseConfig'; // Import Firebase Realtime Database config
-import { ref, set } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Firebase Realtime Database
+import { ref, set, update } from 'firebase/database'; // Import hàm để thêm dữ liệu vào Firebase Realtime Database
 
 const EnterOTP3 = ({ route, navigation }) => {
   const { name, birthdate, email, mobile, avatarUrl, otp: sentOtp } = route.params; // Destructure avatarUrl
@@ -15,24 +15,22 @@ const EnterOTP3 = ({ route, navigation }) => {
     try {
       // Verify OTP
       const isVerified = await verifyOTP(email, otp);
-
+  
       if (isVerified && otp === sentOtp) {
         const auth = getAuth();
         const user = auth.currentUser;
-
+  
         if (user) {
-          // If OTP is valid, store the user's profile in Realtime Database
+          // If OTP is valid, update the user's profile in Realtime Database
           const userId = user.uid;
-          await set(ref(FIREBASE_DB, 'users/' + userId), {
+          await update(ref(FIREBASE_DB, 'users/' + userId), {
             name: name,
             birthdate: birthdate,
             email: email,
-            mobile: mobile, // Store mobile number
-            avatarUrl: avatarUrl, // Store avatar URL
+            mobile: mobile, // Update mobile number
+            avatarUrl: avatarUrl, // Update avatar URL
           });
-
-          
-
+  
           // Wait for 3 seconds before navigating to profile screen
           setTimeout(() => {
             navigation.navigate('Move3');

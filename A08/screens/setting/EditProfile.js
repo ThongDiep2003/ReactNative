@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { get, ref, set } from 'firebase/database';
+import { get, ref, update } from 'firebase/database';
 import { FIREBASE_DB } from '../../auths/FirebaseConfig';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -101,22 +101,16 @@ function EditProfile() {
       const user = auth.currentUser;
       const userRef = ref(FIREBASE_DB, `users/${user.uid}`);
   
-      // Lấy dữ liệu người dùng hiện tại từ Firebase
-      const snapshot = await get(userRef);
-      const existingData = snapshot.val();
-  
       // Tạo đối tượng cập nhật chỉ với các trường thay đổi
       const updatedUserData = {
-        ...existingData,  // Giữ nguyên tất cả dữ liệu cũ
-        name: name || existingData.name,  // Cập nhật name nếu có thay đổi
-        birthdate: birthdate || existingData.birthdate,  // Cập nhật birthdate nếu có thay đổi
-        email: email || existingData.email,  // Cập nhật email nếu có thay đổi
-        mobile: mobile || existingData.mobile,  // Cập nhật mobile nếu có thay đổi
-        avatarUrl: uploadedAvatarUrl || existingData.avatarUrl,  // Cập nhật avatarUrl nếu có thay đổi
+        name: name,
+        birthdate: birthdate,
+        mobile: mobile,
+        avatarUrl: uploadedAvatarUrl,
       };
   
-      // Cập nhật dữ liệu người dùng
-      await set(userRef, updatedUserData);
+      // Sử dụng update() để chỉ cập nhật các trường cụ thể
+      await update(userRef, updatedUserData);
   
       // Gửi OTP và điều hướng đến trang nhập OTP
       const otp = generateOTP();
@@ -138,6 +132,7 @@ function EditProfile() {
       setLoading(false);
     }
   };
+  
 
   return (
     <View style={styles.container}>
