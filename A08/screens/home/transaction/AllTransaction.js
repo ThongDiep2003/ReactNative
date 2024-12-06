@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'r
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { ref, onValue } from 'firebase/database';
+import * as Notifications from 'expo-notifications';
 
 const icons = [
   { name: 'car', color: '#f44336' },
@@ -45,6 +46,46 @@ const AllTransaction = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All'); // Options: 'All', 'Income', 'Expense'
 
+ // Lắng nghe thông báo nhấn
+ useEffect(() => {
+  const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+    const actionIdentifier = response.actionIdentifier;
+    if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+      // Điều hướng đến AddTransaction khi người dùng nhấn vào thông báo
+      navigation.navigate('AddTransaction');
+    }
+  });
+
+  return () => {
+    subscription.remove();
+  };
+}, [navigation]);
+
+// Hàm kiểm tra giao dịch hôm nay
+const checkTransactionsForToday = (transactions) => {
+  const today = new Date().toLocaleDateString();
+  const hasTransactionsToday = transactions.some((transaction) => {
+    const transactionDate = new Date(transaction.date).toLocaleDateString();
+    return transactionDate === today;
+  });
+
+  if (!hasTransactionsToday) {
+    sendReminderNotification();
+  }
+};
+
+// Hàm gửi thông báo nhắc nhở
+const sendReminderNotification = () => {
+  Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'No Transactions Today!',
+      body: 'You have not added any transactions today. Tap here to add one!',
+      sound: 'default',
+    },
+    trigger: null, // Gửi ngay lập tức
+  });
+};
+
   // Fetch transactions from Firebase
   useEffect(() => {
     const currentUser = FIREBASE_AUTH.currentUser;
@@ -59,6 +100,14 @@ const AllTransaction = ({ navigation }) => {
           }));
           setTransactions(transactionList);
           setFilteredTransactions(transactionList); // Initialize filtered transactions
+
+          // Kiểm tra giao dịch hôm nay
+          checkTransactionsForToday(transactionList);
+        } else {
+          setTransactions([]);
+          setFilteredTransactions([]);
+          // Nếu không có dữ liệu nào, gửi thông báo nhắc nhở
+          sendReminderNotification();
         }
       });
     }

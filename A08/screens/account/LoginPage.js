@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { signInWithEmailAndPassword } from 'firebase/auth'; 
 import { FIREBASE_AUTH } from '../../auths/FirebaseConfig'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { registerForPushNotificationsAsync, sendNotification } from '../../services/notificationService'; // Import các hàm thông báo
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -16,33 +17,41 @@ const Login = () => {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await signInWithEmailAndPassword(auth, username, password);
-      const user = response.user;
+        const response = await signInWithEmailAndPassword(auth, username, password);
+        const user = response.user;
   
-      // Get JWT token from Firebase
-      const token = await user.getIdToken();
+        // Get JWT token from Firebase
+        const token = await user.getIdToken();
   
-      // Store the token in AsyncStorage for later use
-      await AsyncStorage.setItem('jwtToken', token);
+        // Store the token in AsyncStorage for later use
+        await AsyncStorage.setItem('jwtToken', token);
   
-      Alert.alert('Login successful');
-      // Navigate to the main screen (Main)
-      navigation.navigate('Main');
+        // Lấy Expo Push Token
+        const expoPushToken = await registerForPushNotificationsAsync();
+        if (!expoPushToken) {
+            Alert.alert('Login successful, but no push token available.');
+        } else {
+            // Gửi thông báo chào mừng
+            await sendNotification(expoPushToken, 'Login Successful!', 'Welcome back to the app!');
+        }
+  
+        Alert.alert('Login successful');
+        navigation.navigate('Main'); // Điều hướng đến màn hình chính
     } catch (error) {
-      console.error(error);
-      if (error.code === 'auth/user-not-found') {
-        Alert.alert('Login failed: User not found');
-      } else if (error.code === 'auth/wrong-password') {
-        Alert.alert('Login failed: Wrong password');
-      } else {
-        Alert.alert('Login failed: ' + error.message);
-      }
+        console.error(error);
+        if (error.code === 'auth/user-not-found') {
+            Alert.alert('Login failed: User not found');
+        } else if (error.code === 'auth/wrong-password') {
+            Alert.alert('Login failed: Wrong password');
+        } else {
+            Alert.alert('Login failed: ' + error.message);
+        }
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
-  
+};
 
+  
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Welcome Back</Text>
@@ -77,7 +86,6 @@ const Login = () => {
             onValueChange={setClick}
             trackColor={{ true: 'green', false: 'gray' }}
           />
-          {/* <Text style={styles.rememberText}>Remember Me</Text> */}
         </View>
         <View>
           <Pressable onPress={() => navigation.navigate('ForgotPassword')}> 
@@ -103,6 +111,9 @@ const Login = () => {
 };
 
 export default Login;
+
+// Styles are the same as in your provided code.
+
 
 const styles = StyleSheet.create({
   container: {

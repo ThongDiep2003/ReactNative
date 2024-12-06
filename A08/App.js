@@ -4,6 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { configureNotifications, registerForPushNotificationsAsync } from './services/notificationService';
 
 ErrorUtils.setGlobalHandler((error, isFatal) => {
   // Ghi log lỗi nhưng không hiển thị trên giao diện
@@ -71,6 +72,20 @@ import TabNavigator from "./navigation/TabNavigator";
 const Stack = createNativeStackNavigator();
 
 const App = () => {
+  
+  useEffect(() => {
+    // Đăng ký nhận thông báo và lắng nghe thông báo
+    const unregisterListeners = configureNotifications();
+
+    // Lấy token cho thông báo
+    registerForPushNotificationsAsync();
+
+    // Cleanup các listener
+    return () => {
+        unregisterListeners();
+    };
+}, []);
+
   const [isLoggedIn, setIsLoggedIn] = useState(null);
 
   // Kiểm tra trạng thái đăng nhập

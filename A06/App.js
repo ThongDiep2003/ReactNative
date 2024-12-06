@@ -4,6 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { requestNotificationPermission } from "./services/nofitication";
 
 ErrorUtils.setGlobalHandler((error, isFatal) => {
   // Ghi log lỗi nhưng không hiển thị trên giao diện
@@ -58,6 +59,10 @@ const Stack = createNativeStackNavigator();
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
 
+  // Yêu cầu quyền thông báo khi khởi chạy ứng dụng
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
   // Kiểm tra trạng thái đăng nhập
   useEffect(() => {
     const checkLoginStatus = async () => {
