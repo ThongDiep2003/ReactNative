@@ -14,11 +14,116 @@ import moment from 'moment';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
+
+// Cấu hình notifications ở đầu file, ngoài component
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 
 const GoalPage = () => {
   const [goals, setGoals] = useState([]);
   const userId = FIREBASE_AUTH.currentUser?.uid;
   const navigation = useNavigation();
+  const [notifiedGoals, setNotifiedGoals] = useState(new Set());
+
+  const sendNotification = async (title, body) => {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: null, // Gửi ngay lập tức
+      });
+      console.log('Đã gửi thông báo:', title, body);
+    } catch (error) {
+      console.error('Lỗi gửi thông báo:', error);
+    }
+  };
+
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      if (finalStatus !== 'granted') {
+        Alert.alert('Thông báo', 'Vui lòng cấp quyền thông báo để nhận được nhắc nhở về mục tiêu.');
+      }
+    };
+
+    requestPermissions();
+  }, []);
+
+  useEffect(() => {
+    const checkGoalDeadlines = async () => {
+      const reminderDays = [10, 5, 3, 2, 1];
+      
+      for (const goal of goals) {
+        const endDate = moment(goal.endDate);
+        const today = moment();
+        const daysLeft = endDate.diff(today, 'days');
+
+        // Kiểm tra nếu số ngày còn lại khớp với một trong các mốc nhắc nhở
+        if (reminderDays.includes(daysLeft)) {
+          const notificationKey = `${goal.id}-${daysLeft}`;
+          
+          // Kiểm tra xem đã gửi thông báo cho mốc này chưa
+          if (!notifiedGoals.has(notificationKey)) {
+            let message;
+            const progressPercent = ((goal.progress || 0) / goal.targetAmount * 100).toFixed(1);
+            
+            if (daysLeft === 1) {
+              message = `Mục tiêu "${goal.name}" sẽ kết thúc vào ngày mai! Bạn đã đạt ${progressPercent}%`;
+            } else {
+              message = `Còn ${daysLeft} ngày nữa mục tiêu "${goal.name}" sẽ kết thúc. Hiện tại đã đạt ${progressPercent}%, Bạn có muốn chỉnh sửa ngày kết thúc không?`;
+            }
+
+            await sendNotification(
+              'Nhắc nhở mục tiêu',
+              message
+            );
+
+            // Thêm vào danh sách đã thông báo
+            setNotifiedGoals(prev => new Set([...prev, notificationKey]));
+          }
+        }
+
+        // Kiểm tra nếu mục tiêu đã hoàn thành
+        if (goal.progress >= goal.targetAmount && !notifiedGoals.has(`${goal.id}-completed`)) {
+          await sendNotification(
+            'Chúc mừng!',
+            `Bạn đã hoàn thành mục tiêu "${goal.name}"!`
+          );
+          setNotifiedGoals(prev => new Set([...prev, `${goal.id}-completed`]));
+        }
+      }
+    };
+
+    checkGoalDeadlines();
+  }, [goals]);
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      navigation.navigate('Goal');
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [navigation]);
 
   // Fetch data từ Firebase
   useEffect(() => {

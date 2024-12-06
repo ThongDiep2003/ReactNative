@@ -6,19 +6,20 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
 import { ref, update, onValue, remove } from 'firebase/database';
+import moment from 'moment';
 
 const EditGoalPage = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { goalId, goalData = {} } = route.params || {};
   
-    // Kiểm tra giá trị mặc định
     const [goalName, setGoalName] = useState(goalData.name || '');
     const [amount, setAmount] = useState(String(goalData.targetAmount || 0));
     const [endDate, setEndDate] = useState(new Date(goalData.endDate || new Date()));
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(goalData.categoryId || null);
+    const [dateError, setDateError] = useState('');
   
     const userId = FIREBASE_AUTH.currentUser?.uid;
   
@@ -37,32 +38,96 @@ const EditGoalPage = () => {
         });
       }
     }, [userId]);
+
+    // Xử lý thay đổi ngày
+    const handleDateChange = (event, selectedDate) => {
+      setShowDatePicker(false);
+      if (selectedDate) {
+        const currentDate = new Date();
+        // Đặt giờ, phút, giây về 0 để so sánh ngày
+        currentDate.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate < currentDate) {
+          setDateError('Ngày kết thúc không thể là ngày trong quá khứ');
+          return;
+        }
+
+        // Kiểm tra ngày hết hạn có hợp lệ không
+        const daysDiff = moment(selectedDate).diff(moment(), 'days');
+        if (daysDiff < 1) {
+          setDateError('Ngày kết thúc phải cách ít nhất 1 ngày');
+          return;
+        }
+
+        setEndDate(selectedDate);
+        setDateError('');
+      }
+    };
   
     const handleUpdateGoal = () => {
-      if (!goalName || !amount || !selectedCategory) {
-        Alert.alert('Error', 'Please fill all fields and select a category.');
+      if (!goalName.trim()) {
+        Alert.alert('Lỗi', 'Vui lòng nhập tên mục tiêu');
         return;
       }
-  
+
+      if (!amount || parseFloat(amount) <= 0) {
+        Alert.alert('Lỗi', 'Vui lòng nhập số tiền hợp lệ');
+        return;
+      }
+
+      if (!selectedCategory) {
+        Alert.alert('Lỗi', 'Vui lòng chọn danh mục');
+        return;
+      }
+
+      if (dateError) {
+        Alert.alert('Lỗi', dateError);
+        return;
+      }
+
+      // Kiểm tra nếu số tiền đã tiết kiệm lớn hơn số tiền mục tiêu mới
+      if (goalData.progress && parseFloat(amount) < goalData.progress) {
+        Alert.alert(
+          'Cảnh báo',
+          'Số tiền mục tiêu mới nhỏ hơn số tiền đã tiết kiệm. Bạn có chắc chắn muốn cập nhật không?',
+          [
+            {
+              text: 'Hủy',
+              style: 'cancel'
+            },
+            {
+              text: 'Đồng ý',
+              onPress: () => updateGoal()
+            }
+          ]
+        );
+      } else {
+        updateGoal();
+      }
+    };
+
+    const updateGoal = () => {
       const updatedGoal = {
-        name: goalName,
+        name: goalName.trim(),
         targetAmount: parseFloat(amount),
         categoryId: selectedCategory,
         categoryName: categories.find((cat) => cat.id === selectedCategory)?.name || '',
         categoryIcon: categories.find((cat) => cat.id === selectedCategory)?.icon || '',
         categoryColor: categories.find((cat) => cat.id === selectedCategory)?.color || '',
         endDate: endDate.toISOString(),
+        progress: goalData.progress || 0, // Giữ nguyên tiến độ hiện tại
       };
   
       const goalRef = ref(FIREBASE_DB, `users/${userId}/goals/${goalId}`);
       update(goalRef, updatedGoal)
         .then(() => {
-          Alert.alert('Success', 'Goal updated successfully.');
+          Alert.alert('Thành công', 'Cập nhật mục tiêu thành công');
           navigation.goBack();
         })
         .catch((error) => {
-          console.error('Error updating goal:', error);
-          Alert.alert('Error', 'Failed to update goal.');
+          console.error('Lỗi cập nhật mục tiêu:', error);
+          Alert.alert('Lỗi', 'Không thể cập nhật mục tiêu');
         });
     };
   
@@ -70,28 +135,41 @@ const EditGoalPage = () => {
       <View style={styles.container}>
         <TextInput
           style={styles.input}
-          placeholder="Enter Goal Name"
+          placeholder="Nhập tên mục tiêu"
           value={goalName}
           onChangeText={setGoalName}
         />
         <TextInput
           style={styles.input}
-          placeholder="Enter Target Amount"
+          placeholder="Nhập số tiền mục tiêu"
           keyboardType="numeric"
           value={amount}
           onChangeText={setAmount}
         />
-        <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
-          <Text style={styles.dateText}>{endDate.toLocaleDateString()}</Text>
+        
+        <Text style={styles.label}>Ngày kết thúc:</Text>
+        <TouchableOpacity 
+          onPress={() => setShowDatePicker(true)} 
+          style={[
+            styles.datePicker,
+            dateError ? styles.datePickerError : null
+          ]}
+        >
+          <Text style={styles.dateText}>{moment(endDate).format('DD/MM/YYYY')}</Text>
         </TouchableOpacity>
+        {dateError ? <Text style={styles.errorText}>{dateError}</Text> : null}
+
         {showDatePicker && (
-          <DateTimePicker value={endDate} mode="date" display="default" onChange={(event, selectedDate) => {
-            const currentDate = selectedDate || endDate;
-            setShowDatePicker(false);
-            setEndDate(currentDate);
-          }} />
+          <DateTimePicker 
+            value={endDate}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+            minimumDate={new Date()}
+          />
         )}
-        <Text style={styles.sectionTitle}>Select Category</Text>
+
+        <Text style={styles.sectionTitle}>Chọn danh mục</Text>
         <View style={styles.categoryContainer}>
           {categories.map((cat) => (
             <TouchableOpacity
@@ -106,18 +184,27 @@ const EditGoalPage = () => {
             </TouchableOpacity>
           ))}
         </View>
-        <Button mode="contained" onPress={handleUpdateGoal} style={styles.saveButton}>
-          Update Goal
+        <Button 
+          mode="contained" 
+          onPress={handleUpdateGoal} 
+          style={styles.saveButton}
+        >
+          Cập nhật mục tiêu
         </Button>
       </View>
     );
-  };
-  
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#ffffff' },
-  headerRightIcon: {
-    paddingRight: 20,
+  container: { 
+    flex: 1, 
+    padding: 20, 
+    backgroundColor: '#ffffff' 
+  },
+  label: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 5,
   },
   input: {
     borderWidth: 1,
@@ -132,11 +219,29 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: '#fff',
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 5,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
-  dateText: { fontSize: 16, color: '#333' },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#6246EA' },
+  datePickerError: {
+    borderColor: '#ff0000',
+  },
+  errorText: {
+    color: '#ff0000',
+    fontSize: 12,
+    marginBottom: 15,
+  },
+  dateText: { 
+    fontSize: 16, 
+    color: '#333' 
+  },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    marginBottom: 10, 
+    color: '#6246EA' 
+  },
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -155,7 +260,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     elevation: 2,
   },
-  selectedCategoryButton: { borderColor: '#6246EA', borderWidth: 2 },
+  selectedCategoryButton: { 
+    borderColor: '#6246EA', 
+    borderWidth: 2 
+  },
   saveButton: {
     height: 50,
     backgroundColor: '#6246EA',
