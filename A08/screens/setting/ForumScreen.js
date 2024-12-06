@@ -8,11 +8,13 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native'; // Thêm dòng này
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../auths/FirebaseConfig';
-import { ref, push, onValue, remove } from 'firebase/database';
+import { ref, push, onValue, remove, update } from 'firebase/database'; // Thêm update
 import { onAuthStateChanged } from 'firebase/auth';
 import ForumNotificationManager from '../../services/ForumNotifications';
 import moment from 'moment';
+import * as Notifications from 'expo-notifications'; // Thêm dòng này
 
 const ForumScreen = () => {
   const [question, setQuestion] = useState('');
@@ -20,25 +22,71 @@ const ForumScreen = () => {
   const [forumData, setForumData] = useState([]);
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [noticationManager] = useState(new ForumNotificationManager());
+  const [notificationManager] = useState(new ForumNotificationManager());
 
-    // Khởi tạo notification manager
+  const navigation = useNavigation();
+  
+  // Thêm useEffect để khởi tạo notification
   useEffect(() => {
     const initializeNotifications = async () => {
-      await notificationManager.initialize();
+      const success = await notificationManager.initialize();
+      if (!success) {
+        Alert.alert('Thông báo', 'Không thể khởi tạo thông báo');
+      }
     };
 
     initializeNotifications();
 
-    // Thiết lập handler cho việc nhấn vào thông báo
-    const subscription = ForumNotificationManager.setupNotificationHandler(navigation);
-
     return () => {
-      subscription.remove();
       notificationManager.cleanup();
     };
   }, []);
 
+  const NotificationBadge = ({ count }) => {
+    if (count === 0) return null;
+    return (
+      <View style={styles.notificationBadge}>
+        <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
+      </View>
+    );
+  };
+
+  // Thêm useEffect để theo dõi thông báo chưa đọc
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const forumRef = ref(FIREBASE_DB, 'forum');
+    const unsubscribe = onValue(forumRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        let count = 0;
+        Object.values(data).forEach(question => {
+          if (question.email === currentUser && question.replies) {
+            Object.values(question.replies).forEach(reply => {
+              if (!reply.read) count++;
+            });
+          }
+        });
+        setUnreadNotifications(count);
+        // Cập nhật badge
+        Notifications.setBadgeCountAsync(count);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  const markReplyAsRead = async (questionId, replyId) => {
+    if (!currentUser) return;
+  
+    const replyRef = ref(FIREBASE_DB, `forum/${questionId}/replies/${replyId}`);
+    try {
+      await update(replyRef, { read: true });
+    } catch (error) {
+      console.error('Error marking reply as read:', error);
+    }
+  };
+  
 
   // Lấy email người dùng từ Firebase Auth
   useEffect(() => {
@@ -97,7 +145,7 @@ const ForumScreen = () => {
   };
 
   // Thêm câu trả lời
-  const handleAddReply = () => {
+  const handleAddReply = async () => {
     if (!reply.trim() || !selectedQuestionId) {
       Alert.alert('Lỗi', 'Vui lòng nhập câu trả lời');
       return;
@@ -108,18 +156,33 @@ const ForumScreen = () => {
       reply,
       email: currentUser,
       timestamp: Date.now(),
+      read: false,
     };
   
-    push(repliesRef, newReply)
-      .then(() => {
-        setReply('');
-        setSelectedQuestionId(null);
-      })
-      .catch((error) => {
-        Alert.alert('Lỗi', 'Không thể thêm câu trả lời: ' + error.message);
-      });
+    try {
+      const replyRef = await push(repliesRef, newReply);
+      
+      // Tìm câu hỏi gốc
+      const questionData = forumData.find(q => q.id === selectedQuestionId);
+      if (questionData && questionData.email !== currentUser) {
+        // Gửi thông báo
+        await notificationHandler.sendNotification(
+          questionData.question,
+          newReply,
+          {
+            questionId: selectedQuestionId,
+            replyId: replyRef.key,
+          }
+        );
+      }
+  
+      setReply('');
+      setSelectedQuestionId(null);
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể thêm câu trả lời: ' + error.message);
+    }
   };
-
+  
   // Xóa câu hỏi
   const handleDeleteQuestion = (id, email) => {
     if (email !== currentUser) {
@@ -204,59 +267,79 @@ const ForumScreen = () => {
   // Hiển thị từng câu hỏi
   const renderQuestion = ({ item }) => (
     <View style={styles.questionContainer}>
-    <Text style={styles.questionText}>{item.question}</Text>
-    <View style={styles.questionInfo}>
-      <Text style={styles.emailText}>Hỏi bởi: {item.email}</Text>
-      <Text style={styles.timeText}>
-        {moment(item.timestamp).fromNow()}
-      </Text>
-    </View>
-    <View style={styles.actionRow}>
-      <TouchableOpacity
-        style={styles.replyButton}
-        onPress={() => setSelectedQuestionId(selectedQuestionId === item.id ? null : item.id)}
-      >
-        <Text style={styles.replyButtonText}>
-          {selectedQuestionId === item.id ? 'Hủy' : 'Trả lời'}
+      <Text style={styles.questionText}>{item.question}</Text>
+      <View style={styles.questionInfo}>
+        <Text style={styles.emailText}>Hỏi bởi: {item.email}</Text>
+        <Text style={styles.timeText}>
+          {moment(item.timestamp).fromNow()}
         </Text>
-      </TouchableOpacity>
-      {item.email === currentUser && (
+      </View>
+      
+      <View style={styles.actionRow}>
         <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteQuestion(item.id, item.email)}
+          style={styles.replyButton}
+          onPress={() => setSelectedQuestionId(selectedQuestionId === item.id ? null : item.id)}
         >
-          <Text style={styles.deleteButtonText}>Xóa</Text>
+          <Text style={styles.replyButtonText}>
+            {selectedQuestionId === item.id ? 'Hủy' : 'Trả lời'}
+          </Text>
         </TouchableOpacity>
-      )}
+        {item.email === currentUser && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeleteQuestion(item.id, item.email)}
+          >
+            <Text style={styles.deleteButtonText}>Xóa</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+  
+      <View style={styles.repliesContainer}>
+        {item.replies &&
+          Object.entries(item.replies)
+            .sort(([,a], [,b]) => b.timestamp - a.timestamp)
+            .map(([replyId, replyData]) => (
+              <TouchableOpacity
+                key={replyId}
+                style={[
+                  styles.replyItem,
+                  !replyData.read && item.email === currentUser && styles.unreadReply
+                ]}
+                onPress={() => {
+                  if (item.email === currentUser && !replyData.read) {
+                    markReplyAsRead(item.id, replyId);
+                  }
+                }}
+              >
+                <View style={styles.replyContent}>
+                  <Text style={styles.replyText}>- {replyData.reply}</Text>
+                  <View style={styles.replyInfo}>
+                    <Text style={styles.emailText}>
+                      Trả lời bởi: {replyData.email}
+                    </Text>
+                    <Text style={styles.timeText}>
+                      {moment(replyData.timestamp).fromNow()}
+                    </Text>
+                  </View>
+                  
+                  {!replyData.read && item.email === currentUser && (
+                    <View style={styles.unreadDot} />
+                  )}
+  
+                  {replyData.email === currentUser && (
+                    <TouchableOpacity
+                      style={styles.deleteReplyButton}
+                      onPress={() => handleDeleteReply(item.id, replyId, replyData.email)}
+                    >
+                      <Text style={styles.deleteReplyButtonText}>Xóa</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+      </View>
     </View>
-    <View style={styles.repliesContainer}>
-      {item.replies &&
-        Object.entries(item.replies)
-          .sort(([,a], [,b]) => b.timestamp - a.timestamp) // Sắp xếp replies theo thời gian
-          .map(([replyId, replyData]) => (
-            <View key={replyId} style={styles.replyItem}>
-              <Text style={styles.replyText}>- {replyData.reply}</Text>
-              <View style={styles.replyInfo}>
-                <Text style={styles.emailText}>
-                  Trả lời bởi: {replyData.email}
-                </Text>
-                <Text style={styles.timeText}>
-                  {moment(replyData.timestamp).fromNow()}
-                </Text>
-              </View>
-              {replyData.email === currentUser && (
-                <TouchableOpacity
-                  style={styles.deleteReplyButton}
-                  onPress={() => handleDeleteReply(item.id, replyId, replyData.email)}
-                >
-                  <Text style={styles.deleteReplyButtonText}>Xóa</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
-    </View>
-  </View>
-);
+  );
 
   return (
     <View style={styles.container}>
@@ -412,7 +495,90 @@ const styles = StyleSheet.create({
       color: '#fff',
       fontSize: 12,
     },
-  });
+    unreadReply: {
+      backgroundColor: '#f0f8ff',
+      borderRadius: 8,
+      marginBottom: 8,
+    },
   
+    replyContent: {
+      position: 'relative',
+      padding: 10,
+    },
+  
+    unreadDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#3498db',
+      position: 'absolute',
+      right: 5,
+      top: 5,
+    },
+  
+    replyItem: {
+      marginBottom: 10,
+      borderRadius: 8,
+      backgroundColor: '#f8f9fa',
+      borderLeftWidth: 3,
+      borderLeftColor: '#dcdde1',
+    },
+  
+    replyInfo: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 5,
+    },
+  
+    replyText: {
+      fontSize: 14,
+      color: '#2c3e50',
+      marginBottom: 5,
+    },
+  
+    deleteReplyButton: {
+      alignSelf: 'flex-end',
+      backgroundColor: '#e74c3c',
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+      borderRadius: 5,
+      marginTop: 5,
+    },
+  
+    deleteReplyButtonText: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+  
+    emailText: {
+      fontSize: 12,
+      color: '#7f8c8d',
+    },
+  
+    timeText: {
+      fontSize: 12,
+      color: '#95a5a6',
+      fontStyle: 'italic',
+    },
+  notificationBadge: {
+    position: 'absolute',
+    right: -6,
+    top: -6,
+    backgroundColor: '#e74c3c',
+    borderRadius: 9,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+});
 
 export default ForumScreen;
