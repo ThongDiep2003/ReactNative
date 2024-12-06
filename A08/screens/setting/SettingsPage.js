@@ -1,15 +1,54 @@
 // screens/SettingsPage.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../auths/FirebaseConfig';
+import { ref, onValue } from 'firebase/database';
 
 const SettingsPage = ({ navigation }) => {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const currentUser = FIREBASE_AUTH.currentUser?.email;
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const forumRef = ref(FIREBASE_DB, 'forum');
+    const unsubscribe = onValue(forumRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        let count = 0;
+        Object.values(data).forEach(question => {
+          if (question.email === currentUser && question.replies) {
+            Object.values(question.replies).forEach(reply => {
+              if (!reply.read && reply.email !== currentUser) {
+                count++;
+              }
+            });
+          }
+        });
+        setUnreadCount(count);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  const NotificationBadge = ({ count }) => {
+    if (count === 0) return null;
+    return (
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>
+          {count > 99 ? '99+' : count}
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      
       <Text style={styles.sectionHeader}>General</Text>
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('Language')} // Navigate to Language screen
+        onPress={() => navigation.navigate('Language')}
       >
         <Text style={styles.itemText}>Language</Text>
         <Text style={styles.itemRight}>English</Text>
@@ -17,55 +56,55 @@ const SettingsPage = ({ navigation }) => {
 
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('Profile')} // Navigate to ProfilePage
+        onPress={() => navigation.navigate('Profile')}
       >
         <Text style={styles.itemText}>My Profile</Text>
       </TouchableOpacity>
+
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('CategoryManagement')} 
+        onPress={() => navigation.navigate('CategoryManagement')}
       >
         <Text style={styles.itemText}>Manage Category</Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('ManageCards')} 
+        onPress={() => navigation.navigate('ManageCards')}
       >
         <Text style={styles.itemText}>Manage Card</Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('Forum')} 
+        onPress={() => navigation.navigate('Forum')}
       >
         <Text style={styles.itemText}>Forum</Text>
+        <View style={styles.rightContainer}>
+          <NotificationBadge count={unreadCount} />
+          <Text style={styles.itemRight}></Text>
+        </View>
       </TouchableOpacity>
+
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('ContactUs')} // Navigate to ContactUs
+        onPress={() => navigation.navigate('ContactUs')}
       >
         <Text style={styles.itemText}>Contact Us</Text>
       </TouchableOpacity>
 
       <Text style={styles.sectionHeader}>Security</Text>
-      {/* <TouchableOpacity 
-        style={styles.item}
-        onPress={() => navigation.navigate('ChangePassword')} // Navigate to ChangePassword
-      >
-        <Text style={styles.itemText}>Change Password</Text>
-      </TouchableOpacity> */}
 
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('PrivacyPolicy')} // Navigate to PrivacyPolicy
+        onPress={() => navigation.navigate('PrivacyPolicy')}
       >
         <Text style={styles.itemText}>Privacy Policy</Text>
       </TouchableOpacity>
-      {/* Logout button */}
+
       <TouchableOpacity 
         style={styles.item}
-        onPress={() => navigation.navigate('LogoutPage')} // Navigate to LogoutPage
+        onPress={() => navigation.navigate('LogoutPage')}
       >
         <Text style={styles.itemText}>Logout</Text>
       </TouchableOpacity>
@@ -107,6 +146,24 @@ const styles = StyleSheet.create({
   itemRight: {
     fontSize: 16,
     color: 'gray',
+  },
+  rightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  badge: {
+    backgroundColor: '#FF0000',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   footerText: {
     fontSize: 12,

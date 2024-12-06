@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, FlatList, SafeAreaView, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { FIREBASE_DB, FIREBASE_AUTH, getUserProfile } from '../../auths/FirebaseConfig';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
@@ -7,6 +7,7 @@ import { ref, onValue } from 'firebase/database';
 import tw from 'tailwind-react-native-classnames';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { PieChart } from 'react-native-gifted-charts';
+import { StatusBar } from 'react-native';
 
 const iconList = [
   { name: 'car', color: '#f44336' },
@@ -61,6 +62,53 @@ const HomePage = () => {
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [displayType, setDisplayType] = useState('Expense');
   const [focusedSection, setFocusedSection] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const currentUser = FIREBASE_AUTH.currentUser?.email;
+    if (!currentUser) return;
+
+    const forumRef = ref(FIREBASE_DB, 'forum');
+    const unsubscribe = onValue(forumRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        let count = 0;
+        Object.values(data).forEach(question => {
+          if (question.email === currentUser && question.replies) {
+            Object.values(question.replies).forEach(reply => {
+              if (!reply.read && reply.email !== currentUser) {
+                count++;
+              }
+            });
+          }
+        });
+        setUnreadCount(count);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const NotificationBell = () => (
+    <TouchableOpacity 
+      style={tw`ml-4`}
+      onPress={() => navigation.navigate('Forum')}
+    >
+      <View>
+        <Icon name="bell-outline" size={24} color="#000" />
+        {unreadCount > 0 && (
+          <View style={[
+            tw`absolute -right-2 -top-2 bg-red-500 rounded-full w-5 h-5 justify-center items-center`,
+            { minWidth: 20 }
+          ]}>
+            <Text style={tw`text-white text-xs font-bold`}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
 
   const fetchUserData = async () => {
     try {
@@ -196,7 +244,7 @@ const HomePage = () => {
   }));
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-white`}>
+    <SafeAreaView style={[tw`flex-1 bg-white`, { paddingTop: Platform.OS === 'ios' ? 35 : StatusBar.currentHeight }]}>
       <View style={[tw`p-5 flex-row justify-between items-center rounded-b-lg`]}>
         <View style={tw`flex-row items-center`}>
           <Image
@@ -208,6 +256,7 @@ const HomePage = () => {
             <Text style={tw`text-lg font-bold`}>{userName}</Text>
           </View>
         </View>
+        <NotificationBell />
       </View>
 
       <View style={tw`flex-row justify-around mt-5`}>
