@@ -95,11 +95,11 @@ const HomePage = () => {
       onPress={() => navigation.navigate('Forum')}
     >
       <View>
-        <Icon name="bell-outline" size={24} color="#000" />
+        <Icon name="chat-outline" size={30} color="#000" />
         {unreadCount > 0 && (
           <View style={[
-            tw`absolute -right-2 -top-2 bg-red-500 rounded-full w-5 h-5 justify-center items-center`,
-            { minWidth: 20 }
+            tw`absolute -right-3 -top-2 bg-red-500 rounded-full w-6 h-6 justify-center items-center`,
+            { minWidth: 24 }
           ]}>
             <Text style={tw`text-white text-xs font-bold`}>
               {unreadCount > 99 ? '99+' : unreadCount}
@@ -244,7 +244,7 @@ const HomePage = () => {
   }));
 
   return (
-    <SafeAreaView style={[tw`flex-1 bg-white`, { paddingTop: Platform.OS === 'ios' ? 35 : StatusBar.currentHeight }]}>
+    <SafeAreaView style={[tw`flex-1 bg-white`, { paddingTop: Platform.OS === 'ios' ? 35 : StatusBar.currentHeight - 50 }]}>
       <View style={[tw`p-5 flex-row justify-between items-center rounded-b-lg`]}>
         <View style={tw`flex-row items-center`}>
           <Image
