@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../auths/FirebaseConfig';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, remove } from 'firebase/database';
 import * as Notifications from 'expo-notifications';
 
 const icons = [
@@ -40,136 +40,13 @@ const icons = [
   { name: 'leaf', color: '#4caf50' },
 ];
 
-// Thêm ở đầu file, ngoài component
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
 const AllTransaction = ({ navigation }) => {
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [selectedTransactions, setSelectedTransactions] = useState([]); // Mảng các giao dịch đã chọn
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All'); // Options: 'All', 'Income', 'Expense'
 
-// Cấu hình thông báo
-useEffect(() => {
-  const configurePushNotifications = async () => {
-    // Kiểm tra quyền thông báo
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notification!');
-      return;
-    }
-  };
-
-  configurePushNotifications();
-}, []);
-
-const checkTransactionsForToday = (transactions) => {
-  const today = new Date().toLocaleDateString();
-  const hasTransactionsToday = transactions.some((transaction) => {
-    const transactionDate = new Date(transaction.date).toLocaleDateString();
-    return transactionDate === today;
-  });
-
-  if (!hasTransactionsToday) {
-    const now = new Date();
-    const currentHour = now.getHours();
-    
-    if (currentHour >= 21) {
-      // Nếu đã quá 9 giờ tối, gửi thông báo ngay
-      sendImmediateNotification();
-    } else {
-      // Nếu chưa tới 9 giờ tối, lên lịch cho 9 giờ tối
-      scheduleReminder();
-    }
-  }
-};
-
-// Hàm lên lịch thông báo
-const scheduleReminder = async () => {
-  try {
-    const now = new Date();
-    const ninePM = new Date(now);
-    ninePM.setHours(21, 0, 0, 0);
-
-    // Nếu đã quá 9 giờ tối, đặt cho ngày hôm sau
-    if (now > ninePM) {
-      ninePM.setDate(ninePM.getDate() + 1);
-    }
-
-    // Hủy các thông báo cũ
-    await Notifications.cancelAllScheduledNotificationsAsync();
-
-    // Lên lịch thông báo mới sử dụng seconds
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Nhắc nhở giao dịch hàng ngày',
-        body: 'Bạn chưa ghi chép giao dịch nào hôm nay. Hãy cập nhật ngay!',
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
-      },
-      trigger: {
-        seconds: Math.floor((ninePM.getTime() - now.getTime()) / 1000), // Chuyển đổi thành seconds
-      },
-    });
-    console.log('Đã lên lịch thông báo cho:', ninePM.toLocaleString());
-  } catch (error) {
-    console.error('Lỗi lên lịch thông báo:', error);
-  }
-};
-
-// Xử lý khi người dùng nhấn vào thông báo
-useEffect(() => {
-  const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-    navigation.navigate('AddTransaction');
-  });
-
-  return () => {
-    subscription.remove();
-  };
-}, [navigation]);
-
-// Trong useEffect fetch data
-useEffect(() => {
-  const currentUser = FIREBASE_AUTH.currentUser;
-  if (currentUser) {
-    const transactionsRef = ref(FIREBASE_DB, `users/${currentUser.uid}/transactions`);
-    onValue(transactionsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const transactionList = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        }));
-        setTransactions(transactionList);
-        setFilteredTransactions(transactionList);
-        
-        // Kiểm tra và lên lịch thông báo
-        checkTransactionsForToday(transactionList);
-      } else {
-        setTransactions([]);
-        setFilteredTransactions([]);
-        // Nếu không có dữ liệu, lên lịch thông báo
-        scheduleReminder();
-      }
-    });
-  }
-}, []);
-
-
-  // Fetch transactions from Firebase
   useEffect(() => {
     const currentUser = FIREBASE_AUTH.currentUser;
     if (currentUser) {
@@ -183,20 +60,12 @@ useEffect(() => {
           }));
           setTransactions(transactionList);
           setFilteredTransactions(transactionList); // Initialize filtered transactions
-
-          // Kiểm tra giao dịch hôm nay
-          checkTransactionsForToday(transactionList);
-        } else {
-          setTransactions([]);
-          setFilteredTransactions([]);
-          // Nếu không có dữ liệu nào, gửi thông báo nhắc nhở
-          sendReminderNotification();
         }
       });
     }
   }, []);
 
-  // Handle search and filtering
+  // Filter and search transactions
   useEffect(() => {
     let filteredData = transactions;
 
@@ -217,10 +86,39 @@ useEffect(() => {
     setFilteredTransactions(filteredData);
   }, [searchQuery, filterType, transactions]);
 
-  const navigateToEditTransaction = (transaction) => {
-    navigation.navigate('Transaction', { transaction });
+  // Toggle chọn giao dịch
+  const toggleSelection = (id) => {
+    setSelectedTransactions((prevSelected) => {
+      if (prevSelected.includes(id)) {
+        return prevSelected.filter((item) => item !== id); // Deselect
+      } else {
+        return [...prevSelected, id]; // Select
+      }
+    });
   };
 
+  // Xóa các giao dịch đã chọn
+  const handleDeleteSelected = () => {
+    Alert.alert('Delete Transactions', 'Are you sure you want to delete the selected transactions?', [
+      { text: 'Cancel' },
+      {
+        text: 'Delete',
+        onPress: async () => {
+          const currentUser = FIREBASE_AUTH.currentUser;
+          if (currentUser) {
+            const userTransactionsRef = ref(FIREBASE_DB, `users/${currentUser.uid}/transactions`);
+            for (let transactionId of selectedTransactions) {
+              await remove(ref(userTransactionsRef, transactionId));
+            }
+            setSelectedTransactions([]); // Clear selected transactions after deletion
+            Alert.alert('Success', 'Selected transactions have been deleted.');
+          }
+        },
+      },
+    ]);
+  };
+
+  // Render giao dịch
   const renderTransaction = ({ item }) => {
     const iconDetails = icons.find((icon) => icon.name === item.category.icon);
     const iconColor = iconDetails ? iconDetails.color : '#6246EA'; // Default color
@@ -228,9 +126,14 @@ useEffect(() => {
     return (
       <TouchableOpacity
         style={styles.transactionContainer}
-        onPress={() => navigateToEditTransaction(item)}
+        onPress={() => navigation.navigate('Transaction', { transaction: item })} // Điều hướng tới trang Transaction
       >
-        <Icon name={item.category.icon} size={30} color={iconColor} style={styles.categoryIcon} />
+        <Icon
+          name={item.category.icon}
+          size={30}
+          color={iconColor}
+          style={styles.categoryIcon}
+        />
         <View style={styles.transactionDetails}>
           <Text style={styles.transactionDate}>{new Date(item.date).toLocaleDateString()}</Text>
           <Text style={styles.transactionCategory}>{item.category.name}</Text>
@@ -238,6 +141,18 @@ useEffect(() => {
         <Text style={styles.transactionAmount}>
           {`${item.type === 'Expense' ? '-' : '+'} ${item.amount} VND`}
         </Text>
+
+        {/* Nút "Select" ở bên phải */}
+        <TouchableOpacity
+          style={styles.selectButton}
+          onPress={() => toggleSelection(item.id)} // Chọn hoặc bỏ chọn giao dịch
+        >
+          <Icon
+            name={selectedTransactions.includes(item.id) ? 'check-circle' : 'circle-outline'}
+            size={24}
+            color={selectedTransactions.includes(item.id) ? 'green' : '#ccc'}
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -248,19 +163,13 @@ useEffect(() => {
         <Text style={styles.headerText}>All Transactions</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity onPress={() => setFilterType('All')}>
-            <Text style={[styles.filterButton, filterType === 'All' && styles.activeFilter]}>
-              All
-            </Text>
+            <Text style={[styles.filterButton, filterType === 'All' && styles.activeFilter]}>All</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setFilterType('Income')}>
-            <Text style={[styles.filterButton, filterType === 'Income' && styles.activeFilter]}>
-              Income
-            </Text>
+            <Text style={[styles.filterButton, filterType === 'Income' && styles.activeFilter]}>Income</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setFilterType('Expense')}>
-            <Text style={[styles.filterButton, filterType === 'Expense' && styles.activeFilter]}>
-              Expense
-            </Text>
+            <Text style={[styles.filterButton, filterType === 'Expense' && styles.activeFilter]}>Expense</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -274,6 +183,13 @@ useEffect(() => {
         />
         <Icon name="magnify" size={24} color="#333" />
       </View>
+
+      {/* Show delete button if there are selected transactions */}
+      {selectedTransactions.length > 0 && (
+        <TouchableOpacity onPress={handleDeleteSelected} style={styles.deleteButton}>
+          <Text style={styles.deleteButtonText}>Delete Selected</Text>
+        </TouchableOpacity>
+      )}
 
       <FlatList
         data={filteredTransactions}
@@ -361,6 +277,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+  },
+  selectButton: {
+    marginLeft: 10,
+  },
+  deleteButton: {
+    backgroundColor: '#ff3b30',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
