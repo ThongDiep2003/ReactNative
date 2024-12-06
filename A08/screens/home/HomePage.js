@@ -259,7 +259,7 @@ const HomePage = () => {
         <FlatList
           data={transactions.filter((transaction) => transaction.type === displayType)}
           renderItem={({ item }) => (
-            <TouchableOpacity
+            <View
               onPress={() => navigation.navigate('Transaction', { transaction: item })}
               style={tw`flex-row justify-between bg-gray-100 p-3 rounded-lg mb-2`}
             >
@@ -270,7 +270,7 @@ const HomePage = () => {
               <Text style={tw`${item.type === 'Expense' ? 'text-red-600' : 'text-green-600'} font-bold`}>
                 {item.type === 'Expense' ? '-' : '+'} {item.amount.toLocaleString()} VND
               </Text>
-            </TouchableOpacity>
+            </View>
           )}
           keyExtractor={(item, index) => index.toString()}
         />
