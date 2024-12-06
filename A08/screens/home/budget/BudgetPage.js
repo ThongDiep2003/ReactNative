@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { Alert } from 'react-native';
+import GoalPage from './GoalPage';
 
 //Cấu hình  notifications
 Notifications.setNotificationHandler({
