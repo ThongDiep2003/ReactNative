@@ -118,11 +118,16 @@ class NotificationHandler {
     if (!replies) return;
 
     Object.entries(replies).forEach(async ([replyId, replyData]) => {
+      // Bỏ qua nếu người trả lời là chính mình
+      if (replyData.email === this.currentUser) {
+        return;
+      }
+
       const notificationKey = `${questionId}-${replyId}`;
       
       // Kiểm tra xem đã gửi thông báo chưa
       const hasNotified = await this.checkIfNotified(notificationKey);
-      if (!hasNotified && !replyData.read && replyData.email !== this.currentUser) {
+      if (!hasNotified && !replyData.read) {
         await this.sendNotification(questionData.question, replyData, {
           questionId,
           replyId,
@@ -130,6 +135,7 @@ class NotificationHandler {
         await this.markAsNotified(notificationKey);
       }
     });
+
   }
 
   // Kiểm tra xem đã gửi thông báo chưa
@@ -154,6 +160,11 @@ class NotificationHandler {
   // Gửi thông báo
   async sendNotification(question, replyData, metadata) {
     try {
+      // Kiểm tra xem người trả lời có phải là chính mình không
+      if (replyData.email === this.currentUser) {
+        return;
+      }
+
       const now = Date.now();
       const lastTime = this.lastNotificationTime[metadata.questionId] || 0;
       const THROTTLE_TIME = 5000; // 5 seconds
@@ -183,6 +194,47 @@ class NotificationHandler {
     }
   }
 
+  // Lắng nghe câu trả lời mới
+  listenToNewReplies() {
+    if (!this.currentUser) return;
+
+    const forumRef = ref(FIREBASE_DB, 'forum');
+    onValue(forumRef, async (snapshot) => {
+      const forumData = snapshot.val();
+      if (!forumData) return;
+
+      Object.entries(forumData).forEach(([questionId, questionData]) => {
+        // Chỉ xử lý câu hỏi của người dùng hiện tại
+        if (questionData.email === this.currentUser) {
+          // Kiểm tra xem có replies mới không và người trả lời không phải là chính mình
+          if (questionData.replies) {
+            const hasNewRepliesFromOthers = Object.values(questionData.replies).some(
+              reply => reply.email !== this.currentUser && !reply.read
+            );
+            if (hasNewRepliesFromOthers) {
+              this.checkNewReplies(questionId, questionData);
+            }
+          }
+        }
+      });
+    });
+  }
+
+    // Xử lý khi nhận được thông báo
+    handleNotification = async (notification) => {
+        try {
+          const data = notification.request.content.data;
+          // Chỉ tăng badge count nếu người trả lời không phải là chính mình
+          if (data.reply && data.reply.email !== this.currentUser) {
+            const count = await Notifications.getBadgeCountAsync();
+            await Notifications.setBadgeCountAsync(count + 1);
+          }
+        } catch (error) {
+          console.error('Error handling notification:', error);
+        }
+      };
+
+      
   // Dọn dẹp listeners
   cleanup() {
     if (this.notificationListener) {
