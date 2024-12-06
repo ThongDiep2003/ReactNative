@@ -148,18 +148,18 @@ const StatisticPage = ({ navigation }) => {
         {selectedDate && filteredTransactions && (
           <View style={styles.summaryContainer}>
             <Text style={styles.summaryTitle}>
-              Tổng quan ngày {moment(selectedDate).format('YYYY-MM-DD')}
+              Sumary {moment(selectedDate).format('YYYY-MM-DD')}
             </Text>
             <View style={styles.summaryRow}>
               <Text style={styles.incomeText}>
-                Thu nhập: {filteredTransactions.incoming?.toLocaleString()} VND
+                Income: {filteredTransactions.incoming?.toLocaleString()} VND
               </Text>
               <Text style={styles.expenseText}>
-                Chi tiêu: {filteredTransactions.outgoing?.toLocaleString()} VND
+                Expense: {filteredTransactions.outgoing?.toLocaleString()} VND
               </Text>
             </View>
             <Text style={styles.totalText}>
-              Tổng:{' '}
+              Total:{' '}
               {(
                 (filteredTransactions.incoming || 0) - (filteredTransactions.outgoing || 0)
               ).toLocaleString()}{' '}
@@ -171,7 +171,7 @@ const StatisticPage = ({ navigation }) => {
         {/* Thu nhập Area Chart */}
         {dailyTransactionData[moment(selectedDate).format('YYYY-MM')] && (
           <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>Thu nhập</Text>
+            <Text style={styles.chartTitle}>Income</Text>
             <LineChart
               data={dailyTransactionData[moment(selectedDate).format('YYYY-MM')].map((d) => ({
                 value: d.incoming,
@@ -197,7 +197,7 @@ const StatisticPage = ({ navigation }) => {
         {/* Chi tiêu Area Chart */}
         {dailyTransactionData[moment(selectedDate).format('YYYY-MM')] && (
           <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>Chi tiêu</Text>
+            <Text style={styles.chartTitle}>Expense</Text>
             <LineChart
               data={dailyTransactionData[moment(selectedDate).format('YYYY-MM')].map((d) => ({
                 value: d.outgoing,

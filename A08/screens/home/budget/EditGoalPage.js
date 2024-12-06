@@ -49,14 +49,14 @@ const EditGoalPage = () => {
         selectedDate.setHours(0, 0, 0, 0);
 
         if (selectedDate < currentDate) {
-          setDateError('Ngày kết thúc không thể là ngày trong quá khứ');
+          setDateError('Expire date must be in the future');
           return;
         }
 
         // Kiểm tra ngày hết hạn có hợp lệ không
         const daysDiff = moment(selectedDate).diff(moment(), 'days');
         if (daysDiff < 1) {
-          setDateError('Ngày kết thúc phải cách ít nhất 1 ngày');
+          setDateError('Expire date must be at least 1 day from now');
           return;
         }
 
@@ -147,7 +147,7 @@ const EditGoalPage = () => {
           onChangeText={setAmount}
         />
         
-        <Text style={styles.label}>Ngày kết thúc:</Text>
+        <Text style={styles.label}>Expired day:</Text>
         <TouchableOpacity 
           onPress={() => setShowDatePicker(true)} 
           style={[
@@ -169,7 +169,7 @@ const EditGoalPage = () => {
           />
         )}
 
-        <Text style={styles.sectionTitle}>Chọn danh mục</Text>
+        <Text style={styles.sectionTitle}>Select Category</Text>
         <View style={styles.categoryContainer}>
           {categories.map((cat) => (
             <TouchableOpacity
@@ -189,7 +189,7 @@ const EditGoalPage = () => {
           onPress={handleUpdateGoal} 
           style={styles.saveButton}
         >
-          Cập nhật mục tiêu
+          Update Goal
         </Button>
       </View>
     );

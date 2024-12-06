@@ -241,8 +241,8 @@ const BudgetPage = () => {
           {/* Ngày tháng và nút Add */}
           <View style={styles.dateAddContainer}>
             <View>
-              <Text style={styles.dateText}>Tháng {moment().format('MMMM YYYY')}</Text>
-              <Text style={styles.daysLeftText}>Còn {daysLeft} ngày nữa hết tháng</Text>
+              <Text style={styles.dateText}>{moment().format('MMMM YYYY')}</Text>
+              <Text style={styles.daysLeftText}>{daysLeft} days remaing</Text>
             </View>
             <TouchableOpacity
               onPress={() => navigation.navigate('AddBudget')}
@@ -291,20 +291,20 @@ const BudgetPage = () => {
                   budget.remaining < 0 && styles.overBudgetAmount
                 ]}>
                   {budget.remaining < 0 
-                    ? `Vượt ${Math.abs(budget.remaining).toLocaleString()} VND`
-                    : `Còn lại ${budget.remaining.toLocaleString()} VND`
+                    ? `Over ${Math.abs(budget.remaining).toLocaleString()} VND`
+                    : `${budget.remaining.toLocaleString()} VND Left`
                   }
                 </Text>
                 <Text style={[
                   styles.budgetSpent,
                   budget.expense > budget.amount && styles.overBudgetText
                 ]}>
-                  Chi {(budget.expense || 0).toLocaleString()} /{' '}
+                  Expense {(budget.expense || 0).toLocaleString()} /{' '}
                   {(budget.amount || 0).toLocaleString()} VND
                 </Text>
                 {budget.expense > budget.amount && (
                   <Text style={styles.overBudgetWarning}>
-                    Đã vượt {((budget.expense / budget.amount - 1) * 100).toFixed(0)}% ngân sách
+                    Over {((budget.expense / budget.amount - 1) * 100).toFixed(0)}% budget
                   </Text>
                 )}
               </TouchableOpacity>

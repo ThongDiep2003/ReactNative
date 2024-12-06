@@ -124,7 +124,7 @@ const ForumScreen = () => {
   // Thêm câu hỏi
   const handleAddQuestion = () => {
     if (!question.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập câu hỏi');
+      Alert.alert('Error', 'Please enter a question');
       return;
     }
   
@@ -141,14 +141,14 @@ const ForumScreen = () => {
         setQuestion('');
       })
       .catch((error) => {
-        Alert.alert('Lỗi', 'Không thể thêm câu hỏi: ' + error.message);
+        Alert.alert('Error', 'Cannot add question: ' + error.message);
       });
   };
 
   // Thêm câu trả lời
   const handleAddReply = async () => {
     if (!reply.trim() || !selectedQuestionId) {
-      Alert.alert('Lỗi', 'Vui lòng nhập câu trả lời');
+      Alert.alert('Error', 'Please enter a reply');
       return;
     }
   
@@ -269,7 +269,7 @@ const ForumScreen = () => {
     <View style={styles.questionContainer}>
       <Text style={styles.questionText}>{item.question}</Text>
       <View style={styles.questionInfo}>
-        <Text style={styles.emailText}>Hỏi bởi: {item.email}</Text>
+        <Text style={styles.emailText}>Ask by: {item.email}</Text>
         <Text style={styles.timeText}>
           {moment(item.timestamp).fromNow()}
         </Text>
@@ -281,7 +281,7 @@ const ForumScreen = () => {
           onPress={() => setSelectedQuestionId(selectedQuestionId === item.id ? null : item.id)}
         >
           <Text style={styles.replyButtonText}>
-            {selectedQuestionId === item.id ? 'Hủy' : 'Trả lời'}
+            {selectedQuestionId === item.id ? 'Cancle' : 'Reply'}
           </Text>
         </TouchableOpacity>
         {item.email === currentUser && (
@@ -289,7 +289,7 @@ const ForumScreen = () => {
             style={styles.deleteButton}
             onPress={() => handleDeleteQuestion(item.id, item.email)}
           >
-            <Text style={styles.deleteButtonText}>Xóa</Text>
+            <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -315,7 +315,7 @@ const ForumScreen = () => {
                   <Text style={styles.replyText}>- {replyData.reply}</Text>
                   <View style={styles.replyInfo}>
                     <Text style={styles.emailText}>
-                      Trả lời bởi: {replyData.email}
+                      Reply by: {replyData.email}
                     </Text>
                     <Text style={styles.timeText}>
                       {moment(replyData.timestamp).fromNow()}
