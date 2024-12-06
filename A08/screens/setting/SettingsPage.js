@@ -39,7 +39,7 @@ const SettingsPage = ({ navigation }) => {
         style={styles.item}
         onPress={() => navigation.navigate('Forum')} 
       >
-        <Text style={styles.itemText}>Q & A</Text>
+        <Text style={styles.itemText}>Forum</Text>
       </TouchableOpacity>
       <TouchableOpacity 
         style={styles.item}

@@ -179,10 +179,9 @@ const ForumScreen = () => {
       setReply('');
       setSelectedQuestionId(null);
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể thêm câu trả lời: ' + error.message);
     }
   };
-  
+
   // Xóa câu hỏi
   const handleDeleteQuestion = (id, email) => {
     if (email !== currentUser) {
