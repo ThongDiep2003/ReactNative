@@ -15,62 +15,80 @@ const Login = () => {
   const navigation = useNavigation();
   const auth = FIREBASE_AUTH;
   
+// Login.js
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await signInWithEmailAndPassword(auth, username, password);
-      const user = response.user;
+        const response = await signInWithEmailAndPassword(auth, username, password);
+        const user = response.user;
 
-      // Kiểm tra status của user từ Realtime Database
-      const db = getDatabase();
-      const userRef = ref(db, `users/${user.uid}`);
-      const userSnapshot = await get(userRef);
-      const userData = userSnapshot.val();
+        // Kiểm tra status của user từ Realtime Database
+        const db = getDatabase();
+        const userRef = ref(db, `users/${user.uid}`);
+        const userSnapshot = await get(userRef);
+        const userData = userSnapshot.val();
 
-      if (userData?.status === 'blocked') {
-        // Nếu user bị block, hiển thị thông báo và không cho đăng nhập
-        Alert.alert(
-          'Account Blocked',
-          `Your account has been blocked.\nReason: ${userData.blockReason || 'No reason provided'}`,
-          [
-            { text: 'OK', onPress: async () => {
-              // Sign out user ngay lập tức
-              await auth.signOut();
-            }}
-          ]
-        );
-        return;
-      }
+        if (userData?.status === 'blocked') {
+            Alert.alert(
+                'Account Blocked',
+                `Your account has been blocked.\nReason: ${userData.blockReason || 'No reason provided'}`,
+                [{ 
+                    text: 'OK', 
+                    onPress: async () => {
+                        await auth.signOut();
+                        await AsyncStorage.multiRemove(['jwtToken', 'userId', 'userEmail']);
+                    }
+                }]
+            );
+            return;
+        }
 
-      // Nếu user không bị block, tiếp tục quy trình đăng nhập bình thường
-      const token = await user.getIdToken();
-      await AsyncStorage.setItem('jwtToken', token);
+        // Lưu thông tin chi tiết hơn
+        const token = await user.getIdToken();
+        await AsyncStorage.multiSet([
+            ['jwtToken', token],
+            ['userId', user.uid],
+            ['userEmail', user.email],
+            ['loginTimestamp', Date.now().toString()],
+            ['userStatus', 'active']
+        ]);
 
-      const expoPushToken = await registerForPushNotificationsAsync();
-      if (!expoPushToken) {
-        Alert.alert('Login successful, but no push token available.');
-      } else {
-        await sendNotification(
-          expoPushToken, 
-          'Login Successful!', 
-          'Welcome back to the app!'
-        );
-      }
+        const expoPushToken = await registerForPushNotificationsAsync();
+        if (expoPushToken) {
+            await sendNotification(
+                expoPushToken, 
+                'Login Successful!', 
+                'Welcome back to the app!'
+            );
+        }
 
-      Alert.alert('Login successful');
-      navigation.navigate('Main');
+        Alert.alert('Login successful');
+        navigation.navigate('Main');
 
     } catch (error) {
-      console.error(error);
-      if (error.code === 'auth/user-not-found') {
-        Alert.alert('Login failed: User not found');
-      } else if (error.code === 'auth/wrong-password') {
-        Alert.alert('Login failed: Wrong password');
-      } else {
-        Alert.alert('Login failed: ' + error.message);
-      }
+        console.error('Login error:', error);
+        let errorMessage = 'Login failed: ';
+        
+        switch (error.code) {
+            case 'auth/user-not-found':
+                errorMessage += 'User not found';
+                break;
+            case 'auth/wrong-password':
+                errorMessage += 'Wrong password';
+                break;
+            case 'auth/invalid-email':
+                errorMessage += 'Invalid email format';
+                break;
+            case 'auth/too-many-requests':
+                errorMessage += 'Too many attempts. Please try again later';
+                break;
+            default:
+                errorMessage += error.message;
+        }
+        
+        Alert.alert('Error', errorMessage);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 

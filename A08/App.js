@@ -5,7 +5,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { configureNotifications, registerForPushNotificationsAsync } from './services/notificationService';
-import { FIREBASE_AUTH } from "./auths/FirebaseConfig";
+import { FIREBASE_AUTH, FIREBASE_DB } from "./auths/FirebaseConfig";
+import { ref, get } from 'firebase/database';
 
 ErrorUtils.setGlobalHandler((error, isFatal) => {
   // Ghi log lỗi nhưng không hiển thị trên giao diện
@@ -89,55 +90,107 @@ const App = () => {
 
   const [isLoggedIn, setIsLoggedIn] = useState(null);
 
-  // Kiểm tra trạng thái đăng nhập
   useEffect(() => {
     const checkLoginStatus = async () => {
-      try {
-        const token = await AsyncStorage.getItem('jwtToken');
-        
-        if (token) {
-          // Nếu có token, kiểm tra trạng thái user trong database
-          const auth = FIREBASE_AUTH;
-          const currentUser = auth.currentUser;
+        try {
+            const [token, userId, userEmail, loginTimestamp, userStatus] = await AsyncStorage.multiGet([
+                'jwtToken',
+                'userId',
+                'userEmail',
+                'loginTimestamp',
+                'userStatus'
+            ]);
 
-          if (currentUser) {
-            const db = getDatabase();
-            const userRef = ref(db, `users/${currentUser.uid}`);
-            const userSnapshot = await get(userRef);
-            const userData = userSnapshot.val();
+            if (token[1] && userId[1]) {
+                const loginTime = parseInt(loginTimestamp[1] || '0');
+                const timeNow = Date.now();
+                const SESSION_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-            if (userData?.status === 'blocked') {
-              // Nếu user bị block, xóa token và không cho tự động đăng nhập
-              await AsyncStorage.removeItem('jwtToken');
-              await auth.signOut();
-              setIsLoggedIn(false);
-              Alert.alert(
-                'Account Blocked',
-                `Your account has been blocked.\nReason: ${userData.blockReason || 'No reason provided'}`
-              );
+                if (timeNow - loginTime > SESSION_TIMEOUT) {
+                    await AsyncStorage.multiRemove([
+                        'jwtToken', 
+                        'userId', 
+                        'userEmail', 
+                        'loginTimestamp', 
+                        'userStatus'
+                    ]);
+                    setIsLoggedIn(false);
+                    return;
+                }
+
+                // Sử dụng FIREBASE_DB đã được export
+                const userRef = ref(FIREBASE_DB, `users/${userId[1]}`);
+                const userSnapshot = await get(userRef);
+                const userData = userSnapshot.val();
+
+                if (userData?.status === 'blocked') {
+                    await AsyncStorage.multiRemove([
+                        'jwtToken', 
+                        'userId', 
+                        'userEmail', 
+                        'loginTimestamp', 
+                        'userStatus'
+                    ]);
+                    setIsLoggedIn(false);
+                    Alert.alert(
+                        'Account Blocked',
+                        `Your account has been blocked.\nReason: ${userData.blockReason || 'No reason provided'}`
+                    );
+                } else {
+                    // Cập nhật thông tin session
+                    await AsyncStorage.multiSet([
+                        ['loginTimestamp', Date.now().toString()],
+                        ['userStatus', userData.status || 'active']
+                    ]);
+                    
+                    // Cập nhật last active time trong database (tùy chọn)
+                    try {
+                        await set(ref(FIREBASE_DB, `users/${userId[1]}/lastActive`), Date.now());
+                    } catch (updateError) {
+                        console.warn('Failed to update last active time:', updateError);
+                    }
+
+                    setIsLoggedIn(true);
+                }
             } else {
-              // User không bị block, cho phép tự động đăng nhập
-              setIsLoggedIn(true);
+                setIsLoggedIn(false);
             }
-          } else {
-            // Không có current user, xóa token
-            await AsyncStorage.removeItem('jwtToken');
+        } catch (error) {
+            console.error('Auto login check failed:', error);
+            // Xử lý lỗi và cleanup
+            await AsyncStorage.multiRemove([
+                'jwtToken', 
+                'userId', 
+                'userEmail', 
+                'loginTimestamp', 
+                'userStatus'
+            ]);
             setIsLoggedIn(false);
-          }
-        } else {
-          setIsLoggedIn(false);
         }
-      } catch (error) {
-        console.error('Failed to check login status:', error);
-        // Nếu có lỗi, xóa token để an toàn
-        await AsyncStorage.removeItem('jwtToken');
-        setIsLoggedIn(false);
-      }
     };
 
-    checkLoginStatus();
-  }, []);
+    // Auth state listener
+    const unsubscribe = FIREBASE_AUTH.onAuthStateChanged(async (user) => {
+        if (!user) {
+            await AsyncStorage.multiRemove([
+                'jwtToken', 
+                'userId', 
+                'userEmail', 
+                'loginTimestamp', 
+                'userStatus'
+            ]);
+            setIsLoggedIn(false);
+        }
+    });
 
+    // Initial check
+    checkLoginStatus();
+
+    // Cleanup
+    return () => {
+        unsubscribe();
+    };
+}, []);
 
   if (isLoggedIn === null) {
     return null; // Hiển thị màn hình trắng hoặc spinner khi đang kiểm tra trạng thái đăng nhập
@@ -326,5 +379,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-
 export default App;
