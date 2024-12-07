@@ -140,7 +140,6 @@ const ForumScreen = () => {
         setQuestion('');
       })
       .catch((error) => {
-        Alert.alert('Lỗi', 'Không thể thêm câu hỏi: ' + error.message);
       });
   };
 
@@ -179,7 +178,6 @@ const ForumScreen = () => {
       setReply('');
       setSelectedQuestionId(null);
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể thêm câu trả lời: ' + error.message);
     }
   };
   
