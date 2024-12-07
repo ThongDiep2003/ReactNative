@@ -61,17 +61,19 @@ const AddCardPage = ({ navigation }) => {
   };
 
   const handleAddCard = () => {
-    if (!bankName || !cardNumber || !holderName || !expiryDate || !cvv) {
-      Alert.alert('Error', 'Please fill in all fields.');
+    if (!bankName) {
+      Alert.alert('Error', 'Please enter the Bank Name.');
       return;
     }
 
-    if (cardNumber.replace(/-/g, '').length !== 16) {
+    // Kiểm tra card number nếu được nhập
+    if (cardNumber && cardNumber.replace(/-/g, '').length !== 16) {
       Alert.alert('Error', 'Card number must be 16 digits.');
       return;
     }
 
-    if (cvv.length !== 3 && cvv.length !== 4) {
+    // Kiểm tra CVV nếu được nhập
+    if (cvv && (cvv.length !== 3 && cvv.length !== 4)) {
       Alert.alert('Error', 'CVV must be 3 or 4 digits.');
       return;
     }
@@ -79,18 +81,20 @@ const AddCardPage = ({ navigation }) => {
     // Chuyển hướng đến DemoViewCardPage để xem trước thẻ
     navigation.navigate('DemoViewCard', {
       bankName,
-      cardNumber,
-      holderName,
-      expiryDate,
-      cvv,
-      color: selectedColor, });
+      cardNumber: cardNumber || '****-****-****-****',
+      holderName: holderName || 'CARD HOLDER',
+      expiryDate: expiryDate || 'MM/YYYY',
+      cvv: cvv || '***',
+      color: selectedColor,
+    });
   };
+
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Add New Card</Text>
       <PaperInput
-        label="Bank Name"
+        label="Bank Name *"
         value={bankName}
         onChangeText={setBankName}
         mode="outlined"
@@ -99,7 +103,7 @@ const AddCardPage = ({ navigation }) => {
         activeOutlineColor="#6246EA"
       />
       <PaperInput
-        label="Card Number (16 digits)"
+        label="Card Number (Optional)"
         value={cardNumber}
         keyboardType="numeric"
         onChangeText={handleCardNumberChange}
@@ -109,7 +113,7 @@ const AddCardPage = ({ navigation }) => {
         activeOutlineColor="#6246EA"
       />
       <PaperInput
-        label="Card Holder's Name"
+        label="Card Holder's Name (Optional)"
         value={holderName}
         onChangeText={handleHolderNameChange}
         mode="outlined"
@@ -118,7 +122,7 @@ const AddCardPage = ({ navigation }) => {
         activeOutlineColor="#6246EA"
       />
       <PaperInput
-        label="Expiry Date (MM/YYYY)"
+        label="Expiry Date (Optional)"
         value={expiryDate}
         keyboardType="numeric"
         onChangeText={handleExpiryDateChange}
@@ -128,7 +132,7 @@ const AddCardPage = ({ navigation }) => {
         activeOutlineColor="#6246EA"
       />
       <PaperInput
-        label="CVV (3-4 digits)"
+        label="CVV (Optional)"
         value={cvv}
         secureTextEntry
         keyboardType="numeric"
@@ -139,6 +143,8 @@ const AddCardPage = ({ navigation }) => {
         outlineColor="#ccc"
         activeOutlineColor="#6246EA"
       />
+      
+      {/* Phần còn lại giữ nguyên */}
       <Text style={styles.subHeader}>Select Card Color</Text>
       <View style={styles.colorContainer}>
         {colors.map((color, index) => (
@@ -165,6 +171,7 @@ const AddCardPage = ({ navigation }) => {
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

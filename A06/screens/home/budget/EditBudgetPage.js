@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Dimensions } from "react-native";
 import { FIREBASE_DB, FIREBASE_AUTH } from "../../../auths/FirebaseConfig"; // Ensure correct Firebase config is imported
 import { ref, update, onValue } from "firebase/database";
-import { BarChart, XAxis, Grid } from "react-native-svg-charts";
 import * as scale from "d3-scale";
+import { Line } from 'react-native-svg';
+import { BarChart } from "react-native-gifted-charts";
 
 const EditBudgetPage = ({ navigation, route }) => {
   const { budgetId } = route.params || {}; // Safely extract budgetId
@@ -88,9 +89,87 @@ const EditBudgetPage = ({ navigation, route }) => {
   const spendingData = spendingTrend.map((item) => item.value);
   const spendingMonths = spendingTrend.map((item) => item.month);
 
+  const ThresholdLine = ({ y, threshold }) => (
+    <Line
+      key={'threshold-line'}
+      x1={'0%'}
+      x2={'100%'}
+      y1={y(threshold)}
+      y2={y(threshold)}
+      stroke={'red'}
+      strokeWidth={2}
+      strokeDasharray={[4, 4]}
+    />
+  );
+
+  const renderChart = () => {
+    // Chuẩn bị dữ liệu cho chart
+    const barData = spendingTrend.map((item) => ({
+      value: item.value,
+      label: item.month,
+      frontColor: '#6200ee',
+      topLabelComponent: () => (
+        <Text style={styles.barLabel}>
+          ${item.value}
+        </Text>
+      ),
+    }));
+
+
+    return (
+      <View style={styles.chartContainer}>
+        <BarChart
+          data={barData}
+          width={Dimensions.get('window').width - 60}
+          height={250}
+          barWidth={30}
+          spacing={20}
+          hideRules
+          xAxisThickness={1}
+          yAxisThickness={1}
+          yAxisTextStyle={{ color: 'gray' }}
+          xAxisLabelTextStyle={{ color: 'gray', textAlign: 'center' }}
+          noOfSections={5}
+          maxValue={Math.max(...spendingTrend.map(item => item.value), parseFloat(budgetAmount)) * 1.2}
+          // Thêm đường ngân sách
+          dashWidth={2}
+          dashGap={4}
+          horizontalRulesStyle={{
+            strokeDasharray: [4, 4],
+          }}
+          horizontalRulesAnimation={true}
+          rulesColor="lightgray"
+          rulesType="solid"
+          showReferenceLine1
+          referenceLine1Position={parseFloat(budgetAmount)}
+          referenceLine1Config={{
+            color: 'red',
+            dashWidth: 2,
+            dashGap: 3,
+            width: 1,
+          }}
+        />
+
+        {/* Legend */}
+        <View style={styles.legendContainer}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#6200ee' }]} />
+            <Text style={styles.legendText}>Monthly Spending</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: 'red' }]} />
+            <Text style={styles.legendText}>Budget Limit</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Edit Budget</Text>
+      
+      {/* Budget Name Input */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Budget Name</Text>
         <TextInput
@@ -100,6 +179,8 @@ const EditBudgetPage = ({ navigation, route }) => {
           placeholder="Enter budget name"
         />
       </View>
+
+      {/* Budget Amount Input */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Budget Amount</Text>
         <TextInput
@@ -113,26 +194,7 @@ const EditBudgetPage = ({ navigation, route }) => {
 
       {/* Spending Trends */}
       <Text style={styles.trendTitle}>Spending Trend</Text>
-      <View style={styles.chartContainer}>
-        <BarChart
-          style={{ height: 200 }}
-          data={spendingData}
-          svg={{ fill: "#6200ee" }}
-          contentInset={{ top: 10, bottom: 10 }}
-          spacingInner={0.4}
-          spacingOuter={0.2}
-        >
-          <Grid />
-        </BarChart>
-        <XAxis
-          style={{ marginHorizontal: -10, marginTop: 10 }}
-          data={spendingData}
-          formatLabel={(value, index) => spendingMonths[index]}
-          contentInset={{ left: 20, right: 20 }}
-          svg={{ fontSize: 10, fill: "gray" }}
-          scale={scale.scaleBand}
-        />
-      </View>
+      {renderChart()}
 
       {/* Save Button */}
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -141,6 +203,7 @@ const EditBudgetPage = ({ navigation, route }) => {
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -174,19 +237,46 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   chartContainer: {
-    height: 250,
     padding: 10,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 8,
     backgroundColor: "#f9f9f9",
+    alignItems: 'center',
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingHorizontal: 10,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    marginRight: 5,
+    borderRadius: 2,
+  },
+  legendText: {
+    fontSize: 12,
+    color: 'gray',
+  },
+  barLabel: {
+    color: 'gray',
+    fontSize: 10,
+    marginBottom: 4,
   },
   saveButton: {
     backgroundColor: "#6200ee",
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 20,
   },
   saveButtonText: {
     color: "#fff",
@@ -194,5 +284,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
 
 export default EditBudgetPage;
