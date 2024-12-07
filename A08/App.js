@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { configureNotifications, registerForPushNotificationsAsync } from './services/notificationService';
+import { FIREBASE_AUTH } from "./auths/FirebaseConfig";
 
 ErrorUtils.setGlobalHandler((error, isFatal) => {
   // Ghi log lỗi nhưng không hiển thị trên giao diện
@@ -93,15 +94,50 @@ const App = () => {
     const checkLoginStatus = async () => {
       try {
         const token = await AsyncStorage.getItem('jwtToken');
-        setIsLoggedIn(!!token); // Kiểm tra token và đặt trạng thái đăng nhập
+        
+        if (token) {
+          // Nếu có token, kiểm tra trạng thái user trong database
+          const auth = FIREBASE_AUTH;
+          const currentUser = auth.currentUser;
+
+          if (currentUser) {
+            const db = getDatabase();
+            const userRef = ref(db, `users/${currentUser.uid}`);
+            const userSnapshot = await get(userRef);
+            const userData = userSnapshot.val();
+
+            if (userData?.status === 'blocked') {
+              // Nếu user bị block, xóa token và không cho tự động đăng nhập
+              await AsyncStorage.removeItem('jwtToken');
+              await auth.signOut();
+              setIsLoggedIn(false);
+              Alert.alert(
+                'Account Blocked',
+                `Your account has been blocked.\nReason: ${userData.blockReason || 'No reason provided'}`
+              );
+            } else {
+              // User không bị block, cho phép tự động đăng nhập
+              setIsLoggedIn(true);
+            }
+          } else {
+            // Không có current user, xóa token
+            await AsyncStorage.removeItem('jwtToken');
+            setIsLoggedIn(false);
+          }
+        } else {
+          setIsLoggedIn(false);
+        }
       } catch (error) {
         console.error('Failed to check login status:', error);
+        // Nếu có lỗi, xóa token để an toàn
+        await AsyncStorage.removeItem('jwtToken');
         setIsLoggedIn(false);
       }
     };
 
     checkLoginStatus();
   }, []);
+
 
   if (isLoggedIn === null) {
     return null; // Hiển thị màn hình trắng hoặc spinner khi đang kiểm tra trạng thái đăng nhập

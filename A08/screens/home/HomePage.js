@@ -246,7 +246,7 @@ const HomePage = () => {
     : [];
 
   return (
-    <SafeAreaView style={[tw`flex-1 bg-white`, { paddingTop: Platform.OS === 'ios' ? 35 : StatusBar.currentHeight - 50 }]}>
+    <SafeAreaView style={[tw`flex-1 bg-white`, { paddingTop: Platform.OS === 'ios' ? 35 : StatusBar.currentHeight - 10 }]}>
       <View style={[tw`p-5 flex-row justify-between items-center rounded-b-lg`]}>
         <View style={tw`flex-row items-center`}>
           <Image

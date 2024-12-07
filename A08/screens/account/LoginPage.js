@@ -5,6 +5,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { FIREBASE_AUTH } from '../../auths/FirebaseConfig'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerForPushNotificationsAsync, sendNotification } from '../../services/notificationService'; // Import các hàm thông báo
+import { getDatabase, ref, get } from 'firebase/database';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -17,39 +18,62 @@ const Login = () => {
   const handleLogin = async () => {
     setLoading(true);
     try {
-        const response = await signInWithEmailAndPassword(auth, username, password);
-        const user = response.user;
-  
-        // Get JWT token from Firebase
-        const token = await user.getIdToken();
-  
-        // Store the token in AsyncStorage for later use
-        await AsyncStorage.setItem('jwtToken', token);
-  
-        // Lấy Expo Push Token
-        const expoPushToken = await registerForPushNotificationsAsync();
-        if (!expoPushToken) {
-            Alert.alert('Login successful, but no push token available.');
-        } else {
-            // Gửi thông báo chào mừng
-            await sendNotification(expoPushToken, 'Login Successful!', 'Welcome back to the app!');
-        }
-  
-        Alert.alert('Login successful');
-        navigation.navigate('Main'); // Điều hướng đến màn hình chính
+      const response = await signInWithEmailAndPassword(auth, username, password);
+      const user = response.user;
+
+      // Kiểm tra status của user từ Realtime Database
+      const db = getDatabase();
+      const userRef = ref(db, `users/${user.uid}`);
+      const userSnapshot = await get(userRef);
+      const userData = userSnapshot.val();
+
+      if (userData?.status === 'blocked') {
+        // Nếu user bị block, hiển thị thông báo và không cho đăng nhập
+        Alert.alert(
+          'Account Blocked',
+          `Your account has been blocked.\nReason: ${userData.blockReason || 'No reason provided'}`,
+          [
+            { text: 'OK', onPress: async () => {
+              // Sign out user ngay lập tức
+              await auth.signOut();
+            }}
+          ]
+        );
+        return;
+      }
+
+      // Nếu user không bị block, tiếp tục quy trình đăng nhập bình thường
+      const token = await user.getIdToken();
+      await AsyncStorage.setItem('jwtToken', token);
+
+      const expoPushToken = await registerForPushNotificationsAsync();
+      if (!expoPushToken) {
+        Alert.alert('Login successful, but no push token available.');
+      } else {
+        await sendNotification(
+          expoPushToken, 
+          'Login Successful!', 
+          'Welcome back to the app!'
+        );
+      }
+
+      Alert.alert('Login successful');
+      navigation.navigate('Main');
+
     } catch (error) {
-        console.error(error);
-        if (error.code === 'auth/user-not-found') {
-            Alert.alert('Login failed: User not found');
-        } else if (error.code === 'auth/wrong-password') {
-            Alert.alert('Login failed: Wrong password');
-        } else {
-            Alert.alert('Login failed: ' + error.message);
-        }
+      console.error(error);
+      if (error.code === 'auth/user-not-found') {
+        Alert.alert('Login failed: User not found');
+      } else if (error.code === 'auth/wrong-password') {
+        Alert.alert('Login failed: Wrong password');
+      } else {
+        Alert.alert('Login failed: ' + error.message);
+      }
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
+
 
   
   return (
